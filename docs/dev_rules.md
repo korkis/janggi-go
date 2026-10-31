@@ -42,6 +42,19 @@
 - 모델은 데이터 구조만 정의하고 비즈니스 로직은 서비스나 함수에서 처리한다.
 - 장기 규칙과 관련된 타입(`Position`, `Move`, 기보 표기 등)은 `janggi_core`에 한 번만 정의하고 다른 Dart 코드베이스에서 다시 선언하지 않는다.
 
+### 설정 저장
+
+| 종류 | 위치 |
+|---|---|
+| 앱과 서버가 같이 쓰는 설정, 운영하면서 바꾸는 설정 | Firestore `configs/app` 문서 |
+| 서버만 쓰고 운영 중 바꿀 일이 없는 설정 (예: 외부 API 모델 이름) | `server/functions/src/config.ts` |
+| 비밀값 (API 키 등) | Secret Manager |
+
+- `configs/app`은 앱이 로그인 전에도 읽을 수 있게 읽기를 열고, 쓰기는 막는다. Admin 웹은 Callable로 바꾼다.
+- `configs/app`의 모델은 앱과 Functions 양쪽에 선언하고 필드를 일치시킨다.
+- 알려지면 악용될 수 있는 값(검사 기준값 등)은 `configs/app`에 두지 않는다.
+- Functions는 요청마다 `configs/app`을 읽지 않도록 짧은 시간 동안 메모리에 캐시한다.
+
 ### 개발 환경
 
 - 개발과 테스트는 Firebase Emulator Suite에 연결해서 한다. 운영 프로젝트에 테스트 계정이나 테스트 데이터를 쓰지 않는다.
@@ -274,7 +287,7 @@ npm --prefix admin run build
 
 - 모든 Functions는 리전을 `asia-northeast3`(서울)로 명시한다. 기본 리전(`us-central1`)에 배포되지 않게 한다.
 - 서버 측 날짜·시간 계산에는 `Date()` 또는 `Date.now()`보다 `dayjs`를 우선 사용한다.
-- Functions 설정 파일에 설정을 추가할 때는 설정 키 바로 위에 해당 설정을 설명하는 한국어 주석을 작성한다.
+- `config.ts`에 설정을 추가할 때는 설정 키 바로 위에 해당 설정을 설명하는 한국어 주석을 작성한다.
 
 ### 정적 검사
 
