@@ -80,6 +80,7 @@ dart test
 
 - 서버 변경은 옛 앱이 읽는 계약을 추가로만 바꾼다. 새 Callable·엔드포인트, 새 선택 필드, 기존 값의 계산 방식 변경은 허용한다. 앱이 파싱하는 enum 값 추가, 필수 필드 삭제·이름 변경·null 저장, Callable·엔드포인트 삭제·이름 변경·필수 파라미터 추가는 옛 앱이 더 쓰이지 않을 때까지 하지 않는다.
 - 서버 변경 커밋의 메시지 본문에 옛 앱 호환성을 한 줄 적는다. 예: `호환성: 옛 앱 영향 없음` 또는 `호환성: 옛 앱이 읽는 대국 종료 사유 계산 변경, 배포 전 확인 필요`.
+- `janggi_core`의 규칙 판정 변경(합법수, 승패·무승부 조건, 점수 계산)은 서버 계약 변경으로 취급한다. 옛 앱의 판정과 새 서버의 판정이 달라지면 옛 앱 사용자의 수가 거절되므로, 커밋 메시지에 호환성 메모를 적고 배포 전에 옛 앱 영향을 확인한다.
 - 서버를 먼저 배포하고 앱을 나중에 제출한다.
 - 보안 규칙과 Functions는 에뮬레이터에서 확인한 뒤에만 배포한다.
 
@@ -96,7 +97,7 @@ dart test
 
 ### 상태와 아키텍처
 
-- Flutter 기본 `ChangeNotifier` 클래스를 컨트롤러로 사용한다. Provider, Riverpod, Bloc 등 서드 파티 상태 관리 패키지를 추가하지 않는다.
+- 상태 클래스는 Flutter 기본 `ChangeNotifier`를 상속하고 이름을 `<기능>Manager`로 짓는다. Manager는 기능별로 여러 개 만든다. Provider, Riverpod, Bloc 등 서드 파티 상태 관리 패키지를 추가하지 않는다.
 - 앱 수명 동안 유지할 Manager는 전역 `AppManagers managers`, Repository는 전역 `AppRepositories repositories` 인스턴스로 관리한다.
 - 각 Repository 파일에는 전역 인스턴스를 선언하지 않는다. 기본 Repository의 생성과 의존성 조립은 `AppRepositories.createDefault()`에 모은다.
 - 각 Manager 파일에는 전역 인스턴스를 선언하지 않는다. 기본 Manager의 생성과 의존성 조립은 `AppManagers.createDefault()`에 모은다.
@@ -104,7 +105,9 @@ dart test
 - 앱은 Firebase 초기화 뒤 `repositories`, `managers` 순서로 설정한다. 테스트도 각 테스트의 위젯 또는 대상 코드를 생성하기 전에 같은 순서로 설정한다.
 - Screen과 Router는 `managers`의 Manager를 직접 사용하며 Manager를 생성자 매개변수로 전달하지 않는다.
 - Manager를 참조하는 Router는 `JanggigoApp` 인스턴스를 생성할 때 함께 생성해 해당 시점에 설정된 `managers`를 사용한다.
-- 한 화면이나 한 대국에만 쓰는 상태(예: 장기판 선택 상태)는 전역 Manager가 아니라 해당 화면이 소유하는 `ChangeNotifier` 컨트롤러에 둔다.
+- 한 화면이나 한 대국에만 쓰는 상태(예: 장기판 선택 상태)는 `managers`에 등록하지 않고 해당 화면이 생성하고 `dispose()`하는 Manager(예: `BoardManager`)에 둔다.
+- 대국 시계처럼 자주 바뀌는 값은 장기판 Manager와 다른 `ValueNotifier`·`ChangeNotifier`로 분리해 그 값을 쓰는 위젯만 다시 그려지게 한다.
+- 장기판과 기물은 `CustomPainter`로 그리고 `RepaintBoundary`로 감싼다.
 - UI에는 `ListenableBuilder`를 사용하고 부수 효과에는 `addListener`/`removeListener`를 사용한다.
 - 실시간 갱신이 필요하지 않은 목록 쿼리에는 `Stream` 대신 `Future`를 사용한다.
 - `build()`에서 부수 효과를 발생시키지 않는다. 비동기 작업과 상태 변경은 생명주기 메서드나 이벤트 핸들러에서만 시작한다.
@@ -188,6 +191,7 @@ flutter test
 
 - 수의 합법성 판정은 반드시 `janggi_core`를 호출한다. 서버에 별도 규칙 판정 코드를 만들지 않는다.
 - 클라이언트가 보낸 수와 시간은 신뢰하지 않는다. 수 검증과 대국 시계는 서버가 기준이다.
+- 시간은 `DateTime.now().toUtc()`로 구하고 UTC로 저장한다. 로컬 시간대 변환은 앱의 표시 단계에서만 한다.
 - 요청 파라미터 검증은 엔드포인트별 `validateParams()`에 모으고 비즈니스 로직 전에 호출한다.
 - DB 접근은 repository에서만 수행한다. repository 규칙은 Firebase 백엔드 규칙과 같다.
 
@@ -203,6 +207,13 @@ flutter test
 - callable과 service는 repository를 조합해 비즈니스 흐름과 트랜잭션 순서를 관리하고 컬렉션을 직접 참조하지 않는다.
 - 여러 컬렉션을 사용하는 작업을 하나의 범용 repository나 비즈니스 동작 이름의 repository로 합치지 않는다.
 - Emulator 통합 테스트의 fixture 준비와 저장 결과 검증을 위한 직접 접근은 `server/functions/test` 아래에서만 허용한다.
+
+### 보안 규칙
+
+- Firestore와 Realtime Database 보안 규칙은 기본 거부에서 시작하고 필요한 경로만 연다.
+- 대국 상태(수, 시계, 결과, 급수 변동)는 서버(`server/game`, Functions의 Admin SDK)만 쓴다. 클라이언트에는 쓰기 권한을 주지 않는다.
+- 관전용 진행 중 대국 데이터는 비로그인 읽기를 허용한다. 채팅과 대국 참여는 로그인한 사용자만 허용한다.
+- 보안 규칙을 바꾸면 허용되어야 할 접근과 거부되어야 할 접근을 에뮬레이터 테스트로 함께 검증한다.
 
 ### Callable과 검증
 
