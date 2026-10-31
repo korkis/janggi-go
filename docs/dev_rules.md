@@ -48,6 +48,7 @@
 |---|---|
 | 앱과 서버가 같이 쓰는 설정, 운영하면서 바꾸는 설정 | Firestore `configs/app` 문서 |
 | 서버만 쓰고 운영 중 바꿀 일이 없는 설정 (예: 외부 API 모델 이름) | `server/functions/src/config.ts` |
+| 앱만 쓰고 운영 중 바꿀 일이 없는 설정 | `app/lib/config.dart` |
 | 비밀값 (API 키 등) | Secret Manager |
 
 - `configs/app`은 앱이 로그인 전에도 읽을 수 있게 읽기를 열고, 쓰기는 막는다. Admin 웹은 Callable로 바꾼다.
