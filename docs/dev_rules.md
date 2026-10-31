@@ -11,6 +11,7 @@
 | `server/` | Firebase 설정(`firebase.json`, `.firebaserc`)과 보안 규칙 |
 | `server/functions/` | Cloud Functions (TypeScript) |
 | `server/game/` | Cloud Run Dart 대국 서버 (매칭, 수 검증, 서버 시계) |
+| `server/admin/` | Admin 웹 (React, 신고 처리 등 운영) |
 | `tools/` | 어느 코드베이스에도 의존하지 않는 독립 스크립트 |
 | `docs/` | 기획과 개발 문서 |
 
@@ -195,6 +196,47 @@ flutter test
 - 요청 파라미터 검증은 엔드포인트별 `validateParams()`에 모으고 비즈니스 로직 전에 호출한다.
 - DB 접근은 repository에서만 수행한다. repository 규칙은 Firebase 백엔드 규칙과 같다.
 
+## Admin 웹 규칙
+
+이 규칙은 `server/admin/` 아래 파일에 적용한다.
+
+### 상태와 아키텍처
+
+- 라우팅은 React Router, 전역 클라이언트 상태는 Zustand, 스타일은 Tailwind CSS를 사용한다.
+- 소스는 TypeScript·TSX와 strict 검사를 사용한다. `.js`, `.jsx` 소스는 추가하지 않는다.
+- Firebase Auth claim, Callable 요청·응답, Zustand 상태와 라우트 파라미터에 타입을 선언하며 `any`로 경계를 우회하지 않는다.
+- 외부 입력과 Callable 응답은 `unknown`에서 시작해 `services/adminApi` 경계에서 필수 필드와 enum 값을 검증한다.
+- 현재 보고 있는 신고와 사용자의 식별자는 URL을 원본으로 사용하고 같은 값을 Zustand에 별도로 복제하지 않는다.
+- 인증 상태와 claim 확인은 `authStore`, 신고·조치 상태는 `moderationStore`, 서버 원본이 아닌 화면 상태는 `uiStore`에서 관리한다.
+- Firebase 초기화와 Callable 호출은 `services` 아래에 두고 화면 컴포넌트에서 Firebase SDK를 직접 호출하지 않는다.
+- 신고 원문, 채팅 내용과 사용자 비공개 정보를 Zustand persist, `localStorage` 또는 기타 장기 브라우저 저장소에 보관하지 않는다.
+
+### 권한과 데이터 접근
+
+- 보호 라우트는 Firebase Auth 복원과 ID token의 `admin: true` claim 확인이 끝난 뒤에만 렌더링한다.
+- 클라이언트 claim 확인만 신뢰하지 않고 모든 Admin 조회와 변경을 claim을 재검증하는 Callable을 통해 수행한다.
+- Admin 웹의 직접 접근을 위해 신고, 제재 기록, 사용자 비공개 컬렉션의 보안 규칙을 열지 않는다.
+- 서비스 계정, Admin SDK credential과 ID token을 소스, 브라우저 번들, 로그 또는 Hosting 결과에 포함하지 않는다.
+- 운영 조치는 사유 입력과 확인 단계를 거치며 요청 중 중복 제출을 막는다. 성공 뒤 관련 목록과 상세 상태를 서버 응답으로 갱신한다.
+- 오류 로그에는 신고·채팅 원문, 이메일, token과 전체 Callable payload를 남기지 않는다.
+
+### UI
+
+- 처리 상태와 제재 상태는 색상만으로 표현하지 않고 텍스트 또는 아이콘 레이블을 함께 사용한다.
+- 로딩, 빈 데이터, 권한 없음, 재시도 가능한 오류와 완료 상태를 구분해 표시한다.
+- 계정 상태를 바꾸는 조치는 대상, 종류, 기간과 연결된 신고를 실행 직전에 다시 보여준다.
+
+### Admin 웹 검증
+
+`server/`에서 다음 명령을 실행한다.
+
+```text
+npm --prefix admin run lint
+npm --prefix admin run build
+```
+
+인증·Callable·신고 처리 계약을 바꿨다면 일반 사용자 거부, Admin 허용, 중복 조치를 Emulator 또는 Functions 테스트로 함께 검증한다.
+
 ## Firebase 백엔드 규칙
 
 이 규칙은 `server/functions/`, Firebase 보안 규칙과 Firebase 설정 파일에 적용한다.
@@ -222,6 +264,11 @@ flutter test
 - payload 타입, enum, 길이와 형식 검증은 해당 함수 파일의 `validateParams()`에 모으고 핸들러의 비즈니스 로직 전에 호출한다.
 - 호출자 `uid`처럼 검증에 필요한 문맥이 있으면 `validateParams(requestParams, uid)`와 같이 명시적으로 전달한다.
 - payload가 없는 callable에는 불필요한 `validateParams()`를 만들지 않는다.
+
+### 외부 API
+
+- OpenAI 등 외부 API 키는 Functions의 Secret Manager 설정으로만 관리하고 소스, 앱, Admin 웹 번들에 넣지 않는다.
+- 외부 API 호출은 서버에서만 한다. 앱과 Admin 웹이 외부 API를 직접 호출하지 않는다.
 
 ### 설정, 리전, 날짜·시간
 
