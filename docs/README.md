@@ -18,7 +18,7 @@
 | [game/notation.md](./game/notation.md) | 좌표, 수, 국면, 기보 표기 형식 |
 | [game/time.md](./game/time.md) | 기본 시간, 초읽기, 시간 연장 |
 | [game/handicap.md](./game/handicap.md) | 접장기(기물 떼기) |
-| [game/matching.md](./game/matching.md) | 빠른 매칭, 대국실, 직접 신청, 링크 초대 |
+| [game/matching.md](./game/matching.md) | 빠른 대국, 방 만들기(방 목록, 링크, 신청) |
 
 ## 화면
 
