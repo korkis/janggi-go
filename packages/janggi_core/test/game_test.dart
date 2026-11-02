@@ -140,7 +140,7 @@ void main() {
     });
   });
 
-  group('기권과 시간패', () {
+  group('기권, 시간패, 접속 끊김', () {
     test('기권한 쪽이 진다', () {
       final game = Game.start(_start()).resign(Side.cho);
       expect(
@@ -155,6 +155,17 @@ void main() {
       expect(game.result?.winner, Side.cho);
       expect(game.result?.reason, GameEndReason.timeout);
       expect(game.result?.reason.isScoreJudgment, isFalse);
+    });
+
+    test('접속 끊김 허용 시간을 넘긴 쪽이 진다', () {
+      final game = Game.start(_start()).play(mv('a4a5')).disconnect(Side.cho);
+      expect(
+        game.result,
+        const GameResult(winner: Side.han, reason: GameEndReason.disconnect, choScore: 72, hanScore: 73.5),
+      );
+      expect(game.result?.reason.isScoreJudgment, isFalse);
+      expect(game.legalMoves(), isEmpty);
+      expect(() => game.disconnect(Side.han), throwsStateError);
     });
   });
 

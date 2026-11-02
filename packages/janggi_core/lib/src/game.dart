@@ -9,6 +9,9 @@ enum GameEndReason {
   /// 시간을 모두 썼다. 시계는 서버가 판단하고 엔진은 결과만 기록한다.
   timeout,
 
+  /// 한 대국 동안 연결이 끊겨 있던 시간의 합계가 허용 시간을 넘었다. 대국 서버가 판단하고 엔진은 결과만 기록한다.
+  disconnect,
+
   /// 양쪽이 연속으로 한수쉼을 해서 점수로 판정했다.
   consecutivePasses,
 
@@ -18,7 +21,7 @@ enum GameEndReason {
   /// 장군이 아닌데 수도 한수쉼도 둘 수 없어서 점수로 판정했다.
   noLegalMoves;
 
-  /// 점수승인지 여부. 아니면 완승(외통, 기권, 시간패)이다.
+  /// 점수승인지 여부. 아니면 완승(외통, 기권, 시간패, 접속 끊김)이다.
   bool get isScoreJudgment => this == consecutivePasses || this == moveLimit || this == noLegalMoves;
 }
 
@@ -61,7 +64,7 @@ final class GameResult {
 
 /// 한 대국. 처음 국면과 둔 수를 가지고 반복수, 한수쉼, 수 제한, 승패를 판정한다.
 ///
-/// 불변 객체이며 [play], [resign], [timeout]은 새 객체를 반환한다.
+/// 불변 객체이며 [play], [resign], [timeout], [disconnect]는 새 객체를 반환한다.
 final class Game {
   /// 초와 한의 수를 합산한 최대 수. 한수쉼도 1수로 센다.
   static const maxMoves = 200;
@@ -136,6 +139,9 @@ final class Game {
 
   /// [side]가 시간을 모두 쓴 대국을 반환한다.
   Game timeout(Side side) => _endBy(side.opponent, GameEndReason.timeout);
+
+  /// [side]가 접속 끊김 허용 시간을 넘긴 대국을 반환한다.
+  Game disconnect(Side side) => _endBy(side.opponent, GameEndReason.disconnect);
 
   Game _endBy(Side winner, GameEndReason reason) {
     if (isOver) {
