@@ -1,19 +1,36 @@
 rules_version = '2';
 
+// 기본 거부에서 시작하고 필요한 경로만 연다(docs/database.md의 보안 규칙 방향).
+// 여기에 없는 컬렉션은 클라이언트가 읽지도 쓰지도 못한다. 서버(Admin SDK)는 규칙을 거치지 않는다.
+// 서버 전용: nicknames, ratings, nickname_changes, quick_queue, challenge_limits, reports,
+// moderation_logs, chat_checks, sanctions.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 11, 30);
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // 운영 설정. 앱이 로그인 전에도 읽는다. 쓰기는 Admin 웹의 Callable(Functions)만 한다.
+    match /configs/app {
+      allow read: if true;
+    }
+
+    // 공개 프로필. Functions와 대국 서버만 쓴다.
+    match /users/{uid} {
+      allow read: if signedIn();
+    }
+
+    // 본인만 보는 정보. 본인은 challengesEnabled만 바꿀 수 있다.
+    match /users_private/{uid} {
+      allow read: if isOwner(uid);
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['challengesEnabled'])
+        && request.resource.data.challengesEnabled is bool;
     }
   }
 }
