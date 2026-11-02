@@ -40,6 +40,18 @@ void main() {
     expect(fakes.connections.writes.where((write) => write == 'lastSeenAt me c1'), hasLength(3));
   });
 
+  testWidgets('로그인한 동안 내 connections를 들어 RTDB 연결을 유지하고, 로그아웃하면 그만 듣는다', (tester) async {
+    final fakes = setUpFakeApp();
+    expect(fakes.connections.isWatchingConnections('me'), isFalse);
+    await fakes.auth.signInWithEmail(email: 'me', password: 'password');
+    await tester.pump();
+    expect(fakes.connections.isWatchingConnections('me'), isTrue);
+
+    await fakes.auth.signOut();
+    await tester.pump();
+    expect(fakes.connections.isWatchingConnections('me'), isFalse);
+  });
+
   testWidgets('다른 앱으로 넘어가면 foreground false를 쓰고, 돌아오면 activeSince를 쓰고 checkGame을 부른다', (tester) async {
     final fakes = setUpFakeApp();
     managers.connectionManager.observeAppLifecycle();

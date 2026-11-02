@@ -283,6 +283,9 @@ class FakeConnectionRepository implements ConnectionRepository {
   /// [uid]의 연결이 바뀐 것처럼 보낸다.
   void emitConnections(String uid, List<Connection> connections) => _getController(uid).add(connections);
 
+  /// 누군가 [uid]의 연결을 듣고 있는지.
+  bool isWatchingConnections(String uid) => _getController(uid).hasListener;
+
   @override
   Future<String> createConnection(String uid, {required bool foreground}) async {
     writes.add('create $uid $foreground');

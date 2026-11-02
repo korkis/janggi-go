@@ -194,6 +194,7 @@ flowchart LR
 [rules.md](./game/rules.md)의 접속 끊김을 서버가 판정한다.
 
 - 앱은 로그인한 동안 RTDB `connections/{uid}/{connectionId}`에 접속 상태를 쓴다(`ConnectionManager`).
+  - 로그인한 동안 자기 `connections/{uid}`를 계속 듣는다. 안드로이드 RTDB SDK는 서버에서 듣는 경로가 없으면 60초 뒤 연결을 닫아서, 홈·빠른 대국 대기·방 대기실처럼 Firestore만 듣는 화면에서 끊긴 것으로 보이기 때문이다.
   - RTDB에 연결될 때마다(`.info/connected`) 지난 연결 키를 지우고 새 연결에 `online: true`, `foreground`, `activeSince`·`lastSeenAt`(서버 시각)을 쓴 뒤 `onDisconnect`로 `online: false`를 걸어 둔다. 보안 규칙이 연결의 필드를 모두 요구하므로 연결을 쓴 뒤에 건다.
   - 진행 중 대국(`player_states.gameId`, 상차림 포함)이 있는 동안 `heartbeatSeconds`마다 `lastSeenAt`을 갱신한다. 대국이 생기면 바로 한 번 쓴다.
   - 다른 앱으로 넘어가면(앱 생명주기 `hidden`, `paused`) `foreground: false`와 `lastSeenAt`을 쓴다. 돌아오면(`resumed`, `inactive`) `foreground: true`와 `activeSince`를 쓴다.
@@ -472,6 +473,7 @@ OpenAI API 키는 Secret Manager에 둔다.
 - Cloud Tasks는 에뮬레이터가 없다. 예약 작업은 `TaskScheduler` 인터페이스 뒤에 두고, 개발에서는 같은 프로세스의 타이머가 대국 서버의 `/tasks/...`를 부르는 구현을 쓴다.
 - Firestore와 RTDB는 REST API로 다룬다. Dart용 Firebase Admin SDK가 공식으로 없기 때문이다. 쓸 패키지는 구현 첫 단계에서 고른다.
 - 앱의 개발 빌드는 대국 서버 주소도 개발 PC를 가리킨다(`app/lib/config.dart`).
+- 안드로이드 에뮬레이터에서 앱을 돌릴 때는 `adb reverse tcp:9000 tcp:9000`을 먼저 실행한다. RTDB 에뮬레이터는 연결할 때 다시 붙을 주소로 `127.0.0.1:9000`을 알려 주는데, 기기 안의 `127.0.0.1`은 기기 자신이라 한 번 끊긴 뒤 다시 붙지 못하기 때문이다. 에뮬레이터를 다시 켤 때마다 다시 실행한다.
 - 테스트에서 서로 다른 계정 두 개로 한 판을 끝까지 두는 통합 테스트를 만든다.
 
 ## 구현 순서 — 제안
