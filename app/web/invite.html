@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<!--
+  초대 링크 입장 페이지. Firebase Hosting이 https://janggi-go.web.app/r/<방 ID>를 이 파일로 보낸다(server/firebase.json).
+  흐름은 docs/game/matching.md의 링크를 따른다.
+
+  - 앱이 설치된 휴대폰은 안드로이드 App Links, iOS Universal Links가 이 페이지보다 먼저 앱을 연다.
+  - PC는 웹 버전의 그 방으로 바로 보낸다(/?room=<방 ID>).
+  - 카카오톡·유튜브 등 앱 안 브라우저는 앱이 바로 열리지 않으므로 "앱에서 열기"를 맨 위에 둔다.
+  - 앱이 없으면 "웹에서 바로 두기"와 "앱 설치"를 고른다. 안드로이드는 플레이 스토어 설치 정보(referrer)로 방을 넘겨 설치 뒤
+    처음 켤 때 그 방으로 들어간다. 아이폰은 설치 뒤 링크를 한 번 더 눌러 달라고 안내한다.
+
+  Flutter 앱이 아닌 가벼운 페이지라 문구는 앱의 ARB 대신 아래 TEXTS에 한국어와 영어로 둔다. 바꾸면 두 언어를 같이 바꾼다.
+-->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>장기고 초대</title>
+  <meta name="description" content="장기고에서 장기 한 판 두실래요?">
+  <meta property="og:title" content="장기고에서 장기 한 판 두실래요?">
+  <meta property="og:description" content="링크를 누르면 바로 방에 들어가요">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --background: #F4F5F7;
+      --surface: #FFFFFF;
+      --text: #15171A;
+      --sub-text: #5A6069;
+      --accent: #1E6A4E;
+      --outline: #D5D9DF;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    }
+    main {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 16px;
+      padding: 28px 20px;
+      background: var(--surface);
+      border-radius: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 26px; font-weight: 800; }
+    p { margin: 0; font-size: 18px; line-height: 1.5; color: var(--sub-text); }
+    .actions { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+    .button {
+      display: block;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1.5px solid var(--outline);
+      color: var(--text);
+      background: var(--surface);
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+    }
+    .button.primary { border-color: var(--accent); background: var(--accent); color: #FFFFFF; }
+    .note { margin-top: 12px; font-size: 16px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="title"></h1>
+    <p id="description"></p>
+    <div class="actions">
+      <a id="open-app" class="button" hidden></a>
+      <a id="play-web" class="button" hidden></a>
+      <a id="install" class="button" hidden></a>
+      <a id="home" class="button primary" href="/" hidden></a>
+    </div>
+    <p id="note" class="note" hidden></p>
+  </main>
+  <script>
+    'use strict';
+
+    // 앱과 같은 값이다. 안드로이드 패키지는 android/app/build.gradle.kts, 앱 주소 scheme은 lib/config.dart의 appUrlScheme.
+    var ANDROID_PACKAGE = 'com.gazuacup.janggigo';
+    var APP_SCHEME = 'janggigo';
+    // App Store 주소. 앱을 등록하면 넣는다. 없으면 아이폰에서 앱 설치 버튼을 숨긴다.
+    var APP_STORE_URL = null;
+
+    var TEXTS = {
+      ko: {
+        title: '장기 한 판 두실래요?',
+        description: '장기고 방에 초대받았어요.',
+        openApp: '앱에서 열기',
+        playWeb: '웹에서 바로 두기',
+        install: '앱 설치',
+        iosInstallNote: '앱을 설치한 뒤 이 링크를 한 번 더 눌러 주세요.',
+        iosOpenNote: '앱이 열리지 않으면 웹에서 바로 두거나 앱을 설치해 주세요.',
+        invalidTitle: '초대 링크가 올바르지 않아요',
+        invalidDescription: '링크를 다시 확인해 주세요.',
+        home: '장기고로 가기'
+      },
+      en: {
+        title: 'Up for a game of Janggi?',
+        description: 'You have been invited to a Janggigo room.',
+        openApp: 'Open in app',
+        playWeb: 'Play on the web',
+        install: 'Install the app',
+        iosInstallNote: 'After installing the app, tap this link again.',
+        iosOpenNote: 'If the app does not open, play on the web or install the app.',
+        invalidTitle: 'This invite link is not valid',
+        invalidDescription: 'Please check the link again.',
+        home: 'Go to Janggigo'
+      }
+    };
+
+    var text = /^ko\b/i.test(navigator.language || '') ? TEXTS.ko : TEXTS.en;
+    document.documentElement.lang = text === TEXTS.ko ? 'ko' : 'en';
+
+    // 대국 서버가 만드는 방 ID 모양(lib/utils/invite_link.dart와 같다).
+    var match = location.pathname.match(/^\/r\/([A-Za-z0-9]{1,64})\/?$/);
+    var roomId = match ? match[1] : null;
+
+    var userAgent = navigator.userAgent || '';
+    var android = /Android/i.test(userAgent);
+    var ios = /iPhone|iPad|iPod/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // 카카오톡, 네이버, 인스타그램, 페이스북, 라인, 다음 등의 앱 안 브라우저와 안드로이드 WebView.
+    var inAppBrowser = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(userAgent);
+
+    function show(id, label, href) {
+      var element = document.getElementById(id);
+      element.textContent = label;
+      if (href) {
+        element.href = href;
+      }
+      element.hidden = false;
+      return element;
+    }
+
+    function setText(id, value) {
+      var element = document.getElementById(id);
+      element.textContent = value;
+      element.hidden = false;
+    }
+
+    if (!roomId) {
+      setText('title', text.invalidTitle);
+      setText('description', text.invalidDescription);
+      show('home', text.home);
+    } else if (!android && !ios) {
+      // PC는 웹 버전의 그 방으로 바로 간다.
+      location.replace('/?room=' + roomId);
+    } else {
+      setText('title', text.title);
+      setText('description', text.description);
+      var webUrl = '/?room=' + roomId;
+      var playStoreUrl = 'https://play.google.com/store/apps/details?id=' + ANDROID_PACKAGE +
+        '&referrer=' + encodeURIComponent('room=' + roomId);
+      var openAppUrl;
+      if (android) {
+        // 앱이 있으면 초대 링크로 앱을 열고, 없으면 설치 정보를 붙인 플레이 스토어로 간다.
+        openAppUrl = 'intent://' + location.host + '/r/' + roomId + '#Intent;scheme=https;package=' + ANDROID_PACKAGE +
+          ';S.browser_fallback_url=' + encodeURIComponent(playStoreUrl) + ';end';
+      } else {
+        openAppUrl = APP_SCHEME + '://r/' + roomId;
+      }
+
+      var openApp = show('open-app', text.openApp, openAppUrl);
+      var playWeb = show('play-web', text.playWeb, webUrl);
+      var installUrl = android ? playStoreUrl : APP_STORE_URL;
+      if (installUrl) {
+        show('install', text.install, installUrl);
+      }
+      // 앱 안 브라우저는 앱이 바로 열리지 않을 수 있어 "앱에서 열기"를 앞세운다. 일반 브라우저까지 왔으면 앱이 없을 가능성이
+      // 커서 "웹에서 바로 두기"를 앞세운다.
+      if (inAppBrowser) {
+        openApp.classList.add('primary');
+      } else {
+        playWeb.classList.add('primary');
+        openApp.parentNode.appendChild(openApp);
+      }
+      if (ios) {
+        setText('note', installUrl ? text.iosInstallNote : text.iosOpenNote);
+        openApp.addEventListener('click', function () {
+          setText('note', text.iosOpenNote);
+        });
+      }
+    }
+  </script>
+</body>
+</html>

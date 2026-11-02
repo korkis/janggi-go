@@ -580,4 +580,276 @@ class AppLocalizationsKo extends AppLocalizations {
   String resultRankDown(String rank) {
     return '$rank으로 내려갔어요';
   }
+
+  @override
+  String get homeCreateRoom => '방 만들기';
+
+  @override
+  String get homeResumeRoom => '방으로 돌아가기';
+
+  @override
+  String get lobbyTitle => '대국실';
+
+  @override
+  String get lobbyRoomList => '방 목록';
+
+  @override
+  String get lobbyEmpty => '지금 열린 방이 없어요';
+
+  @override
+  String get lobbyEmptyDescription => '방을 만들어 상대를 기다려 보세요';
+
+  @override
+  String get lobbyEnter => '입장';
+
+  @override
+  String get retry => '다시 불러오기';
+
+  @override
+  String get loginSheetTitleCreateRoom => '로그인하면 바로\n방을 만들 수 있어요';
+
+  @override
+  String get loginSheetTitleLobby => '로그인하고\n대국실에 들어가 보세요';
+
+  @override
+  String get loginSheetTitleJoinRoom => '로그인하면 바로\n초대받은 방에 들어가요';
+
+  @override
+  String get nicknameStartHintCreateRoom => '정하고 나면 바로 방을 만들어요';
+
+  @override
+  String get nicknameStartHintLobby => '정하고 나면 대국실로 가요';
+
+  @override
+  String get nicknameStartHintJoinRoom => '정하고 나면 바로 방에 들어가요';
+
+  @override
+  String get errorRoomFull => '방에 빈자리가 없어요';
+
+  @override
+  String get errorRoomPlaying => '지금 대국 중인 방이에요';
+
+  @override
+  String get errorRoomClosed => '닫힌 방이에요';
+
+  @override
+  String get errorKicked => '이 방에는 다시 들어갈 수 없어요';
+
+  @override
+  String get errorRankOutOfRange => '이 방에 들어갈 수 있는 급수가 아니에요';
+
+  @override
+  String get errorNotHost => '방장만 할 수 있어요';
+
+  @override
+  String get errorJoinRoom => '방에 들어가지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorCreateRoom => '방을 만들지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorLeaveRoom => '방을 나가지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorKickGuest => '내보내지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorStartRoomGame => '대국을 시작하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorLoadRooms => '방 목록을 불러오지 못했어요';
+
+  @override
+  String get errorLoadRoom => '방을 불러오지 못했어요';
+
+  @override
+  String get errorShareLink => '공유하지 못했어요. 링크 복사를 써 주세요';
+
+  @override
+  String roomTitle(String nickname) {
+    return '$nickname의 방';
+  }
+
+  @override
+  String get rankRangeAll => '모든 급수';
+
+  @override
+  String rankRange(String min, String max) {
+    return '$min ~ $max';
+  }
+
+  @override
+  String pieceName(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'chariot': '차',
+      'cannon': '포',
+      'horse': '마',
+      'elephant': '상',
+      'advisor': '사',
+      'soldier': '졸',
+      'king': '궁',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String handicapSummary(String pieces, int points) {
+    return '$pieces 떼기 · $points점 적게 시작';
+  }
+
+  @override
+  String get roomChipHandicap => '접장기';
+
+  @override
+  String roomChipRemover(String remover) {
+    String _temp0 = intl.Intl.selectLogic(remover, {
+      'creator': '방장이 떼요',
+      'opponent': '상대가 떼요',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String roomChipSide(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '방장 초',
+      'han': '방장 한',
+      'random': '진영 무작위',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get roomChipListed => '공개';
+
+  @override
+  String get roomChipUnlisted => '비공개';
+
+  @override
+  String get roomHost => '방장';
+
+  @override
+  String get roomGuest => '상대';
+
+  @override
+  String get roomWaitingGuest => '상대를 기다리고 있어요';
+
+  @override
+  String get roomKick => '내보내기';
+
+  @override
+  String roomKickConfirm(String nickname) {
+    return '$nickname님을 내보낼까요? 이 방에 다시 들어올 수 없어요';
+  }
+
+  @override
+  String get roomInviteTitle => '초대 링크로 부르기';
+
+  @override
+  String get roomCopyLink => '링크 복사';
+
+  @override
+  String get roomShareLink => '공유하기';
+
+  @override
+  String get roomLinkCopied => '링크를 복사했어요';
+
+  @override
+  String roomInviteMessage(String link) {
+    return '장기고에서 장기 한 판 두실래요? $link';
+  }
+
+  @override
+  String get roomStart => '대국 시작';
+
+  @override
+  String get roomStartWaiting => '상대가 들어오면 시작할 수 있어요';
+
+  @override
+  String get roomWaitingHost => '방장이 대국을 시작하면 바로 상차림으로 가요';
+
+  @override
+  String get roomLeave => '나가기';
+
+  @override
+  String get roomLeaveHostConfirm => '방을 나가면 방이 닫혀요. 나갈까요?';
+
+  @override
+  String get roomClosedNotice => '방이 닫혔어요';
+
+  @override
+  String get roomKickedNotice => '방장이 내보냈어요';
+
+  @override
+  String get roomRemovedNotice => '연결이 오래 끊겨 방에서 나왔어요';
+
+  @override
+  String get createRoomTitle => '방 만들기';
+
+  @override
+  String get createRoomSubmit => '방 만들기';
+
+  @override
+  String get createRoomSide => '내 진영';
+
+  @override
+  String get createRoomHandicapSide => '떼는 쪽이 한을 잡아요';
+
+  @override
+  String get createRoomHandicap => '접장기';
+
+  @override
+  String get createRoomHandicapDescription => '한쪽이 기물을 떼고 둬요';
+
+  @override
+  String get createRoomRemover => '떼는 쪽';
+
+  @override
+  String handicapRemover(String remover) {
+    String _temp0 = intl.Intl.selectLogic(remover, {
+      'creator': '나',
+      'opponent': '상대',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomPieces => '뗄 기물';
+
+  @override
+  String get createRoomPiecesHint => '뗄 기물을 골라 주세요';
+
+  @override
+  String handicapPieceLabel(String side, String piece) {
+    return '$side $piece';
+  }
+
+  @override
+  String boardSideName(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'left': '왼쪽',
+      'right': '오른쪽',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomListed => '방 목록에 공개';
+
+  @override
+  String get createRoomListedOn => '방 목록에 보이고 누구나 들어올 수 있어요';
+
+  @override
+  String get createRoomListedOff => '초대 링크로만 들어올 수 있어요';
+
+  @override
+  String get createRoomRankRange => '들어올 수 있는 급수';
+
+  @override
+  String get resultBackToRoom => '방 대기실로';
 }

@@ -1,5 +1,6 @@
 import 'auth_manager.dart';
 import 'connection_manager.dart';
+import 'invite_link_manager.dart';
 import 'player_state_manager.dart';
 import 'rank_manager.dart';
 
@@ -11,12 +12,14 @@ class AppManagers {
   final PlayerStateManager playerStateManager;
   final ConnectionManager connectionManager;
   final RankManager rankManager;
+  final InviteLinkManager inviteLinkManager;
 
   AppManagers({
     required this.authManager,
     required this.playerStateManager,
     required this.connectionManager,
     required this.rankManager,
+    required this.inviteLinkManager,
   });
 
   factory AppManagers.createDefault() {
@@ -27,6 +30,7 @@ class AppManagers {
       playerStateManager: playerStateManager,
       connectionManager: ConnectionManager(authManager: authManager, playerStateManager: playerStateManager),
       rankManager: RankManager(authManager: authManager),
+      inviteLinkManager: InviteLinkManager(),
     );
   }
 }

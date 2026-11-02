@@ -9,3 +9,9 @@ enum GamePhase { setup, playing, finished }
 
 /// 진영 고르기. `random`이면 서버가 정한다.
 enum SideChoice { cho, han, random }
+
+/// 방 상태. 방장이 나가면 `closed`가 된다.
+enum RoomStatus { waiting, playing, closed }
+
+/// 접장기에서 기물을 떼는 쪽. 방장(신청이면 신청한 사람) 기준이다. 떼는 쪽이 한을 잡는다(`docs/game/handicap.md`).
+enum HandicapRemover { creator, opponent }

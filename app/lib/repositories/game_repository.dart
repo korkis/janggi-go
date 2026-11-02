@@ -4,8 +4,7 @@ import 'package:janggi_core/janggi_core.dart';
 
 import '../models/active_game.dart';
 import '../models/game_enums.dart';
-import '../models/game_error_code.dart';
-import '../utils/app_exception.dart';
+import 'game_server_call.dart';
 
 /// RTDB `games_active`와 대국 서버의 대국 API. 대국 상태는 대국 서버만 쓰고 앱은 듣기만 한다.
 class GameRepository {
@@ -68,24 +67,8 @@ class GameRepository {
     await _call('leaveResult', {'gameId': gameId});
   }
 
-  /// 대국 서버 API를 Callable 프로토콜로 부르고 결과 객체를 돌려준다. 결과가 없으면 빈 Map이다.
-  /// 서버가 알려 준 거절 사유는 [AppException]으로 바꾼다.
-  Future<Map<String, Object?>> _call(String name, Map<String, Object?>? data) async {
-    final callable = functions.httpsCallableFromUrl(getServerUrl().resolve(name).toString());
-    try {
-      final result = await callable.call<Object?>(data);
-      final value = result.data;
-      return value is Map ? {for (final entry in value.entries) entry.key.toString(): entry.value} : const {};
-    } on FirebaseFunctionsException catch (error) {
-      final details = error.details;
-      final code = details is Map ? GameErrorCode.fromName(details['code']) : null;
-      final exception = code == null ? null : AppException.fromGameErrorCode(code);
-      if (exception == null) {
-        rethrow;
-      }
-      throw exception;
-    }
-  }
+  Future<Map<String, Object?>> _call(String name, Map<String, Object?>? data) =>
+      callGameServer(functions, getServerUrl(), name, data);
 
   static ActiveGame? _decodeGame(DatabaseEvent event) {
     final value = event.snapshot.value;

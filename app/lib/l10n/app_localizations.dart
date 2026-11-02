@@ -1015,6 +1015,444 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'{rank}으로 내려갔어요'**
   String resultRankDown(String rank);
+
+  /// 홈과 대국실의 방 만들기 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'방 만들기'**
+  String get homeCreateRoom;
+
+  /// 홈 맨 위. 대국은 없고 방에 남아 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방으로 돌아가기'**
+  String get homeResumeRoom;
+
+  /// 대국실 화면 제목과 홈의 대국실 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'대국실'**
+  String get lobbyTitle;
+
+  /// 대국실의 방 목록 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'방 목록'**
+  String get lobbyRoomList;
+
+  /// 대국실. 공개된 방이 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 열린 방이 없어요'**
+  String get lobbyEmpty;
+
+  /// 대국실. 공개된 방이 없을 때의 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'방을 만들어 상대를 기다려 보세요'**
+  String get lobbyEmptyDescription;
+
+  /// 대국실 방 목록의 입장 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'입장'**
+  String get lobbyEnter;
+
+  /// 불러오지 못한 목록을 다시 불러오는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 불러오기'**
+  String get retry;
+
+  /// 로그인 창 제목. 방 만들기를 눌렀을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 바로\n방을 만들 수 있어요'**
+  String get loginSheetTitleCreateRoom;
+
+  /// 로그인 창 제목. 대국실을 눌렀을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하고\n대국실에 들어가 보세요'**
+  String get loginSheetTitleLobby;
+
+  /// 로그인 창 제목. 초대 링크로 들어왔을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 바로\n초대받은 방에 들어가요'**
+  String get loginSheetTitleJoinRoom;
+
+  /// 닉네임 정하기. 방 만들기를 눌러 가입했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 바로 방을 만들어요'**
+  String get nicknameStartHintCreateRoom;
+
+  /// 닉네임 정하기. 대국실을 눌러 가입했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 대국실로 가요'**
+  String get nicknameStartHintLobby;
+
+  /// 닉네임 정하기. 초대 링크로 들어와 가입했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 바로 방에 들어가요'**
+  String get nicknameStartHintJoinRoom;
+
+  /// 방 들어가기 실패. 자리가 찼을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방에 빈자리가 없어요'**
+  String get errorRoomFull;
+
+  /// 방 들어가기 실패. 방이 대국 중일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 대국 중인 방이에요'**
+  String get errorRoomPlaying;
+
+  /// 방 들어가기 실패. 방장이 나가 방이 닫혔을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'닫힌 방이에요'**
+  String get errorRoomClosed;
+
+  /// 방 들어가기 실패. 방장이 내보낸 사람일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이 방에는 다시 들어갈 수 없어요'**
+  String get errorKicked;
+
+  /// 방 들어가기 실패. 방의 급수 범위 밖일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이 방에 들어갈 수 있는 급수가 아니에요'**
+  String get errorRankOutOfRange;
+
+  /// 방장만 할 수 있는 일을 했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방장만 할 수 있어요'**
+  String get errorNotHost;
+
+  /// 방 들어가기의 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'방에 들어가지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorJoinRoom;
+
+  /// 방 만들기의 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'방을 만들지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorCreateRoom;
+
+  /// 방 나가기의 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'방을 나가지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorLeaveRoom;
+
+  /// 방장 내보내기의 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'내보내지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorKickGuest;
+
+  /// 방 대국 시작의 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'대국을 시작하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorStartRoomGame;
+
+  /// 대국실 방 목록을 읽지 못했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방 목록을 불러오지 못했어요'**
+  String get errorLoadRooms;
+
+  /// 방 대기실에서 방을 읽지 못했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방을 불러오지 못했어요'**
+  String get errorLoadRoom;
+
+  /// 방 대기실의 공유하기가 실패했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'공유하지 못했어요. 링크 복사를 써 주세요'**
+  String get errorShareLink;
+
+  /// 방 대기실 제목. nickname은 방장 닉네임
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}의 방'**
+  String roomTitle(String nickname);
+
+  /// 들어올 수 있는 급수를 제한하지 않을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'모든 급수'**
+  String get rankRangeAll;
+
+  /// 들어올 수 있는 급수 범위. min과 max는 18급, 1단 같은 급수
+  ///
+  /// In ko, this message translates to:
+  /// **'{min} ~ {max}'**
+  String rankRange(String min, String max);
+
+  /// 기물 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'{type, select, chariot{차} cannon{포} horse{마} elephant{상} advisor{사} soldier{졸} king{궁} other{}}'**
+  String pieceName(String type);
+
+  /// 접장기 요약. pieces는 뗄 기물 이름 목록, points는 뗀 기물 점수 합
+  ///
+  /// In ko, this message translates to:
+  /// **'{pieces} 떼기 · {points}점 적게 시작'**
+  String handicapSummary(String pieces, int points);
+
+  /// 방 조건 칩. 접장기 방
+  ///
+  /// In ko, this message translates to:
+  /// **'접장기'**
+  String get roomChipHandicap;
+
+  /// 방 조건 칩. 접장기에서 기물을 떼는 쪽
+  ///
+  /// In ko, this message translates to:
+  /// **'{remover, select, creator{방장이 떼요} opponent{상대가 떼요} other{}}'**
+  String roomChipRemover(String remover);
+
+  /// 방 조건 칩. 방장의 진영
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{방장 초} han{방장 한} random{진영 무작위} other{}}'**
+  String roomChipSide(String side);
+
+  /// 방 조건 칩. 방 목록에 공개한 방
+  ///
+  /// In ko, this message translates to:
+  /// **'공개'**
+  String get roomChipListed;
+
+  /// 방 조건 칩. 링크로만 들어오는 방
+  ///
+  /// In ko, this message translates to:
+  /// **'비공개'**
+  String get roomChipUnlisted;
+
+  /// 방 대기실의 방장 자리
+  ///
+  /// In ko, this message translates to:
+  /// **'방장'**
+  String get roomHost;
+
+  /// 방 대기실의 상대 자리
+  ///
+  /// In ko, this message translates to:
+  /// **'상대'**
+  String get roomGuest;
+
+  /// 방 대기실. 상대 자리가 비었을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대를 기다리고 있어요'**
+  String get roomWaitingGuest;
+
+  /// 방 대기실. 방장이 상대를 내보내는 버튼과 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'내보내기'**
+  String get roomKick;
+
+  /// 방 대기실. 내보내기 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}님을 내보낼까요? 이 방에 다시 들어올 수 없어요'**
+  String roomKickConfirm(String nickname);
+
+  /// 방 대기실. 초대 링크 카드 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'초대 링크로 부르기'**
+  String get roomInviteTitle;
+
+  /// 방 대기실. 초대 링크 복사 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'링크 복사'**
+  String get roomCopyLink;
+
+  /// 방 대기실. 휴대폰 공유 창(카카오톡 포함)으로 초대 링크를 보내는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'공유하기'**
+  String get roomShareLink;
+
+  /// 방 대기실. 링크를 복사한 뒤 알림
+  ///
+  /// In ko, this message translates to:
+  /// **'링크를 복사했어요'**
+  String get roomLinkCopied;
+
+  /// 공유하기로 보내는 초대 글. link는 초대 링크
+  ///
+  /// In ko, this message translates to:
+  /// **'장기고에서 장기 한 판 두실래요? {link}'**
+  String roomInviteMessage(String link);
+
+  /// 방 대기실. 방장의 대국 시작 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 시작'**
+  String get roomStart;
+
+  /// 방 대기실. 상대가 없어 대국 시작을 꺼 둘 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 들어오면 시작할 수 있어요'**
+  String get roomStartWaiting;
+
+  /// 방 대기실. 상대에게 보이는 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'방장이 대국을 시작하면 바로 상차림으로 가요'**
+  String get roomWaitingHost;
+
+  /// 방 나가기 확인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'나가기'**
+  String get roomLeave;
+
+  /// 방 대기실. 방장이 나가기 전 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'방을 나가면 방이 닫혀요. 나갈까요?'**
+  String get roomLeaveHostConfirm;
+
+  /// 방 대기실. 방장이 나가 방이 닫혔을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방이 닫혔어요'**
+  String get roomClosedNotice;
+
+  /// 방 대기실. 방장이 나를 내보냈을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'방장이 내보냈어요'**
+  String get roomKickedNotice;
+
+  /// 방 대기실. 연결이 오래 끊겨 서버가 자리를 비웠을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'연결이 오래 끊겨 방에서 나왔어요'**
+  String get roomRemovedNotice;
+
+  /// 방 만들기 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'방 만들기'**
+  String get createRoomTitle;
+
+  /// 방 만들기 화면 아래쪽 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'방 만들기'**
+  String get createRoomSubmit;
+
+  /// 방 만들기. 내 진영 고르기 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'내 진영'**
+  String get createRoomSide;
+
+  /// 방 만들기. 접장기를 켜 진영 고르기를 끌 때
+  ///
+  /// In ko, this message translates to:
+  /// **'떼는 쪽이 한을 잡아요'**
+  String get createRoomHandicapSide;
+
+  /// 방 만들기. 접장기 스위치
+  ///
+  /// In ko, this message translates to:
+  /// **'접장기'**
+  String get createRoomHandicap;
+
+  /// 방 만들기. 접장기 스위치 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'한쪽이 기물을 떼고 둬요'**
+  String get createRoomHandicapDescription;
+
+  /// 방 만들기. 접장기에서 떼는 쪽 고르기 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'떼는 쪽'**
+  String get createRoomRemover;
+
+  /// 방 만들기. 접장기에서 떼는 쪽
+  ///
+  /// In ko, this message translates to:
+  /// **'{remover, select, creator{나} opponent{상대} other{}}'**
+  String handicapRemover(String remover);
+
+  /// 방 만들기. 뗄 기물 고르기 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'뗄 기물'**
+  String get createRoomPieces;
+
+  /// 방 만들기. 접장기를 켰는데 뗄 기물을 고르지 않았을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'뗄 기물을 골라 주세요'**
+  String get createRoomPiecesHint;
+
+  /// 방 만들기. 화면 읽기 기능용 뗄 기물 이름. side는 왼쪽·오른쪽, piece는 기물 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'{side} {piece}'**
+  String handicapPieceLabel(String side, String piece);
+
+  /// 떼는 쪽이 자기 쪽에서 판을 볼 때의 왼쪽과 오른쪽
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, left{왼쪽} right{오른쪽} other{}}'**
+  String boardSideName(String side);
+
+  /// 방 만들기. 공개 여부 스위치
+  ///
+  /// In ko, this message translates to:
+  /// **'방 목록에 공개'**
+  String get createRoomListed;
+
+  /// 방 만들기. 공개 방 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'방 목록에 보이고 누구나 들어올 수 있어요'**
+  String get createRoomListedOn;
+
+  /// 방 만들기. 비공개 방 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'초대 링크로만 들어올 수 있어요'**
+  String get createRoomListedOff;
+
+  /// 방 만들기. 공개 방의 급수 범위 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'들어올 수 있는 급수'**
+  String get createRoomRankRange;
+
+  /// 대국 결과. 방 대국에서 홈으로 대신 보여주는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'방 대기실로'**
+  String get resultBackToRoom;
 }
 
 class _AppLocalizationsDelegate

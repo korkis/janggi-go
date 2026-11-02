@@ -24,6 +24,8 @@ enum GameResultAction {
   /// 다시 두기. 온라인 대국이면 새 대국에 이미 묶인 뒤다.
   rematch,
   review,
+
+  /// 홈으로. 방 대국이면 방 대기실로 돌아간다.
   home,
 }
 
@@ -74,6 +76,7 @@ class _GameResultSheetState extends State<GameResultSheet> {
     final detail = _getScoreDetail(l10n);
     final online = widget.online;
     final quick = online?.game?.meta.mode == GameMode.quick;
+    final inRoom = online?.game?.meta.roomId != null;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
@@ -162,8 +165,8 @@ class _GameResultSheetState extends State<GameResultSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(GameResultAction.home),
-                    // 홈으로
-                    child: Text(l10n.resultHome),
+                    // 방 대기실로 / 홈으로
+                    child: Text(inRoom ? l10n.resultBackToRoom : l10n.resultHome),
                   ),
                 ),
               ],

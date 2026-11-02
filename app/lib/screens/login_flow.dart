@@ -14,6 +14,11 @@ enum LoginPurpose {
   /// 홈 내 카드의 로그인 버튼. 로그인 뒤 이어서 할 일이 없다.
   home,
   quickMatch,
+  createRoom,
+  lobby,
+
+  /// 초대 링크로 방에 들어간다.
+  joinRoom,
 }
 
 /// 로그인과 첫 가입의 닉네임 정하기를 거친다. 하려던 일을 이어서 할 수 있으면 true, 사용자가 그만뒀으면 false.

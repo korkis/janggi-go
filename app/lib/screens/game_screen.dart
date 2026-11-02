@@ -21,6 +21,7 @@ import '../widgets/player_bar.dart';
 import 'game_result_sheet.dart';
 import 'quick_match_screen.dart';
 import 'review_screen.dart';
+import 'room_screen.dart';
 import 'setup_screen.dart';
 
 /// 대국 화면. 개발용 대국과 온라인 대국이 같은 화면을 쓰고 모드에 따라 정보 줄과 버튼만 바꾼다(`docs/screens.md`의 대국 화면).
@@ -255,7 +256,13 @@ class _GameScreenState extends State<GameScreen> {
         Navigator.of(context).pushReplacement(createGameRoute<void>((context) => ReviewScreen(record: record)));
       case GameResultAction.home:
       case null:
-        Navigator.of(context).pop();
+        // 방 대국은 결과 창을 나가면 홈 대신 방 대기실로 돌아간다(`docs/game/matching.md`의 방 유지).
+        final roomId = online?.game?.meta.roomId;
+        if (roomId != null) {
+          RoomScreen.returnTo(Navigator.of(context), roomId);
+        } else {
+          Navigator.of(context).pop();
+        }
     }
   }
 

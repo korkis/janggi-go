@@ -17,6 +17,7 @@ Future<void> main() async {
   repositories = AppRepositories.createDefault();
   managers = AppManagers.createDefault();
   managers.connectionManager.observeAppLifecycle();
+  managers.inviteLinkManager.start();
   runApp(const JanggigoApp());
 }
 

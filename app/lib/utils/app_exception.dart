@@ -25,6 +25,11 @@ enum AppErrorCode {
   gameOver,
   sanctioned,
   rematchUnavailable,
+  roomFull,
+  roomClosed,
+  kicked,
+  rankOutOfRange,
+  notHost,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -53,6 +58,11 @@ class AppException implements Exception {
       GameErrorCode.gameOver => AppErrorCode.gameOver,
       GameErrorCode.sanctioned => AppErrorCode.sanctioned,
       GameErrorCode.rematchUnavailable => AppErrorCode.rematchUnavailable,
+      GameErrorCode.roomFull => AppErrorCode.roomFull,
+      GameErrorCode.roomClosed => AppErrorCode.roomClosed,
+      GameErrorCode.kicked => AppErrorCode.kicked,
+      GameErrorCode.rankOutOfRange => AppErrorCode.rankOutOfRange,
+      GameErrorCode.notHost => AppErrorCode.notHost,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -99,5 +109,15 @@ class AppException implements Exception {
     AppErrorCode.sanctioned => l10n.errorSanctioned,
     // 지금은 다시 두기를 할 수 없어요
     AppErrorCode.rematchUnavailable => l10n.errorRematchUnavailable,
+    // 방에 빈자리가 없어요
+    AppErrorCode.roomFull => l10n.errorRoomFull,
+    // 닫힌 방이에요
+    AppErrorCode.roomClosed => l10n.errorRoomClosed,
+    // 이 방에는 다시 들어갈 수 없어요
+    AppErrorCode.kicked => l10n.errorKicked,
+    // 이 방에 들어갈 수 있는 급수가 아니에요
+    AppErrorCode.rankOutOfRange => l10n.errorRankOutOfRange,
+    // 방장만 할 수 있어요
+    AppErrorCode.notHost => l10n.errorNotHost,
   };
 }

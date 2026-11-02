@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
+import '../managers/invite_link_manager.dart';
 import '../models/game_enums.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
@@ -13,11 +14,17 @@ import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
+import 'create_room_screen.dart';
+import 'lobby_screen.dart';
 import 'login_flow.dart';
 import 'quick_match_screen.dart';
+import 'room_join_flow.dart';
+import 'room_screen.dart';
 import 'setup_screen.dart';
 
-/// 홈 화면. 지금은 내 카드, 빠른 대국 버튼과, 개발 빌드에서만 보이는 개발용 대국 카드들을 보여준다.
+/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실 버튼과, 개발 빌드에서만 보이는 개발용 대국 카드들을 보여준다.
+///
+/// 앱의 처음 화면이라 초대 링크로 들어온 방도 여기서 받아 방 대기실로 간다.
 ///
 /// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
 class HomeScreen extends StatelessWidget {
@@ -37,10 +44,13 @@ class HomeScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
+            const _InviteLinkHandler(),
             const _ResumeGameButton(),
             const _MyCard(),
             const SizedBox(height: 16),
             const _QuickMatchButton(),
+            const SizedBox(height: 12),
+            const _RoomButtons(),
             const SizedBox(height: 16),
             if (!kReleaseMode) const _DevGameCard(),
             if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
@@ -53,6 +63,7 @@ class HomeScreen extends StatelessWidget {
 
 /// 진행 중인 온라인 대국이 있으면(앱이 꺼졌다 켜진 경우 등) 맨 위에 "대국으로 돌아가기"를 보여준다
 /// (`docs/screens.md`의 홈). 상차림 화면으로 열고, 상차림이 끝난 대국이면 상차림 화면이 바로 대국 화면으로 넘긴다.
+/// 대국은 없고 방에 남아 있으면 "방으로 돌아가기"를 보여준다.
 class _ResumeGameButton extends StatelessWidget {
   const _ResumeGameButton();
 
@@ -67,8 +78,23 @@ class _ResumeGameButton extends StatelessWidget {
   Widget _buildButton(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
     final gameId = managers.playerStateManager.gameId;
-    if (managers.authManager.profile == null || gameId == null) {
+    final roomId = managers.playerStateManager.playerState?.roomId;
+    if (managers.authManager.profile == null) {
       return const SizedBox.shrink();
+    }
+    if (gameId == null) {
+      if (roomId == null) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: FilledButton.icon(
+          onPressed: () => _onResumeRoom(context, roomId),
+          icon: const Icon(Icons.meeting_room),
+          // 방으로 돌아가기
+          label: Text(l10n.homeResumeRoom),
+        ),
+      );
     }
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -83,6 +109,120 @@ class _ResumeGameButton extends StatelessWidget {
 
   void _onResume(BuildContext context, String gameId) {
     Navigator.of(context).push(createGameRoute<void>((context) => SetupScreen.online(gameId: gameId)));
+  }
+
+  void _onResumeRoom(BuildContext context, String roomId) {
+    Navigator.of(context).push(RoomScreen.createRoute(roomId));
+  }
+}
+
+/// 방 만들기 버튼과 대국실 버튼(`docs/screens.md`의 홈). 대국실은 아래쪽 탭이 생기기 전까지 버튼으로 둔다.
+/// 로그인과 닉네임을 거친 뒤 간다. 이미 방에 있으면 방 만들기 대신 그 방으로 간다.
+class _RoomButtons extends StatelessWidget {
+  const _RoomButtons();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.tonalIcon(
+            onPressed: () => _onCreateRoom(context),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            icon: const Icon(Icons.add_home),
+            // 방 만들기
+            label: Text(l10n.homeCreateRoom),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton.tonalIcon(
+            onPressed: () => _onLobby(context),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            icon: const Icon(Icons.groups),
+            // 대국실
+            label: Text(l10n.lobbyTitle),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _onCreateRoom(BuildContext context) async {
+    final ready = await ensureSignedInWithProfile(context, LoginPurpose.createRoom);
+    if (!ready || !context.mounted) {
+      return;
+    }
+    final roomId = managers.playerStateManager.playerState?.roomId;
+    if (roomId != null) {
+      await Navigator.of(context).push(RoomScreen.createRoute(roomId));
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const CreateRoomScreen()));
+  }
+
+  Future<void> _onLobby(BuildContext context) async {
+    final ready = await ensureSignedInWithProfile(context, LoginPurpose.lobby);
+    if (!ready || !context.mounted) {
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const LobbyScreen()));
+  }
+}
+
+/// 초대 링크로 들어온 방을 받아 로그인과 닉네임을 거친 뒤 방 대기실로 간다(`docs/game/matching.md`의 링크). 보이는 것은 없다.
+///
+/// 앱을 연 링크, 앱이 켜져 있는 동안 누른 링크, 안드로이드에서 링크로 설치한 뒤 처음 켠 때가 모두 [InviteLinkManager]로 온다.
+/// 다른 화면 위에서 링크가 와도 홈이 그 위에 로그인 창과 방 대기실을 띄운다.
+class _InviteLinkHandler extends StatefulWidget {
+  const _InviteLinkHandler();
+
+  @override
+  State<_InviteLinkHandler> createState() => _InviteLinkHandlerState();
+}
+
+class _InviteLinkHandlerState extends State<_InviteLinkHandler> {
+  // 링크의 방에 들어가는 중이다. 그동안 온 링크는 끝난 뒤에 받는다.
+  var _joining = false;
+
+  @override
+  void initState() {
+    super.initState();
+    managers.inviteLinkManager.addListener(_onInviteLinkChanged);
+    WidgetsBinding.instance.addPostFrameCallback(_onFirstFrame);
+  }
+
+  @override
+  void dispose() {
+    managers.inviteLinkManager.removeListener(_onInviteLinkChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+
+  /// 홈이 뜨기 전에 온 링크(앱을 연 링크)를 받는다.
+  void _onFirstFrame(Duration timeStamp) {
+    _onInviteLinkChanged();
+  }
+
+  Future<void> _onInviteLinkChanged() async {
+    if (_joining) {
+      return;
+    }
+    try {
+      _joining = true;
+      while (context.mounted) {
+        final roomId = managers.inviteLinkManager.takePendingRoomId();
+        if (roomId == null) {
+          break;
+        }
+        await joinRoomAndOpen(context, roomId, LoginPurpose.joinRoom);
+      }
+    } finally {
+      _joining = false;
+    }
   }
 }
 

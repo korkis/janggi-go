@@ -626,4 +626,288 @@ class AppLocalizationsEn extends AppLocalizations {
   String resultRankDown(String rank) {
     return 'Dropped to $rank';
   }
+
+  @override
+  String get homeCreateRoom => 'Create room';
+
+  @override
+  String get homeResumeRoom => 'Back to my room';
+
+  @override
+  String get lobbyTitle => 'Game rooms';
+
+  @override
+  String get lobbyRoomList => 'Rooms';
+
+  @override
+  String get lobbyEmpty => 'No open rooms right now';
+
+  @override
+  String get lobbyEmptyDescription => 'Create a room and wait for an opponent';
+
+  @override
+  String get lobbyEnter => 'Join';
+
+  @override
+  String get retry => 'Try again';
+
+  @override
+  String get loginSheetTitleCreateRoom => 'Sign in to\ncreate a room';
+
+  @override
+  String get loginSheetTitleLobby => 'Sign in to\nenter the game rooms';
+
+  @override
+  String get loginSheetTitleJoinRoom =>
+      'Sign in to join\nthe room you were invited to';
+
+  @override
+  String get nicknameStartHintCreateRoom =>
+      'We\'ll create your room right after';
+
+  @override
+  String get nicknameStartHintLobby =>
+      'We\'ll take you to the game rooms right after';
+
+  @override
+  String get nicknameStartHintJoinRoom =>
+      'We\'ll take you to the room right after';
+
+  @override
+  String get errorRoomFull => 'This room is full';
+
+  @override
+  String get errorRoomPlaying => 'A game is in progress in this room';
+
+  @override
+  String get errorRoomClosed => 'This room has closed';
+
+  @override
+  String get errorKicked => 'You can\'t rejoin this room';
+
+  @override
+  String get errorRankOutOfRange => 'Your rank isn\'t allowed in this room';
+
+  @override
+  String get errorNotHost => 'Only the host can do this';
+
+  @override
+  String get errorJoinRoom =>
+      'Couldn\'t join the room. Please try again shortly';
+
+  @override
+  String get errorCreateRoom =>
+      'Couldn\'t create the room. Please try again shortly';
+
+  @override
+  String get errorLeaveRoom =>
+      'Couldn\'t leave the room. Please try again shortly';
+
+  @override
+  String get errorKickGuest =>
+      'Couldn\'t remove the opponent. Please try again shortly';
+
+  @override
+  String get errorStartRoomGame =>
+      'Couldn\'t start the game. Please try again shortly';
+
+  @override
+  String get errorLoadRooms => 'Couldn\'t load the rooms';
+
+  @override
+  String get errorLoadRoom => 'Couldn\'t load the room';
+
+  @override
+  String get errorShareLink => 'Couldn\'t share. Please copy the link instead';
+
+  @override
+  String roomTitle(String nickname) {
+    return '$nickname\'s room';
+  }
+
+  @override
+  String get rankRangeAll => 'All ranks';
+
+  @override
+  String rankRange(String min, String max) {
+    return '$min – $max';
+  }
+
+  @override
+  String pieceName(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'chariot': 'Chariot',
+      'cannon': 'Cannon',
+      'horse': 'Horse',
+      'elephant': 'Elephant',
+      'advisor': 'Advisor',
+      'soldier': 'Soldier',
+      'king': 'General',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String handicapSummary(String pieces, int points) {
+    return 'Remove $pieces · start $points points behind';
+  }
+
+  @override
+  String get roomChipHandicap => 'Handicap';
+
+  @override
+  String roomChipRemover(String remover) {
+    String _temp0 = intl.Intl.selectLogic(remover, {
+      'creator': 'Host removes',
+      'opponent': 'Opponent removes',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String roomChipSide(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'Host plays Cho',
+      'han': 'Host plays Han',
+      'random': 'Random sides',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get roomChipListed => 'Public';
+
+  @override
+  String get roomChipUnlisted => 'Private';
+
+  @override
+  String get roomHost => 'Host';
+
+  @override
+  String get roomGuest => 'Opponent';
+
+  @override
+  String get roomWaitingGuest => 'Waiting for an opponent';
+
+  @override
+  String get roomKick => 'Remove';
+
+  @override
+  String roomKickConfirm(String nickname) {
+    return 'Remove $nickname? They won\'t be able to rejoin this room';
+  }
+
+  @override
+  String get roomInviteTitle => 'Invite with a link';
+
+  @override
+  String get roomCopyLink => 'Copy link';
+
+  @override
+  String get roomShareLink => 'Share';
+
+  @override
+  String get roomLinkCopied => 'Link copied';
+
+  @override
+  String roomInviteMessage(String link) {
+    return 'Want to play Janggi with me on Janggigo? $link';
+  }
+
+  @override
+  String get roomStart => 'Start game';
+
+  @override
+  String get roomStartWaiting => 'You can start once an opponent joins';
+
+  @override
+  String get roomWaitingHost => 'The game begins when the host starts it';
+
+  @override
+  String get roomLeave => 'Leave';
+
+  @override
+  String get roomLeaveHostConfirm => 'Leaving will close the room. Leave?';
+
+  @override
+  String get roomClosedNotice => 'The room has closed';
+
+  @override
+  String get roomKickedNotice => 'The host removed you from the room';
+
+  @override
+  String get roomRemovedNotice =>
+      'You were disconnected too long and left the room';
+
+  @override
+  String get createRoomTitle => 'Create room';
+
+  @override
+  String get createRoomSubmit => 'Create room';
+
+  @override
+  String get createRoomSide => 'My side';
+
+  @override
+  String get createRoomHandicapSide => 'The side removing pieces plays Han';
+
+  @override
+  String get createRoomHandicap => 'Handicap game';
+
+  @override
+  String get createRoomHandicapDescription =>
+      'One side plays without some pieces';
+
+  @override
+  String get createRoomRemover => 'Who removes pieces';
+
+  @override
+  String handicapRemover(String remover) {
+    String _temp0 = intl.Intl.selectLogic(remover, {
+      'creator': 'Me',
+      'opponent': 'Opponent',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomPieces => 'Pieces to remove';
+
+  @override
+  String get createRoomPiecesHint => 'Choose the pieces to remove';
+
+  @override
+  String handicapPieceLabel(String side, String piece) {
+    return '$side $piece';
+  }
+
+  @override
+  String boardSideName(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'left': 'Left',
+      'right': 'Right',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomListed => 'Show in room list';
+
+  @override
+  String get createRoomListedOn =>
+      'Anyone can find and join it in the room list';
+
+  @override
+  String get createRoomListedOff => 'Only people with the invite link can join';
+
+  @override
+  String get createRoomRankRange => 'Allowed ranks';
+
+  @override
+  String get resultBackToRoom => 'Back to room';
 }

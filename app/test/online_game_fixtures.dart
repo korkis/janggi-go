@@ -21,6 +21,7 @@ Map<String, dynamic> buildGameJson({
   String mode = 'challenge',
   bool rated = false,
   Map<String, dynamic>? rematch,
+  String? roomId,
 }) {
   final playing = phase != 'setup';
   final sideClock = {'baseMs': 300000, 'periods': 3, 'extensionsUsed': 0};
@@ -28,6 +29,7 @@ Map<String, dynamic> buildGameJson({
     'meta': {
       'mode': mode,
       'rated': rated,
+      'roomId': ?roomId,
       'listed': true,
       'players': {
         'cho': {'uid': cho, 'nickname': '초$cho', 'rankLevel': 1},

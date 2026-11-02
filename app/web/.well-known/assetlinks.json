@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.gazuacup.janggigo",
+      "sha256_cert_fingerprints": [
+        "A8:46:E3:1E:84:A7:6D:D9:3E:AC:CD:38:04:36:67:8B:7A:22:18:B3:21:86:AB:44:98:62:01:1D:D7:FD:2E:A7"
+      ]
+    }
+  }
+]

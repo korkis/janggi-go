@@ -184,6 +184,12 @@ class _NicknameScreenState extends State<NicknameScreen> {
     LoginPurpose.home => null,
     // 정하고 나면 바로 상대를 찾아요
     LoginPurpose.quickMatch => l10n.nicknameStartHintQuickMatch,
+    // 정하고 나면 바로 방을 만들어요
+    LoginPurpose.createRoom => l10n.nicknameStartHintCreateRoom,
+    // 정하고 나면 대국실로 가요
+    LoginPurpose.lobby => l10n.nicknameStartHintLobby,
+    // 정하고 나면 바로 방에 들어가요
+    LoginPurpose.joinRoom => l10n.nicknameStartHintJoinRoom,
   };
 
   Widget _buildStatus(AppLocalizations l10n) {

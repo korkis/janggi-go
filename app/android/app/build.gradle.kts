@@ -47,3 +47,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // 링크로 설치한 뒤 처음 켤 때 초대받은 방을 읽는 플레이 스토어 설치 정보(MainActivity의 takeInstallReferrer).
+    implementation("com.android.installreferrer:installreferrer:2.2")
+}

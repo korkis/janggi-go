@@ -122,6 +122,12 @@ class _LoginSheetState extends State<LoginSheet> {
     LoginPurpose.home => l10n.loginSheetTitleHome,
     // 로그인하면 바로\n상대를 찾아 드릴게요
     LoginPurpose.quickMatch => l10n.loginSheetTitleQuickMatch,
+    // 로그인하면 바로\n방을 만들 수 있어요
+    LoginPurpose.createRoom => l10n.loginSheetTitleCreateRoom,
+    // 로그인하고\n대국실에 들어가 보세요
+    LoginPurpose.lobby => l10n.loginSheetTitleLobby,
+    // 로그인하면 바로\n초대받은 방에 들어가요
+    LoginPurpose.joinRoom => l10n.loginSheetTitleJoinRoom,
   };
 
   void _onClose() {

@@ -13,6 +13,13 @@ abstract final class LightColors {
 
   /// 바탕보다 조금 진한 회색 면. 이메일 로그인 버튼 등.
   static const mutedSurface = Color(0xFFF0F2F4);
+
+  /// 접장기 표시. 방 조건 칩에서 다른 조건보다 눈에 띄게 한다(`docs/screens.md`의 대국실).
+  static const handicap = Color(0xFFA4471F);
+  static const handicapSurface = Color(0xFFFBE9DF);
+
+  /// 방 조건 칩 같은 강조색 면.
+  static const accentSurface = Color(0xFFE3F1EA);
 }
 
 /// 대국 화면(어두운 화면)의 색. 기준은 `docs/ui.md`의 디자인 방향이고, 표에 없는 색은 시안을 따른다.
