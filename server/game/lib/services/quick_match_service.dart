@@ -8,13 +8,11 @@ import '../models/active_game.dart';
 import '../models/game_enums.dart';
 import '../models/player_state.dart';
 import '../models/quick_queue_entry.dart';
-import '../models/user_private.dart';
 import '../repositories/configs_repository.dart';
 import '../repositories/connections_repository.dart';
 import '../repositories/player_states_repository.dart';
 import '../repositories/quick_queue_repository.dart';
 import '../repositories/ratings_repository.dart';
-import '../repositories/users_private_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
 import 'game_rules.dart';
@@ -34,7 +32,6 @@ class QuickMatchService {
   final PlayerStatesRepository playerStates;
   final RatingsRepository ratings;
   final UsersRepository users;
-  final UsersPrivateRepository usersPrivate;
   final ConnectionsRepository connections;
   final ConfigsRepository configs;
   final TaskScheduler taskScheduler;
@@ -52,7 +49,6 @@ class QuickMatchService {
     required this.playerStates,
     required this.ratings,
     required this.users,
-    required this.usersPrivate,
     required this.connections,
     required this.configs,
     required this.taskScheduler,
@@ -70,7 +66,7 @@ class QuickMatchService {
   /// 이용 정지 중이면 `sanctioned`, 대기열이 아닌 다른 것(방, 대국, 신청)에 있으면 `busy`로 거절한다. 이미 대기열에 있으면
   /// 기다린 시간을 그대로 두고 매칭만 다시 시도한다. 못 찾으면 범위를 넓혀 다시 찾는 `retryQuickMatch`를 예약한다.
   Future<String?> joinQueue(String uid, {required DateTime now}) async {
-    await _checkNotSanctioned(uid, now);
+    await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid], now);
     final rating = (await ratings.getRating(uid))?.rating ?? initialRating;
 
@@ -260,23 +256,6 @@ class QuickMatchService {
       runAt: runAt,
       taskId: 'quick-$uid-$joinedAtMs-$step',
     );
-  }
-
-  /// 이용 정지나 영구 정지 중이면 `sanctioned`로 거절한다(`docs/server.md`의 대국 서버와 Functions의 경계).
-  Future<void> _checkNotSanctioned(String uid, DateTime now) async {
-    final sanction = (await usersPrivate.getUserPrivate(uid))?.sanction;
-    if (sanction == null) {
-      return;
-    }
-    final endsAt = sanction.endsAt;
-    final blocking = switch (sanction.type) {
-      SanctionType.permanentBan => true,
-      SanctionType.suspension => endsAt == null || endsAt.isAfter(now),
-      SanctionType.warning || SanctionType.chatRestriction => false,
-    };
-    if (blocking) {
-      throw const CallableException.failedPrecondition(GameErrorCode.sanctioned, '이용이 제한된 사용자입니다');
-    }
   }
 
   /// [state]에서 대기열 표시만 바꾼 상태. 문서가 없었으면 나머지는 비운다.

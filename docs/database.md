@@ -182,12 +182,16 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `rankRange` | map? | `min`, `max` (rankLevel). 공개 방에서만 쓴다 |
 | `gameId` | string? | 진행 중이거나 마지막으로 둔 대국 |
 | `kickedUids` | array | 내보낸 사람. 방이 닫힐 때까지 다시 들어올 수 없다 |
+| `hostAbsentSince` | timestamp? | `checkRoom` 예약 작업이 방장의 연결이 없는 것을 처음 본 시각. 연결이 있으면 null |
+| `guestAbsentSince` | timestamp? | 같은 기록의 상대 쪽. 상대가 없거나 연결이 있으면 null |
 | `createdAt` | timestamp | |
 | `updatedAt` | timestamp | |
 
-- 읽기: 로그인한 사용자가 ID로 읽는다. 목록 조회는 `listed == true`이고 `status == waiting`인 조건만 허용한다. 비공개 방은 링크(방 ID)를 아는 사람만 읽는다.
+- 읽기: 로그인한 사용자가 ID로 읽는다(`get`). 목록 조회(`list`)는 `listed == true`이고 `status == waiting`인 조건만 허용한다. 비공개 방은 링크(방 ID)를 아는 사람만 읽는다.
 - 쓰기: 대국 서버.
-- 방 ID는 추측할 수 없게 20자 임의 문자열로 만든다. 초대 링크에 들어간다.
+- 방 ID는 추측할 수 없게 20자 임의 문자열(영문, 숫자)로 만든다. 초대 링크에 들어간다.
+- 방장이 나가 닫힌 방(`closed`)도 문서를 남긴다. 방 대기실에 있던 상대가 닫힌 것을 보고, 같은 링크로 들어오려는 사람에게 `roomClosed`를 알리기 위해서다. 닫힌 방을 언제 지울지는 미정이다.
+- 색인: `listed` + `status` + `createdAt` 내림차순(방 목록, `server/firestore.indexes.json`).
 
 ### `challenges/{challengeId}`
 
@@ -474,5 +478,6 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 ## 미정
 
 - `users.stats`에 어느 대국(빠른 대국만 또는 온라인 대국 전체)을 셀지.
+- 닫힌 방(`rooms`의 `status == closed`)을 지우는 때와 방법(TTL 또는 정리 작업).
 - 회원 탈퇴 때 지울 데이터와 남길 데이터. 기보(`games_archived`)는 uid만 남기고 앱이 "탈퇴한 사용자"로 보여주는 안을 검토한다.
 - 자체 금칙어 목록을 둘 곳(`config.ts` 또는 서버 전용 Firestore 문서)과 Admin 웹에서 고칠 수 있게 할지.

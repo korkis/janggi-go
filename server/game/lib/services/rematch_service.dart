@@ -8,6 +8,7 @@ import '../repositories/connections_repository.dart';
 import '../repositories/users_repository.dart';
 import 'game_rules.dart';
 import 'game_service.dart';
+import 'room_service.dart';
 
 /// 결과 화면의 다시 두기와 나가기(`docs/server.md`의 다시 두기).
 ///
@@ -15,6 +16,9 @@ import 'game_service.dart';
 /// 한 요청만 새 대국을 만든다. 두 앱은 `rematch.gameId`를 보고 그 대국에 묶이면 옮겨 간다.
 class RematchService {
   final GameService gameService;
+
+  /// 방 대국의 다시 두기에서 새 대국을 방에 묶는다.
+  final RoomService roomService;
   final ActiveGamesRepository activeGames;
   final UsersRepository users;
   final ConnectionsRepository connections;
@@ -24,6 +28,7 @@ class RematchService {
 
   const RematchService({
     required this.gameService,
+    required this.roomService,
     required this.activeGames,
     required this.users,
     required this.connections,
@@ -89,8 +94,8 @@ class RematchService {
     logger.info('leaveResult 성공', {'gameId': gameId, 'uid': uid, 'cancelled': game.rematch?.cancelled});
   }
 
-  /// 앞 대국과 같은 조건으로 초와 한을 바꾼 새 대국을 [newGameId]로 만든다. 만들지 못하면 다시 두기를 취소하고
-  /// `rematchUnavailable`로 거절한다.
+  /// 앞 대국과 같은 조건(방, 접장기, 공개 여부)으로 초와 한을 바꾼 새 대국을 [newGameId]로 만든다. 모든 대국 종류가 같다.
+  /// 만들지 못하면 다시 두기를 취소하고 `rematchUnavailable`로 거절한다.
   Future<void> _createRematchGame(String previousGameId, ActiveGame previous, String newGameId, DateTime now) async {
     try {
       // 급수 대국이면 레이팅을 먼저 반영해 새 대국의 급수를 맞추고, 두 사람을 앞 대국에서 푼다. 이미 했으면 아무것도 하지 않는다.
@@ -112,11 +117,20 @@ class RematchService {
         disconnectLimitMs: settings.getDisconnectLimitMs(appConfig),
         introMs: settings.matchIntro.inMilliseconds,
         now: now.millisecondsSinceEpoch,
+        roomId: meta.roomId,
+        handicap: meta.handicap,
         rematchOf: previousGameId,
         rematchCount: rematchCount,
         rematchBlocked: meta.mode == GameMode.quick && rematchCount >= appConfig.quickRematchLimit,
       );
-      await gameService.createGame(game, now: now, gameId: newGameId);
+      // 방 대국이면 방이 아직 두 사람의 방이고 기다리는 중인지 확인하고 방을 새 대국으로 바꾼다.
+      final roomId = meta.roomId;
+      await gameService.createGame(
+        game,
+        now: now,
+        gameId: newGameId,
+        check: roomId == null ? null : roomService.bindRoomGame(roomId, gameId: newGameId, uids: uids, now: now),
+      );
     } on CallableException catch (error) {
       logger.warning('다시 두기 대국을 만들지 못했습니다', {
         'gameId': previousGameId,

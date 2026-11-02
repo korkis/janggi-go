@@ -4,7 +4,19 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {doc, getDoc, setDoc, updateDoc, deleteDoc} from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import {ref, get, set, update, serverTimestamp} from "firebase/database";
 import {readFileSync} from "fs";
 import {resolve} from "path";
@@ -142,6 +154,50 @@ describe("player_states", () => {
     await assertFails(setDoc(doc(userDb(BOB), `player_states/${BOB}`), {gameId: "g2"}));
     await assertFails(updateDoc(doc(userDb(ALICE), `player_states/${ALICE}`), {gameId: null}));
     await assertFails(deleteDoc(doc(userDb(ALICE), `player_states/${ALICE}`)));
+  });
+});
+
+describe("rooms", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "rooms/listedRoom"), {hostUid: ALICE, listed: true, status: "waiting", createdAt: 1});
+      await setDoc(doc(db, "rooms/privateRoom"), {hostUid: ALICE, listed: false, status: "waiting", createdAt: 2});
+    });
+  });
+
+  test("로그인한 사용자는 ID로 공개 방과 비공개 방을 읽는다", async () => {
+    await assertSucceeds(getDoc(doc(userDb(BOB), "rooms/listedRoom")));
+    await assertSucceeds(getDoc(doc(userDb(BOB), "rooms/privateRoom")));
+  });
+
+  test("로그인하지 않으면 읽지 못한다", async () => {
+    await assertFails(getDoc(doc(guestDb(), "rooms/listedRoom")));
+    await assertFails(getDocs(query(collection(guestDb(), "rooms"), where("listed", "==", true))));
+  });
+
+  test("목록은 공개된 기다리는 방 조건으로만 조회한다", async () => {
+    const rooms = collection(userDb(BOB), "rooms");
+    await assertSucceeds(
+      getDocs(
+        query(
+          rooms,
+          where("listed", "==", true),
+          where("status", "==", "waiting"),
+          orderBy("createdAt", "desc"),
+          limit(50),
+        ),
+      ),
+    );
+    await assertFails(getDocs(rooms));
+    await assertFails(getDocs(query(rooms, where("listed", "==", true))));
+    await assertFails(getDocs(query(rooms, where("status", "==", "waiting"))));
+  });
+
+  test("누구도 쓰지 못한다", async () => {
+    await assertFails(setDoc(doc(userDb(BOB), "rooms/newRoom"), {hostUid: BOB, listed: true, status: "waiting"}));
+    await assertFails(updateDoc(doc(userDb(ALICE), "rooms/listedRoom"), {status: "closed"}));
+    await assertFails(deleteDoc(doc(userDb(ALICE), "rooms/listedRoom")));
   });
 });
 

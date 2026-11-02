@@ -110,11 +110,11 @@ flowchart LR
 
 | API | 파라미터 | 하는 일 |
 |---|---|---|
-| `createRoom` | `hostSide`, `handicap?`, `listed`, `rankRange?` | 방을 만들고 `roomId`를 돌려준다 |
-| `joinRoom` | `roomId` | 빈자리에 앉는다. 링크, 방 목록 모두 이것을 쓴다 |
-| `leaveRoom` | `roomId` | 방에서 나간다. 방장이면 방을 닫는다 |
-| `kickGuest` | `roomId` | 방장이 상대를 내보낸다. 내보낸 사람은 방이 닫힐 때까지 못 들어온다 |
-| `startRoomGame` | `roomId` | 방장이 대국을 시작한다. `gameId`를 돌려준다 |
+| `createRoom` | `hostSide`, `handicap?`(`remover`, `pieces`), `listed`, `rankRange?`(`min`, `max`) | 방을 만들고 `roomId`를 돌려준다. `pieces`는 서로 다른 기물 1개 이상, `rankRange`는 공개 방에서만 준다. 이용 정지 중이면 `sanctioned`, 대기열·방·대국·신청 중이면 `busy` |
+| `joinRoom` | `roomId` | 빈자리에 앉는다. 링크, 방 목록 모두 이것을 쓴다. 이미 이 방에 있으면 그대로 성공한다. 방이 없으면 `notFound`, 닫혔으면 `roomClosed`, 내보내진 사람이면 `kicked`, 자리가 찼으면(대국 중 포함) `roomFull`, 급수 범위 밖이면 `rankOutOfRange`, 다른 것을 하고 있으면 `busy`, 이용 정지 중이면 `sanctioned` |
+| `leaveRoom` | `roomId` | 방에서 나간다. 방장이면 방을 닫고 상대도 방에서 뺀다. 이미 나갔으면 그대로 성공한다. 방의 대국이 진행 중이면 `busy` |
+| `kickGuest` | `roomId` | 방장이 상대를 내보낸다. 내보낸 사람은 방이 닫힐 때까지 못 들어온다. 상대가 없으면 그대로 성공한다. 방장이 아니면 `notHost`, 대국 중이면 `busy` |
+| `startRoomGame` | `roomId` | 방장이 대국을 시작한다. `gameId`를 돌려준다. 이미 대국 중이면 그 대국 ID를 돌려준다. 방장이 아니면 `notHost`, 상대가 없으면 `notFound`, 닫힌 방이면 `roomClosed` |
 
 ### 신청
 
@@ -145,7 +145,7 @@ flowchart LR
 | `/tasks/expireChallenge` | 신청 응답 마감 | 응답이 없으면 `expired`로 바꾸고 제한 횟수를 센다 |
 | `/tasks/finalizeGame` | 대국이 끝날 때 | 기보 저장, 레이팅·전적 반영. 실패하면 Cloud Tasks가 다시 부른다 |
 | `/tasks/cleanupGame` | 대국을 만들 때, 끝날 때 | 묶이지 않은 대국과 끝난 지 오래된 대국을 RTDB에서 지운다 |
-| `/tasks/checkRoom` | 방이 열려 있는 동안 1분마다 | 방장 연결이 끊긴 지 오래면 방을 닫고, 상대가 끊겼으면 자리를 비운다 |
+| `/tasks/checkRoom` | 방을 만든 시각부터 1분마다, 방이 닫힐 때까지 | 방장 연결이 `roomAbsentSeconds` 넘게 없으면 방을 닫고, 상대가 그만큼 없으면 자리를 비운다. 대국 중에는 확인하지 않고 다음을 예약한다 |
 
 예약 시각은 정확하지 않을 수 있다. 판정은 항상 서버가 받은 시각이 아니라 기록된 시각(마감 시각)으로 계산하므로 작업이 늦게 돌아도 결과는 같다.
 
@@ -249,7 +249,8 @@ flowchart LR
 - 앱은 `rematch.gameId`가 생기고 내 `player_states.gameId`가 그 값이 되면(새 대국이 RTDB에 생기고 두 사람이 묶인 뒤) 상차림으로 간다.
 - 새 대국을 만들지 못하면(예: 그새 한 사람이 다른 대국에 묶였다) `rematch.gameId`를 지우고 `cancelled`를 true로 둔다.
 - 새 대국을 만들기 전에 앞 대국의 `finalizeGame`을 한 번 더 불러(이미 했으면 아무것도 하지 않는다) 레이팅을 반영하고 두 사람을 푼다. 새 대국의 닉네임과 급수는 그 뒤의 `users` 값이다.
-- 초와 한은 바꾼다. 접장기면 떼는 쪽이 계속 한이다.
+- 초와 한은 모든 대국 종류(빠른 대국, 방, 신청)에서 바꾼다. 접장기면 떼는 쪽이 계속 한이다. 방, 접장기, 공개 여부(`listed`)는 앞 대국과 같다.
+- 방 대국이면 두 사람을 새 대국에 묶는 트랜잭션에서 방이 아직 두 사람의 방이고 `waiting`인지 확인하고 방을 `playing`, `gameId`를 새 대국으로 바꾼다. 그새 상대가 방을 나갔거나 내보내졌으면 만들지 않고 취소한다.
 - 새 대국의 `rematchCount`는 앞 대국 + 1이다. 빠른 대국은 앞 대국의 `rematchCount`가 `quickRematchLimit`에 닿았으면 받지 않는다. 그런 대국은 만들 때부터 `rematch.blocked`를 true로 두어 결과 화면이 처음부터 버튼을 끈다. 방 대국과 신청 대국은 횟수를 세기만 하고 막지 않는다.
 - `leaveResult`를 받으면 `rematch.cancelled`를 true로 둔다. 결과 화면에서 앱이 꺼진 경우는 상대가 `requestRematch`를 부를 때 서버가 `connections`로 끊긴 것을 보고 취소로 처리한다. 상대가 먼저 눌렀어도 같다.
   - 이때 연결된 것은 `online`이고 `foreground`인 연결이 있는 것이다. 대국이 끝나면 앱이 `lastSeenAt`을 갱신하지 않으므로 대국 중 판정과 달리 `presenceStaleSeconds`는 보지 않는다.
@@ -273,11 +274,17 @@ flowchart LR
 
 [matching.md](./game/matching.md)의 방 만들기, 링크, 방 유지를 따른다.
 
-- 방장은 만들 때, 상대는 들어올 때 `player_states.roomId`를 쓴다.
-- `startRoomGame`으로 만든 대국이 끝나면 방은 `waiting`으로 돌아간다. 두 사람 모두 결과 화면을 나가면 방 대기실로 돌아온다(`roomId`가 남아 있다).
-- 진영: `hostSide`가 `random`이면 판마다 무작위로 정한다. 다시 두기로 둔 대국은 다시 두기 규칙대로 바꾼다.
-- 공개 방(`listed`)의 대국은 관전 목록에 보이고, 비공개 방의 대국은 보이지 않는다. 비공개 방의 대국은 그 방의 링크로 관전한다.
-- `checkRoom` 예약 작업이 방장의 연결을 확인한다. 끊긴 지 `roomAbsentSeconds`가 지나면 방을 닫고, 상대가 그만큼 끊겨 있으면 자리를 비운다.
+- 방장은 만들 때, 상대는 들어올 때 `rooms`와 `player_states.roomId`를 한 트랜잭션으로 쓴다. 방에 있는 동안은 대기열, 다른 방, 신청을 시작할 수 없다(`busy`).
+- `startRoomGame`은 RTDB에 대국(`mode: room`, `rated: false`, `listed`는 방과 같다, `roomId`, 접장기면 `handicap`)을 만들고, 두 사람을 묶는 트랜잭션에서 방이 `waiting`이고 두 사람이 그 방의 방장과 상대인지 확인한 뒤 방을 `playing`, `gameId`를 그 대국으로 바꾼다.
+- 대국이 끝나면 `finalizeGame`의 트랜잭션이 방을 `waiting`으로 돌린다(`gameId`는 마지막으로 둔 대국으로 남는다). `roomId`는 대국 중에도 남아 있으므로 두 사람 모두 결과 화면을 나가면 방 대기실로 돌아온다.
+- 대국 중에는 나가기와 내보내기를 받지 않는다(`busy`). 끝났어야 하는 대국(예약 작업이 아직 돌지 않은 시간패)은 나가기·내보내기 전에 먼저 판정하고 정리한다.
+- 방장이 나가면 방은 `closed`가 되고 문서는 남는다. 상대의 `roomId`도 지운다. 닫힌 방에는 들어올 수 없다(`roomClosed`).
+- 진영: 접장기면 떼는 쪽이 한이다(`remover`가 `creator`면 방장이 한). 아니면 `hostSide`이고, `random`이면 판마다 무작위로 정한다. 다시 두기로 둔 대국은 다시 두기 규칙대로 바꾼다.
+- 급수 범위(`rankRange`)는 공개 방에만 있고, 방 목록과 링크 모두에 적용한다.
+- 공개 방(`listed`)의 대국은 관전 목록에 보이고, 비공개 방의 대국은 보이지 않는다. 비공개 방의 대국은 그 방의 링크로 관전한다(구현 순서 10번).
+- `checkRoom` 예약 작업이 방장과 상대의 연결을 확인한다. `online`인 연결이 하나라도 있으면 있는 것으로 본다. 링크를 공유하러 카카오톡에 간 방장을 내보내지 않도록 `foreground`는 보지 않는다.
+  - 연결이 없는 것을 처음 본 시각을 `rooms.hostAbsentSince`·`guestAbsentSince`에 적고, 그 뒤 `roomAbsentSeconds`가 지나도 없으면 방을 닫거나(방장) 자리를 비운다(상대). 그 사이 돌아오면 지운다. 연결이 끊긴 뒤 1~2분 안에 처리된다.
+  - 대국 중에는 대국의 접속 끊김 판정에 맡기고 확인하지 않는다.
 
 ### 신청
 
@@ -371,11 +378,25 @@ sequenceDiagram
 
 ### 방과 초대 링크
 
-1. 방장이 `createRoom`을 부르고 방 대기실로 간다. 초대 링크는 `https://<프로젝트>.web.app/r/{roomId}`다.
+1. 방장이 `createRoom`을 부르고 방 대기실로 간다. 초대 링크는 `https://janggi-go.web.app/r/{roomId}`다(앱의 `inviteLinkHost`).
 2. 링크를 누른 사람의 앱(또는 웹)은 로그인과 닉네임을 거친 뒤 `joinRoom`을 부른다. 앱 설치와 열기 흐름은 [matching.md](./game/matching.md)의 링크를 따른다.
-3. `joinRoom`이 실패하면 사유를 보여준다. 방이 대국 중이면(`status == playing`) 그 대국의 관전을 권한다.
-4. 두 사람은 `rooms/{roomId}`를 듣는다. 방장이 `startRoomGame`을 부르면 두 사람의 `player_states.gameId`가 생기고 상차림으로 간다. 이후는 빠른 대국과 같다.
+   - 앱은 링크를 `app_links` 패키지로 받는다(`InviteLinkManager`). 앱을 연 링크, 켜져 있는 동안 누른 링크, 안드로이드의 플레이 스토어 설치 정보(`referrer=room=<방 ID>`, 설치 뒤 처음 한 번)가 모두 들어갈 방이 되고, 홈 화면이 로그인을 거쳐 방에 들어간다.
+   - 앱이 받는 주소: `https://janggi-go.web.app/r/{roomId}`(App Links·Universal Links), `janggigo://r/{roomId}`(아이폰 앱 안 브라우저의 "앱에서 열기"), 웹은 `/?room={roomId}`(입장 페이지가 PC와 "웹에서 바로 두기"를 보내는 주소).
+   - Firebase Hosting은 `/r/**`를 입장 페이지(`app/web/invite.html`)로 보낸다. App Links와 Universal Links의 확인 파일은 `/.well-known/assetlinks.json`, `/.well-known/apple-app-site-association`이고 Flutter 웹 빌드가 `app/web/`에서 함께 복사한다.
+3. `joinRoom`이 실패하면 사유를 보여준다. 자리가 찬 방이 대국 중이면(`status == playing`) "지금 대국 중인 방이에요"를 알린다. 그 대국의 관전 권하기는 관전(구현 순서 10번)을 만들 때 붙인다.
+4. 두 사람은 `rooms/{roomId}`를 듣는다. 방장이 `startRoomGame`을 부르면 두 사람의 `player_states.gameId`가 생기고 상차림으로 간다. 방 대국은 상대 찾음 화면 없이 바로 상차림 화면을 열고, 상차림 시간은 빠른 대국처럼 `setup.startsAt`부터 센다. 이후는 빠른 대국과 같다.
 5. 결과 화면을 나가면(`leaveResult`) 방 대기실로 돌아온다. 상대가 `leaveRoom`하면 빈자리에 같은 링크로 다음 사람이 들어온다.
+6. 방 대기실에서 방이 닫히거나(방장이 나감), 내보내지거나, 연결이 오래 끊겨 자리가 비워지면 그 사실을 알리고 나온다.
+
+#### 초대 링크 배포와 계정 설정 — 할 일
+
+코드는 들어가 있고, 다음은 사용자 계정이 필요해 배포 때 한다.
+
+- Hosting 배포: `app`에서 `flutter build web --dart-define=GAME_SERVER_URL=<Cloud Run 주소>`, `server`에서 `firebase deploy --only hosting`. `server/firebase.json`이 `../app/build/web`을 올리고 `/r/**`를 입장 페이지로 보낸다.
+- 안드로이드 App Links: `app/web/.well-known/assetlinks.json`에는 지금 개발 PC의 디버그 키 지문만 있다. 플레이 콘솔의 앱 서명 키(Play App Signing) SHA-256 지문을 더한다.
+- iOS Universal Links: `app/web/.well-known/apple-app-site-association`의 `APPLE_TEAM_ID`를 애플 개발자 팀 ID로 바꾸고, App ID에 Associated Domains를 켠다(`ios/Runner/Runner.entitlements`는 들어가 있다). 배포 뒤 `curl -I https://janggi-go.web.app/.well-known/apple-app-site-association`로 `Content-Type: application/json`인지 확인한다. Hosting 에뮬레이터는 `headers` 설정을 적용하지 않아 로컬에서 확인하지 못했다.
+- App Store 주소: 앱을 등록하면 `app/web/invite.html`의 `APP_STORE_URL`에 넣는다. 그 전에는 아이폰 입장 페이지에 "앱 설치"가 보이지 않는다.
+- 카카오톡 공유: 지금은 휴대폰 공유 창을 쓴다. 카카오 SDK 공유를 쓰려면 카카오 개발자 앱 키가 필요하다.
 
 ### 신청
 
@@ -427,7 +448,8 @@ sequenceDiagram
 | `challengeBlockMinutes` | 30분 | [matching.md](./game/matching.md) |
 | `matchIntroSeconds` | 3초 (제안) | 상대 찾음 화면 표시 시간. 이 문서 |
 | `presenceStaleSeconds` | 15초 | `lastSeenAt`이 이보다 오래되면 끊긴 것으로 본다. `heartbeatSeconds`(5초)로 세 번 갱신하지 못한 때다. 이 문서 |
-| `roomAbsentSeconds` | 60초 (제안) | 방장이나 상대가 이만큼 끊기면 방을 닫거나 자리를 비운다. 이 문서 |
+| `roomAbsentSeconds` | 60초 | 방장이나 상대의 연결이 이만큼 없으면 방을 닫거나 자리를 비운다. `checkRoom`이 연결 없음을 처음 본 시각부터 센다. 이 문서 |
+| `roomCheckInterval` | 60초 | 방이 열려 있는 동안 `checkRoom`을 부르는 간격. 이 문서 |
 | `finishedGameRetentionMinutes` | 10분 (제안) | 끝난 대국을 RTDB에 남겨 두는 시간. 이 문서 |
 
 시간 규칙은 대국을 만들 때 `meta.timeControl`에 복사하므로, 값을 바꿔도 진행 중 대국과 옛 기보는 영향을 받지 않는다.

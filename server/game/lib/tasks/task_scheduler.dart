@@ -15,7 +15,10 @@ enum TaskName {
   cleanupGame,
 
   /// 빠른 대국 대기열에 있는 사람의 매칭 범위를 넓혀 다시 찾는다.
-  retryQuickMatch;
+  retryQuickMatch,
+
+  /// 방이 열려 있는 동안 방장과 상대의 연결을 확인한다. 오래 없으면 방을 닫거나 자리를 비운다.
+  checkRoom;
 
   String get path => '/tasks/$name';
 }

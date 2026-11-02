@@ -11,6 +11,8 @@ import 'auth/task_request_verifier.dart';
 import 'clock.dart';
 import 'config.dart';
 import 'endpoints/check_game.dart';
+import 'endpoints/check_room.dart';
+import 'endpoints/create_room.dart';
 import 'endpoints/dev_create_game.dart';
 import 'endpoints/dev_ping.dart';
 import 'endpoints/dev_ping_task.dart';
@@ -22,6 +24,7 @@ import 'endpoints/play_move.dart';
 import 'endpoints/request_rematch.dart';
 import 'endpoints/resign.dart';
 import 'endpoints/retry_quick_match.dart';
+import 'endpoints/room_endpoints.dart';
 import 'endpoints/set_formation.dart';
 import 'firebase/access_token.dart';
 import 'firebase/firestore_client.dart';
@@ -37,6 +40,7 @@ import 'server_environment.dart';
 import 'services/game_service.dart';
 import 'services/quick_match_service.dart';
 import 'services/rematch_service.dart';
+import 'services/room_service.dart';
 import 'tasks/cloud_tasks_scheduler.dart';
 import 'tasks/local_task_scheduler.dart';
 import 'tasks/task_scheduler.dart';
@@ -81,8 +85,8 @@ class GameServer {
   ///
   /// [onDevPingTask]는 테스트가 `devPing` 예약 작업이 돌았는지 확인할 때 쓴다.
   /// [testTimeControl], [testMatchIntro], [testDisconnectLimit], [testQuickMatchStepInterval]은 에뮬레이터에서 만드는 모든
-  /// 대국(개발용, 빠른 대국, 다시 두기)의 시간과 매칭 범위를 넓히는 간격이다. 통합 테스트가 짧게 줄일 때 쓰고 운영에서는
-  /// 무시한다.
+  /// 대국(개발용, 빠른 대국, 방, 다시 두기)의 시간과 매칭 범위를 넓히는 간격이다. [testRoomCheckInterval], [testRoomAbsentLimit]은
+  /// 방 연결 확인 간격과 방을 닫거나 자리를 비우기까지의 시간이다. 통합 테스트가 짧게 줄일 때 쓰고 운영에서는 무시한다.
   factory GameServer.create({
     required ServerEnvironment environment,
     required GameLogger logger,
@@ -93,6 +97,8 @@ class GameServer {
     Duration? testMatchIntro,
     Duration? testDisconnectLimit,
     Duration? testQuickMatchStepInterval,
+    Duration? testRoomCheckInterval,
+    Duration? testRoomAbsentLimit,
   }) {
     final baseClient = httpClient ?? http.Client();
     final production = environment.mode == ServerMode.production;
@@ -158,6 +164,7 @@ class GameServer {
       ratings: repositories.ratings,
       users: repositories.users,
       usersPrivate: repositories.usersPrivate,
+      rooms: repositories.rooms,
       taskScheduler: taskScheduler,
       logger: logger,
     );
@@ -179,7 +186,6 @@ class GameServer {
       playerStates: repositories.playerStates,
       ratings: repositories.ratings,
       users: repositories.users,
-      usersPrivate: repositories.usersPrivate,
       connections: repositories.connections,
       configs: repositories.configs,
       taskScheduler: taskScheduler,
@@ -187,8 +193,24 @@ class GameServer {
       settings: newGameSettings,
       stepInterval: (production ? null : testQuickMatchStepInterval) ?? quickMatchStepInterval,
     );
+    final roomService = RoomService(
+      firestore: firestore,
+      gameService: gameService,
+      rooms: repositories.rooms,
+      playerStates: repositories.playerStates,
+      activeGames: repositories.activeGames,
+      users: repositories.users,
+      connections: repositories.connections,
+      configs: repositories.configs,
+      taskScheduler: taskScheduler,
+      logger: logger,
+      settings: newGameSettings,
+      checkInterval: (production ? null : testRoomCheckInterval) ?? roomCheckInterval,
+      absentLimit: (production ? null : testRoomAbsentLimit) ?? const Duration(seconds: roomAbsentSeconds),
+    );
     final rematchService = RematchService(
       gameService: gameService,
+      roomService: roomService,
       activeGames: repositories.activeGames,
       users: repositories.users,
       connections: repositories.connections,
@@ -218,6 +240,11 @@ class GameServer {
         LeaveQuickQueueEndpoint(quickMatchService: quickMatchService),
         RequestRematchEndpoint(rematchService: rematchService),
         LeaveResultEndpoint(rematchService: rematchService),
+        CreateRoomEndpoint(roomService: roomService),
+        JoinRoomEndpoint(roomService: roomService),
+        LeaveRoomEndpoint(roomService: roomService),
+        KickGuestEndpoint(roomService: roomService),
+        StartRoomGameEndpoint(roomService: roomService),
         if (!production) ...[
           DevPingEndpoint(taskScheduler: taskScheduler, logger: logger),
           DevCreateGameEndpoint(
@@ -235,6 +262,7 @@ class GameServer {
         FinalizeGameTaskEndpoint(gameService: gameService),
         CleanupGameTaskEndpoint(gameService: gameService),
         RetryQuickMatchTaskEndpoint(quickMatchService: quickMatchService),
+        CheckRoomTaskEndpoint(roomService: roomService),
         if (!production) DevPingTaskEndpoint(logger: logger, onRun: onDevPingTask),
       ],
     );

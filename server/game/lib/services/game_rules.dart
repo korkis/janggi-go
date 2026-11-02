@@ -16,7 +16,7 @@ const defaultFormation = Formation.horseElephantHorseElephant;
 
 /// 새 대국. 상차림은 [now] + [introMs]에 한부터 시작한다.
 ///
-/// 다시 두기로 만든 대국이면 [rematchOf]와 [rematchCount]를 준다. [rematchBlocked]면 이 대국이 끝난 뒤 다시 두기를 받지
+/// 방 대국이면 [roomId], 접장기면 한에서 뗄 기물 [handicap]을 준다. 다시 두기로 만든 대국이면 [rematchOf]와 [rematchCount]를 준다. [rematchBlocked]면 이 대국이 끝난 뒤 다시 두기를 받지
 /// 않으므로 처음부터 `rematch.blocked`를 쓴다(빠른 대국의 `quickRematchLimit`).
 ActiveGame createActiveGame({
   required GameMode mode,
@@ -27,6 +27,8 @@ ActiveGame createActiveGame({
   required int disconnectLimitMs,
   required int introMs,
   required int now,
+  String? roomId,
+  List<HandicapPiece>? handicap,
   String? rematchOf,
   int rematchCount = 0,
   bool rematchBlocked = false,
@@ -38,10 +40,10 @@ ActiveGame createActiveGame({
     meta: GameMeta(
       mode: mode,
       rated: rated,
-      roomId: null,
+      roomId: roomId,
       listed: listed,
       players: players,
-      handicap: null,
+      handicap: handicap,
       timeControl: timeControl,
       disconnectLimitMs: disconnectLimitMs,
       rematchOf: rematchOf,

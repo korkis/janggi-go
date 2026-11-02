@@ -9,6 +9,7 @@ import 'nicknames_repository.dart';
 import 'player_states_repository.dart';
 import 'quick_queue_repository.dart';
 import 'ratings_repository.dart';
+import 'rooms_repository.dart';
 import 'users_private_repository.dart';
 import 'users_repository.dart';
 
@@ -23,6 +24,7 @@ class GameRepositories {
   final PlayerStatesRepository playerStates;
   final RatingsRepository ratings;
   final QuickQueueRepository quickQueue;
+  final RoomsRepository rooms;
   final ArchivedGamesRepository archivedGames;
   final ActiveGamesRepository activeGames;
   final ConnectionsRepository connections;
@@ -35,6 +37,7 @@ class GameRepositories {
     required this.playerStates,
     required this.ratings,
     required this.quickQueue,
+    required this.rooms,
     required this.archivedGames,
     required this.activeGames,
     required this.connections,
@@ -53,6 +56,7 @@ class GameRepositories {
       playerStates: PlayerStatesRepository(firestore: firestore),
       ratings: RatingsRepository(firestore: firestore),
       quickQueue: QuickQueueRepository(firestore: firestore),
+      rooms: RoomsRepository(firestore: firestore),
       archivedGames: ArchivedGamesRepository(firestore: firestore),
       activeGames: ActiveGamesRepository(rtdb: rtdb),
       connections: ConnectionsRepository(rtdb: rtdb),

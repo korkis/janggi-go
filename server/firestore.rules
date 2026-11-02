@@ -37,5 +37,12 @@ service cloud.firestore {
     match /player_states/{uid} {
       allow read: if isOwner(uid);
     }
+
+    // 방. 로그인한 사용자가 ID(초대 링크)로 읽는다. 목록은 공개된 기다리는 방만 조회할 수 있어 비공개 방은 ID를 아는
+    // 사람만 읽는다. 대국 서버만 쓴다.
+    match /rooms/{roomId} {
+      allow get: if signedIn();
+      allow list: if signedIn() && resource.data.listed == true && resource.data.status == 'waiting';
+    }
   }
 }

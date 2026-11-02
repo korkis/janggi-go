@@ -11,11 +11,13 @@ import '../models/connection.dart';
 import '../models/game_enums.dart';
 import '../models/player_state.dart';
 import '../models/rating.dart';
+import '../models/user_private.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
 import '../repositories/connections_repository.dart';
 import '../repositories/player_states_repository.dart';
 import '../repositories/ratings_repository.dart';
+import '../repositories/rooms_repository.dart';
 import '../repositories/users_private_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
@@ -62,6 +64,7 @@ class GameService {
   final RatingsRepository ratings;
   final UsersRepository users;
   final UsersPrivateRepository usersPrivate;
+  final RoomsRepository rooms;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -74,6 +77,7 @@ class GameService {
     required this.ratings,
     required this.users,
     required this.usersPrivate,
+    required this.rooms,
     required this.taskScheduler,
     required this.logger,
   });
@@ -182,7 +186,8 @@ class GameService {
   /// 끝난 대국의 기보를 저장하고 두 대국자를 대국에서 푼다(`docs/server.md`의 결과와 레이팅).
   ///
   /// 한 트랜잭션에서 하며 `games_archived/{gameId}`가 이미 있으면 아무것도 하지 않는다. 여러 번 불려도 결과가 같다.
-  /// 급수 대국(`meta.rated`)이면 레이팅과 급수도 반영한다. `users.stats`는 셀 대국이 정해진 뒤(`docs/database.md`의 미정)에
+  /// 급수 대국(`meta.rated`)이면 레이팅과 급수도 반영한다. 방 대국이면 방을 `waiting`으로 돌린다. 두 사람의 `roomId`는 그대로
+  /// 두므로 결과 화면을 나가면 방 대기실로 돌아온다. `users.stats`는 셀 대국이 정해진 뒤(`docs/database.md`의 미정)에
   /// 붙인다.
   Future<void> finalizeGame(String gameId, {required DateTime now}) async {
     final game = await activeGames.getGame(gameId);
@@ -200,7 +205,14 @@ class GameService {
       if (await archivedGames.hasArchivedGameInTransaction(transaction, gameId)) {
         return false;
       }
-      final states = await playerStates.getPlayerStatesInTransaction(transaction, uids);
+      final roomId = game.meta.roomId;
+      final (states, room) = await (
+        playerStates.getPlayerStatesInTransaction(transaction, uids),
+        roomId == null ? Future.value(null) : rooms.getRoomInTransaction(transaction, roomId),
+      ).wait;
+      if (roomId != null && room != null && room.gameId == gameId && room.status == RoomStatus.playing) {
+        rooms.updateStatusInTransaction(transaction, roomId, status: RoomStatus.waiting, now: now);
+      }
       final rankChanges = rated
           ? await _applyRatingsInTransaction(transaction, gameId, game, now)
           : const <String, RankChange>{};
@@ -336,6 +348,24 @@ class GameService {
       } on CallableException catch (error) {
         logger.warning('이전 대국을 판정하지 못했습니다', {'uid': uid, 'gameId': gameId, 'code': error.code?.name});
       }
+    }
+  }
+
+  /// 이용 정지나 영구 정지 중이면 `sanctioned`로 거절한다(`docs/server.md`의 대국 서버와 Functions의 경계). 대기열과 방을
+  /// 시작할 때 부른다.
+  Future<void> checkNotSanctioned(String uid, DateTime now) async {
+    final sanction = (await usersPrivate.getUserPrivate(uid))?.sanction;
+    if (sanction == null) {
+      return;
+    }
+    final endsAt = sanction.endsAt;
+    final blocking = switch (sanction.type) {
+      SanctionType.permanentBan => true,
+      SanctionType.suspension => endsAt == null || endsAt.isAfter(now),
+      SanctionType.warning || SanctionType.chatRestriction => false,
+    };
+    if (blocking) {
+      throw const CallableException.failedPrecondition(GameErrorCode.sanctioned, '이용이 제한된 사용자입니다');
     }
   }
 

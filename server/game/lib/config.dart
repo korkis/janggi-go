@@ -80,3 +80,9 @@ const quickMatchStepInterval = Duration(seconds: 10);
 
 /// 빠른 대국 매칭에서 내 레이팅 위아래로 각각 읽어 볼 대기열 항목 수. 가까운 순서로 읽는다.
 const quickMatchCandidateLimit = 10;
+
+/// 방이 열려 있는 동안 `checkRoom`으로 방장과 상대의 연결을 확인하는 간격(`docs/server.md`의 방).
+const roomCheckInterval = Duration(seconds: 60);
+
+/// 방장이나 상대의 연결이 이만큼 없으면 방을 닫거나 자리를 비운다. `checkRoom`이 연결 없음을 처음 본 시각부터 센다.
+const roomAbsentSeconds = 60;
