@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 개발 빌드는 개발 PC의 Firebase 에뮬레이터와 대국 서버에 http로 붙는다(lib/config.dart). 안드로이드 9부터
+         http는 기본으로 막혀 있으므로 디버그 빌드에서만 허용한다. 운영 빌드(main)는 그대로 막는다. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
