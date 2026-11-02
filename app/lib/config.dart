@@ -49,7 +49,9 @@ Uri getGameServerUrl() {
 /// demo 프로젝트는 운영 자원에 닿지 않는다. 키와 앱 ID는 에뮬레이터가 검사하지 않는 형식상의 값이다.
 FirebaseOptions getEmulatorFirebaseOptions() {
   const projectId = 'demo-janggi-go';
-  const apiKey = 'demo-api-key';
+  // 에뮬레이터는 키를 검사하지 않지만 안드로이드 Firebase SDK(Functions가 쓰는 Installations)는 실제 키 모양
+  // ("AIza"로 시작하는 39자)이 아니면 요청을 보내기 전에 거절하므로 모양만 맞춘 가짜 키를 쓴다.
+  const apiKey = 'AIzaSyDemoKeyForFirebaseEmulator0000000';
   const messagingSenderId = '000000000000';
   // RTDB 에뮬레이터는 이 주소의 첫 이름을 인스턴스(`ns`)로 쓴다. 대국 서버가 쓰는 `server/firebase.json`의 인스턴스와 같아야 한다.
   const databaseURL = 'https://janggi-go-default-rtdb.firebaseio.com';
