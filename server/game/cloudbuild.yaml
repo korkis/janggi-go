@@ -1,0 +1,17 @@
+# Cloud Build로 대국 서버 이미지를 만들어 Artifact Registry에 올린다. 저장소 루트에서 실행한다.
+#   gcloud builds submit --config server/game/cloudbuild.yaml --ignore-file server/game/.gcloudignore --region asia-northeast3 .
+# 자세한 내용은 server/game/README.md의 "운영 배포".
+steps:
+  - name: gcr.io/cloud-builders/docker
+    # Dockerfile.dockerignore를 읽으려면 BuildKit이 필요하다.
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - --file=server/game/Dockerfile
+      - --tag=asia-northeast3-docker.pkg.dev/$PROJECT_ID/janggigo/game:$BUILD_ID
+      - --tag=asia-northeast3-docker.pkg.dev/$PROJECT_ID/janggigo/game:latest
+      - .
+images:
+  - asia-northeast3-docker.pkg.dev/$PROJECT_ID/janggigo/game:$BUILD_ID
+  - asia-northeast3-docker.pkg.dev/$PROJECT_ID/janggigo/game:latest

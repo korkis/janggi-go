@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # 서버 모델은 Firestore·RTDB 값을 읽기만 하는 것과 쓰는 것이 섞여 있어 모델마다 정한다.
+          create_to_json: false
+          checked: true

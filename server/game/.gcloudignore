@@ -1,0 +1,14 @@
+# gcloud builds submit가 저장소 루트에서 올릴 파일. 대국 서버 이미지에 필요한 것만 올린다(.gitignore 문법).
+/*
+!/packages/
+/packages/*
+!/packages/janggi_core/
+/packages/janggi_core/*
+!/packages/janggi_core/pubspec.yaml
+!/packages/janggi_core/lib/
+!/server/
+/server/*
+!/server/game/
+/server/game/.dart_tool/
+/server/game/build/
+/server/game/test/

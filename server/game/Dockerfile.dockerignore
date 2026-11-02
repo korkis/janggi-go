@@ -1,0 +1,8 @@
+# 저장소 루트 컨텍스트에서 대국 서버 이미지에 필요한 것만 보낸다(BuildKit의 Dockerfile별 ignore).
+**
+!packages/janggi_core/pubspec.yaml
+!packages/janggi_core/lib/**
+!server/game/pubspec.yaml
+!server/game/pubspec.lock
+!server/game/bin/**
+!server/game/lib/**
