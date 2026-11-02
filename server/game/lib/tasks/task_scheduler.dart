@@ -5,14 +5,17 @@ enum TaskName {
   /// 개발용. 에뮬레이터에서만 경로를 연다. `devPing` API가 예약 작업이 도는지 확인할 때 쓴다.
   devPing,
 
-  /// 상차림 마감, 시간패 시각에 대국 판정을 다시 본다.
+  /// 상차림 마감, 시간패 시각, 접속 끊김 마감에 대국 판정을 다시 본다.
   evaluateGame,
 
   /// 대국이 끝날 때 기보를 저장하고 대국자를 대국에서 푼다.
   finalizeGame,
 
   /// 묶이지 않은 대국과 끝난 지 오래된 대국을 RTDB에서 지운다.
-  cleanupGame;
+  cleanupGame,
+
+  /// 빠른 대국 대기열에 있는 사람의 매칭 범위를 넓혀 다시 찾는다.
+  retryQuickMatch;
 
   String get path => '/tasks/$name';
 }

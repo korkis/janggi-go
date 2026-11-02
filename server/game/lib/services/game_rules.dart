@@ -15,6 +15,9 @@ import '../models/game_enums.dart';
 const defaultFormation = Formation.horseElephantHorseElephant;
 
 /// 새 대국. 상차림은 [now] + [introMs]에 한부터 시작한다.
+///
+/// 다시 두기로 만든 대국이면 [rematchOf]와 [rematchCount]를 준다. [rematchBlocked]면 이 대국이 끝난 뒤 다시 두기를 받지
+/// 않으므로 처음부터 `rematch.blocked`를 쓴다(빠른 대국의 `quickRematchLimit`).
 ActiveGame createActiveGame({
   required GameMode mode,
   required bool rated,
@@ -24,6 +27,9 @@ ActiveGame createActiveGame({
   required int disconnectLimitMs,
   required int introMs,
   required int now,
+  String? rematchOf,
+  int rematchCount = 0,
+  bool rematchBlocked = false,
 }) {
   final startsAt = now + introMs;
   final clock = SideClock(baseMs: timeControl.baseMs, periods: timeControl.periods, extensionsUsed: 0);
@@ -38,8 +44,8 @@ ActiveGame createActiveGame({
       handicap: null,
       timeControl: timeControl,
       disconnectLimitMs: disconnectLimitMs,
-      rematchOf: null,
-      rematchCount: 0,
+      rematchOf: rematchOf,
+      rematchCount: rematchCount,
       createdAt: now,
     ),
     state: GameState(
@@ -62,7 +68,9 @@ ActiveGame createActiveGame({
       endedAt: null,
     ),
     moves: const [],
-    rematch: null,
+    rematch: rematchBlocked
+        ? const GameRematch(cho: null, han: null, cancelled: null, gameId: null, blocked: true)
+        : null,
   );
 }
 
@@ -419,4 +427,77 @@ ActiveGame _finish(ActiveGame game, GameResult result, int endedAt) {
       endedAt: endedAt,
     ),
   );
+}
+
+// ---- 다시 두기 ----
+
+/// 연결이 지금 앱 화면에 떠 있는지. 대국이 끝난 뒤에는 `lastSeenAt`을 갱신하지 않으므로 [isConnectionActive]와 달리
+/// 오래됐는지는 보지 않는다. 빠른 대국 매칭과 다시 두기에서 상대가 아직 앱에 있는지 볼 때 쓴다.
+bool isConnectionPresent(Connection connection) => connection.online && connection.foreground;
+
+/// 다시 두기 횟수에 닿았는지. 빠른 대국만 [quickRematchLimit]으로 제한한다(`docs/game/matching.md`의 다시 두기).
+bool isRematchLimitReached(ActiveGame game, int quickRematchLimit) {
+  return game.meta.mode == GameMode.quick && game.meta.rematchCount >= quickRematchLimit;
+}
+
+/// [side]가 다시 두기를 누른 대국. 두 쪽이 모두 눌렀으면 `rematch.gameId`에 [newGameId]를 써서 새 대국을 만들 사람을
+/// 한 요청으로 정한다. 이미 새 대국이 정해졌으면 그대로 돌려준다.
+///
+/// 상대가 앱에 없으면([opponentPresent]가 false) 결과 화면에서 앱을 끈 것이므로 취소한다(`docs/server.md`의 다시 두기).
+/// 상대가 먼저 눌렀어도 같다. 끝나지 않은 대국, 취소됐거나 막힌 다시 두기는 `rematchUnavailable`로 거절한다.
+ActiveGame pressRematch(
+  ActiveGame game,
+  Side side, {
+  required int quickRematchLimit,
+  required bool opponentPresent,
+  required String newGameId,
+}) {
+  if (game.state.phase != GamePhase.finished) {
+    throw const CallableException.failedPrecondition(GameErrorCode.rematchUnavailable, '아직 끝나지 않은 대국입니다');
+  }
+  final rematch = game.rematch ?? const GameRematch(cho: null, han: null, cancelled: null, gameId: null, blocked: null);
+  if (rematch.gameId != null) {
+    return game;
+  }
+  if (rematch.cancelled == true || rematch.blocked == true || isRematchLimitReached(game, quickRematchLimit)) {
+    throw const CallableException.failedPrecondition(GameErrorCode.rematchUnavailable, '다시 두기를 할 수 없습니다');
+  }
+  if (!opponentPresent) {
+    return game.copyWith(rematch: rematch.copyWith(cancelled: true));
+  }
+  final pressed = rematch.copyWithSide(side, true);
+  final bothPressed = pressed.get(side.opponent) == true;
+  return game.copyWith(rematch: bothPressed ? pressed.copyWith(gameId: newGameId) : pressed);
+}
+
+/// 정해 둔 다시 두기 대국을 만들지 못한 대국. 새 대국 ID를 지우고 취소한다. 앱은 취소를 보고 다시 두기를 끝낸다.
+ActiveGame failRematch(ActiveGame game) {
+  final rematch = game.rematch;
+  if (rematch == null || rematch.gameId == null) {
+    return game;
+  }
+  return game.copyWith(
+    rematch: GameRematch(cho: rematch.cho, han: rematch.han, cancelled: true, gameId: null, blocked: rematch.blocked),
+  );
+}
+
+/// 결과 화면을 나간 대국. 새 대국이 아직 정해지지 않았으면 다시 두기를 취소한다. 바꿀 것이 없으면 [game]을 그대로 돌려준다.
+ActiveGame cancelRematch(ActiveGame game) {
+  final rematch = game.rematch ?? const GameRematch(cho: null, han: null, cancelled: null, gameId: null, blocked: null);
+  if (game.state.phase != GamePhase.finished || rematch.gameId != null || rematch.cancelled == true) {
+    return game;
+  }
+  return game.copyWith(rematch: rematch.copyWith(cancelled: true));
+}
+
+/// 다시 두기 대국의 대국자. 초와 한을 바꾼다. 접장기면 떼는 쪽이 계속 한이므로 그대로 둔다(`docs/game/handicap.md`).
+/// 닉네임과 급수는 [refreshed]의 지금 값으로 바꾼다.
+GamePlayers getRematchPlayers(ActiveGame previous, Map<String, GamePlayer> refreshed) {
+  final players = previous.meta.players;
+  final cho = refreshed[players.cho.uid] ?? players.cho;
+  final han = refreshed[players.han.uid] ?? players.han;
+  if (previous.meta.handicap != null) {
+    return GamePlayers(cho: cho, han: han);
+  }
+  return GamePlayers(cho: han, han: cho);
 }

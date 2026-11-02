@@ -50,3 +50,33 @@ const unboundGameCleanupDelay = Duration(minutes: 1);
 /// `finalizeGame`은 대국이 끝날 때 바로 한 번 실행하고, 실패에 대비해 이 시간 뒤에 예약 작업으로 한 번 더 부른다.
 /// 바로 실행과 예약 작업이 같은 Firestore 문서를 동시에 바꾸지 않도록 간격을 둔다.
 const finalizeGameRetryDelay = Duration(seconds: 30);
+
+/// 처음 레이팅. 급수 대국을 두지 않은 사용자(`ratings` 문서가 없음)도 이 값으로 본다(`docs/game/rank.md`).
+const initialRating = 1000.0;
+
+/// 반영된 대국 수에 따른 Elo K 값(`docs/game/rank.md`의 계산 방식). [ratedGamesUpTo]판까지 [k]를 쓰고, 마지막 값은 그 뒤 모두다.
+const ratingKSteps = [(ratedGamesUpTo: 19, k: 80), (ratedGamesUpTo: 99, k: 40), (ratedGamesUpTo: null, k: 20)];
+
+/// 18급 구간의 시작 레이팅. 18급은 이보다 낮아도 18급이고 진행 막대는 0이다.
+const rankBaseRating = 1000.0;
+
+/// 급수 한 단계의 레이팅 폭. 18급은 1050 미만, 17급은 1050 이상 1100 미만, 9단은 2300 이상이다(`docs/game/rank.md`).
+const rankBandWidth = 50.0;
+
+/// 가장 높은 급수(9단)의 `rankLevel`. 가장 낮은 급수(18급)는 1이다.
+const maxRankLevel = 27;
+
+/// 빠른 대국에서 처음 허용하는 레이팅 차이(`docs/game/rank.md`의 빠른 대국 매칭).
+const quickMatchInitialRange = 100.0;
+
+/// [quickMatchStepInterval]만큼 기다릴 때마다 넓히는 레이팅 차이.
+const quickMatchRangeStep = 50.0;
+
+/// 빠른 대국에서 허용하는 가장 큰 레이팅 차이.
+const quickMatchMaxRange = 400.0;
+
+/// 빠른 대국 매칭 범위를 넓히는 간격. 대기열에 있는 동안 이 간격으로 `retryQuickMatch`를 예약한다.
+const quickMatchStepInterval = Duration(seconds: 10);
+
+/// 빠른 대국 매칭에서 내 레이팅 위아래로 각각 읽어 볼 대기열 항목 수. 가까운 순서로 읽는다.
+const quickMatchCandidateLimit = 10;

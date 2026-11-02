@@ -50,6 +50,47 @@ class DeleteWrite extends FirestoreWrite {
   const DeleteWrite(super.path);
 }
 
+/// 쿼리 조건의 비교 연산자. 값은 REST `FieldFilter.Operator` 이름이다.
+enum QueryOperator {
+  lessThan('LESS_THAN'),
+  lessThanOrEqual('LESS_THAN_OR_EQUAL'),
+  greaterThan('GREATER_THAN'),
+  greaterThanOrEqual('GREATER_THAN_OR_EQUAL'),
+  equal('EQUAL');
+
+  final String wireName;
+
+  const QueryOperator(this.wireName);
+}
+
+/// 쿼리 조건 하나. 여러 개를 주면 모두 맞아야 한다.
+class QueryFilter {
+  final String field;
+  final QueryOperator operator;
+  final Object? value;
+
+  const QueryFilter(this.field, this.operator, this.value);
+}
+
+/// 쿼리 정렬 하나.
+class QueryOrder {
+  final String field;
+  final bool descending;
+
+  const QueryOrder(this.field, {this.descending = false});
+}
+
+/// 쿼리로 읽은 문서. [path]는 `documents` 아래 상대 경로다(예: `quick_queue/abc`).
+class FirestoreDocument {
+  final String path;
+  final Map<String, Object?> data;
+
+  const FirestoreDocument({required this.path, required this.data});
+
+  /// 문서 ID. 경로의 마지막 부분이다.
+  String get id => path.substring(path.lastIndexOf('/') + 1);
+}
+
 /// Firestore REST API(v1)의 얇은 클라이언트. repository만 쓴다(`docs/dev_rules.md`의 Dart 대국 서버 규칙).
 ///
 /// Dart용 Firebase Admin SDK가 공식으로 없어서 REST를 직접 부른다(`docs/server.md`의 개발 환경).
@@ -103,6 +144,64 @@ class FirestoreClient {
       }
     }
     return results;
+  }
+
+  /// 최상위 [collection]에서 [filters]에 맞는 문서를 [orderBy] 순서로 [limit]개까지 읽는다.
+  ///
+  /// 트랜잭션 밖에서만 쓴다. 고를 문서는 트랜잭션에서 다시 읽어 확인한다.
+  Future<List<FirestoreDocument>> runQuery(
+    String collection, {
+    List<QueryFilter> filters = const [],
+    List<QueryOrder> orderBy = const [],
+    int? limit,
+  }) async {
+    final fieldFilters = [
+      for (final filter in filters)
+        {
+          'fieldFilter': {
+            'field': {'fieldPath': _quoteFieldPath(filter.field)},
+            'op': filter.operator.wireName,
+            'value': FirestoreCodec.encodeValue(filter.value),
+          },
+        },
+    ];
+    final structuredQuery = <String, Object?>{
+      'from': [
+        {'collectionId': collection},
+      ],
+      if (fieldFilters.length == 1) 'where': fieldFilters.single,
+      if (fieldFilters.length > 1)
+        'where': {
+          'compositeFilter': {'op': 'AND', 'filters': fieldFilters},
+        },
+      if (orderBy.isNotEmpty)
+        'orderBy': [
+          for (final order in orderBy)
+            {
+              'field': {'fieldPath': _quoteFieldPath(order.field)},
+              'direction': order.descending ? 'DESCENDING' : 'ASCENDING',
+            },
+        ],
+      'limit': ?limit,
+    };
+    final response = await httpClient.post(
+      _uri('$documentsRoot:runQuery'),
+      headers: _jsonHeaders,
+      body: jsonEncode({'structuredQuery': structuredQuery}),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decodeResponse(response);
+    }
+    final prefix = '$documentsRoot/';
+    // 응답은 결과마다 `document`가 있는 배열이다. 결과가 없으면 `readTime`만 있는 항목 하나가 온다.
+    return [
+      for (final entry in jsonDecode(response.body) as List<Object?>)
+        if ((entry as Map<String, Object?>)['document'] case final Map<String, Object?> document)
+          FirestoreDocument(
+            path: (document['name'] as String).substring(prefix.length),
+            data: FirestoreCodec.decodeFields(document['fields'] as Map<String, Object?>?),
+          ),
+    ];
   }
 
   /// [writes]를 한꺼번에 적용한다. 하나라도 실패하면 모두 적용하지 않는다.

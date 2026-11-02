@@ -198,6 +198,14 @@ class _FakeUsersRepository implements UsersRepository {
 
   @override
   Future<User?> getUser(String uid) async => users[uid];
+
+  @override
+  Future<Map<String, User?>> getUsers(List<String> uids) async => {for (final uid in uids) uid: users[uid]};
+
+  @override
+  void updateRankLevelInTransaction(FirestoreTransaction transaction, String uid, int rankLevel) {
+    throw UnimplementedError();
+  }
 }
 
 class _ThrowingEndpoint extends CallableEndpoint {

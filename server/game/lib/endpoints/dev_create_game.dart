@@ -48,14 +48,8 @@ class DevCreateGameEndpoint extends CallableEndpoint {
   final ConfigsRepository configs;
   final GameLogger logger;
 
-  /// 새 대국의 시간 규칙. 통합 테스트는 짧은 값을 넣는다.
-  final TimeControl timeControl;
-
-  /// 상대 찾음 화면 시간.
-  final Duration matchIntro;
-
-  /// 접속 끊김 허용 시간 합계. null이면 `configs/app.disconnectLimitSeconds`를 쓴다. 통합 테스트가 짧게 줄일 때 쓴다.
-  final Duration? disconnectLimit;
+  /// 새 대국의 시간 설정. 통합 테스트는 짧은 값을 넣는다.
+  final NewGameSettings settings;
   final Random _random;
 
   DevCreateGameEndpoint({
@@ -64,9 +58,7 @@ class DevCreateGameEndpoint extends CallableEndpoint {
     required this.users,
     required this.configs,
     required this.logger,
-    required this.timeControl,
-    required this.matchIntro,
-    this.disconnectLimit,
+    required this.settings,
     Random? random,
   }) : _random = random ?? Random();
 
@@ -102,9 +94,9 @@ class DevCreateGameEndpoint extends CallableEndpoint {
       rated: false,
       listed: true,
       players: callerSide == Side.cho ? GamePlayers(cho: caller, han: other) : GamePlayers(cho: other, han: caller),
-      timeControl: timeControl,
-      disconnectLimitMs: (disconnectLimit ?? Duration(seconds: appConfig.disconnectLimitSeconds)).inMilliseconds,
-      introMs: matchIntro.inMilliseconds,
+      timeControl: settings.timeControl,
+      disconnectLimitMs: settings.getDisconnectLimitMs(appConfig),
+      introMs: settings.matchIntro.inMilliseconds,
       now: request.receivedAt.millisecondsSinceEpoch,
     );
     final gameId = await gameService.createGame(game, now: request.receivedAt);

@@ -103,8 +103,8 @@ flowchart LR
 
 | API | 파라미터 | 하는 일 |
 |---|---|---|
-| `joinQuickQueue` | 없음 | 대기열에 넣고 바로 한 번 매칭을 시도한다. 상대가 없으면 범위 넓히기 작업을 예약한다 |
-| `leaveQuickQueue` | 없음 | 대기열에서 뺀다. 이미 매칭됐으면 `busy` |
+| `joinQuickQueue` | 없음 | 대기열에 넣고 바로 한 번 매칭을 시도한다. 상대가 없으면 범위 넓히기 작업을 예약한다. 결과 `gameId`(찾았으면 새 대국, 아니면 null). 이미 대기열에 있으면 기다린 시간을 그대로 두고 다시 찾기만 한다. 이용 정지 중이면 `sanctioned`, 방·대국·신청 중이면 `busy` |
+| `leaveQuickQueue` | 없음 | 대기열에서 뺀다. 이미 매칭됐으면 `busy`. 대기열에 없으면 그대로 성공한다 |
 
 ### 방
 
@@ -133,15 +133,15 @@ flowchart LR
 | `resign` | `gameId` | 기권한다 |
 | `useTimeExtension` | `gameId` | 시간 연장권을 쓴다. 연장권 보유는 3단계에서 정하므로 2단계에는 만들지 않는다 |
 | `checkGame` | `gameId` | 대국 판정을 다시 보게 한다(아래 "판정 다시 보기"). 대국자만 부를 수 있고, 끝난 대국이면 아무것도 하지 않고 성공한다. 앱이 부르는 때는 아래 "접속 끊김" |
-| `requestRematch` | `gameId` | 다시 두기를 누른다. 두 사람이 모두 누르면 새 대국을 만든다 |
-| `leaveResult` | `gameId` | 결과 화면을 나간다. 기다리던 다시 두기를 취소하고, 방 대국이면 방 대기실로 돌린다 |
+| `requestRematch` | `gameId` | 다시 두기를 누른다. 두 사람이 모두 누르면 새 대국을 만든다. 결과 `gameId`(새 대국이 정해졌으면 그 ID, 상대를 기다리면 null). 끝나지 않은 대국, 상대가 나갔거나 앱에 없을 때, 횟수에 닿았을 때는 `rematchUnavailable` |
+| `leaveResult` | `gameId` | 결과 화면을 나간다. 기다리던 다시 두기를 취소하고, 방 대국이면 방 대기실로 돌린다. 대국이 이미 지워졌으면 그대로 성공한다 |
 
 ### 예약 작업 (Cloud Tasks 전용)
 
 | 경로 | 예약하는 때 | 하는 일 |
 |---|---|---|
 | `/tasks/evaluateGame` | 상차림 마감, 시간패 시각, 접속 끊김 마감 | 판정 다시 보기 |
-| `/tasks/retryQuickMatch` | 대기열에 들어간 뒤 10초마다 | 넓어진 범위로 다시 매칭 |
+| `/tasks/retryQuickMatch` | 대기열에 들어간 뒤 10초마다 | 넓어진 범위로 다시 매칭. 앱 연결이 모두 끊겼으면 대기열에서 뺀다 |
 | `/tasks/expireChallenge` | 신청 응답 마감 | 응답이 없으면 `expired`로 바꾸고 제한 횟수를 센다 |
 | `/tasks/finalizeGame` | 대국이 끝날 때 | 기보 저장, 레이팅·전적 반영. 실패하면 Cloud Tasks가 다시 부른다 |
 | `/tasks/cleanupGame` | 대국을 만들 때, 끝날 때 | 묶이지 않은 대국과 끝난 지 오래된 대국을 RTDB에서 지운다 |
@@ -233,19 +233,27 @@ flowchart LR
 레이팅은 [rank.md](./game/rank.md)의 Elo를 쓴다.
 
 - 기대 승률 E = 1 / (1 + 10^((상대 레이팅 − 내 레이팅) / 400)).
-- 변동 = K × (결과 − E). 결과는 이기면 1, 지면 0이다. K는 내 `ratedGames`로 고른다.
+- 변동 = K × (결과 − E). 결과는 이기면 1, 지면 0이다. K는 이 대국 전의 내 `ratedGames`로 고른다. 레이팅은 소수 그대로 저장한다.
 - 급수는 바뀐 레이팅이 들어가는 구간으로 바로 정한다.
-- 어림 승수 = (다음 급수 시작 레이팅 − 지금 레이팅) ÷ (K × 0.5)를 올림한 값. 비슷한 레이팅의 상대를 이기면 K의 절반쯤 오른다는 어림이다.
-- 급수 대국은 빠른 대국(다시 두기 포함)이고 접장기가 아닌 대국이다.
+- 진행 막대(`rankProgress`) = (레이팅 − 지금 급수 구간의 시작) ÷ 50을 0~1로 자른 값. 18급 구간은 1000부터 센다(1000 아래면 0). 9단은 다음 급수가 없으므로 1이다.
+- 어림 승수 = (다음 급수 시작 레이팅 − 지금 레이팅) ÷ (K × 0.5)를 올림한 값이고 1보다 작지 않다. K는 다음 판의 K다. 비슷한 레이팅의 상대를 이기면 K의 절반쯤 오른다는 어림이다. 9단이면 null.
+- 급수 변동(`lastRankChange`)의 "전" 값은 이 대국 전 레이팅으로 계산한다. `ratings` 문서가 없으면 처음 레이팅(1000)이다.
+- 급수 대국은 빠른 대국(다시 두기 포함)이고 접장기가 아닌 대국이다. 대국을 만들 때 `meta.rated`에 정한다.
+- `users_private` 문서가 없으면(Functions가 프로필과 함께 만드는 문서라 정상이면 없다) 급수 진행만 쓰지 않고 나머지는 반영한다. 대국 마무리를 막지 않기 위해서다.
 
 ### 다시 두기
 
 [matching.md](./game/matching.md)의 다시 두기를 따른다.
 
-- `requestRematch`는 `rematch.{side}`를 true로 쓴다. 두 쪽이 모두 true면 같은 조건으로 새 대국을 만들고 `rematch.gameId`를 쓴다. 두 앱은 그 값을 보고 상차림으로 간다.
+- `requestRematch`는 `rematch.{side}`를 true로 쓴다. 두 쪽이 모두 true가 되는 쓰기에서 새 대국 ID를 정해 `rematch.gameId`에 함께 쓰고, 그 쓰기를 한 요청만 같은 조건으로 새 대국을 만든다. 두 요청이 동시에 와도 RTDB 조건부 쓰기로 한 요청만 새 ID를 쓴다. 늦게 온 요청은 정해진 ID를 돌려받는다.
+- 앱은 `rematch.gameId`가 생기고 내 `player_states.gameId`가 그 값이 되면(새 대국이 RTDB에 생기고 두 사람이 묶인 뒤) 상차림으로 간다.
+- 새 대국을 만들지 못하면(예: 그새 한 사람이 다른 대국에 묶였다) `rematch.gameId`를 지우고 `cancelled`를 true로 둔다.
+- 새 대국을 만들기 전에 앞 대국의 `finalizeGame`을 한 번 더 불러(이미 했으면 아무것도 하지 않는다) 레이팅을 반영하고 두 사람을 푼다. 새 대국의 닉네임과 급수는 그 뒤의 `users` 값이다.
 - 초와 한은 바꾼다. 접장기면 떼는 쪽이 계속 한이다.
-- 빠른 대국이면 새 대국의 `rematchCount`는 앞 대국 + 1이다. 앞 대국의 `rematchCount`가 `quickRematchLimit`에 닿았으면 `rematch.blocked`를 true로 두고 받지 않는다. 결과 화면은 처음부터 이 값을 보고 버튼을 끈다.
-- `leaveResult`를 받으면 `rematch.cancelled`를 true로 둔다. 결과 화면에서 앱이 꺼진 경우는 상대가 `requestRematch`를 부를 때 서버가 `connections`로 끊긴 것을 보고 취소로 처리한다.
+- 새 대국의 `rematchCount`는 앞 대국 + 1이다. 빠른 대국은 앞 대국의 `rematchCount`가 `quickRematchLimit`에 닿았으면 받지 않는다. 그런 대국은 만들 때부터 `rematch.blocked`를 true로 두어 결과 화면이 처음부터 버튼을 끈다. 방 대국과 신청 대국은 횟수를 세기만 하고 막지 않는다.
+- `leaveResult`를 받으면 `rematch.cancelled`를 true로 둔다. 결과 화면에서 앱이 꺼진 경우는 상대가 `requestRematch`를 부를 때 서버가 `connections`로 끊긴 것을 보고 취소로 처리한다. 상대가 먼저 눌렀어도 같다.
+  - 이때 연결된 것은 `online`이고 `foreground`인 연결이 있는 것이다. 대국이 끝나면 앱이 `lastSeenAt`을 갱신하지 않으므로 대국 중 판정과 달리 `presenceStaleSeconds`는 보지 않는다.
+- 결과 창의 "한 판 더", 복기하기, 홈으로는 모두 `leaveResult`를 부른 뒤 넘어간다. 결과 창을 뒤로 가기로 닫으면 홈으로 간다.
 
 ## 매칭 — 초안
 
@@ -253,11 +261,13 @@ flowchart LR
 
 [rank.md](./game/rank.md)의 빠른 대국 매칭을 따른다.
 
-- `joinQuickQueue`는 `ratings`의 레이팅으로 `quick_queue/{uid}`를 만들고 바로 매칭을 시도한다.
-- 매칭 시도: 대기열에서 레이팅 차이가 허용 범위 안이면서 가장 가까운 사람을 고른다. 허용 범위는 두 사람 중 더 오래 기다린 사람의 범위(처음 100점, 10초마다 50점씩, 최대 400점)다(제안).
-- 상대가 없으면 10초 뒤 `retryQuickMatch`를 예약한다. 나갔거나 매칭됐으면 예약 작업은 아무것도 하지 않는다.
-- 찾으면 RTDB에 대국을 만들고, Firestore 트랜잭션으로 두 사람의 `quick_queue`를 지우고 `player_states.gameId`를 쓴다. 상대가 그새 다른 사람과 묶였으면 대국을 지우고 다시 찾는다.
-- 초와 한은 무작위로 정한다.
+- `joinQuickQueue`는 이용 정지를 확인하고, 묶인 대국이 끝났어야 하면 먼저 정리한 뒤, `ratings`의 레이팅으로 `quick_queue/{uid}`와 `player_states.quickQueueJoinedAt`을 한 트랜잭션으로 쓰고 바로 매칭을 시도한다.
+- 매칭 시도: 대기열에서 레이팅 차이가 허용 범위 안이면서 가장 가까운 사람을 고른다(같으면 더 오래 기다린 사람). 허용 범위는 두 사람 중 더 오래 기다린 사람의 범위(처음 100점, 10초마다 50점씩, 최대 400점)다(제안).
+  - 후보는 내 레이팅 위(같은 값 포함)와 아래에서 가까운 순서로 `quickMatchCandidateLimit`(10)명씩 읽는다. 쿼리는 트랜잭션 밖에서 하고, 고른 상대는 아래 트랜잭션에서 다시 확인한다.
+  - 앱을 화면에 띄워 둔 연결(`online`이고 `foreground`)이 없는 후보는 건너뛴다. 다른 앱으로 넘어간 사람과 대국을 시작하지 않기 위해서다.
+- 상대가 없으면 다음 10초 시각에 `retryQuickMatch`를 예약한다. 범위가 400점에 닿은 뒤에도 대기열에 있는 동안 계속 예약한다. 나갔거나 매칭됐거나 다시 들어왔으면(기다린 시각이 다르다) 예약 작업은 아무것도 하지 않는다. 앱 연결이 하나도 `online`이 아니면(앱을 껐다) 대기열에서 뺀다.
+- 찾으면 RTDB에 대국을 만들고, Firestore 트랜잭션으로 두 사람의 `quick_queue`가 그때 읽은 그대로 남아 있는지 확인한 뒤 지우고, `quickQueueJoinedAt`을 비우고 `player_states.gameId`를 쓴다. 상대가 그새 다른 사람과 묶였으면 대국을 지우고 다시 찾는다(최대 3번). 내가 그새 묶였으면 그만 찾는다.
+- 초와 한은 무작위로 정한다. 대국은 `mode: quick`, `rated: true`, `listed: true`다.
 
 ### 방
 
@@ -352,8 +362,8 @@ sequenceDiagram
     A->>G: requestRematch 또는 leaveResult
 ```
 
-1. 앱 A가 `joinQuickQueue`를 부르고 빠른 대국 대기 화면에서 `player_states/{uid}`를 듣는다. "그만 찾기"는 `leaveQuickQueue`.
-2. 매칭되면 `player_states.gameId`가 생긴다. 앱은 `games_active/{gameId}`를 듣고 상대 찾음 화면을 `setup.startsAt`까지 보여준 뒤 상차림으로 간다. 대국이 아직 RTDB에 없으면 생길 때까지 기다린다.
+1. 앱 A가 `joinQuickQueue`를 부르고 빠른 대국 대기 화면에서 `player_states/{uid}`를 듣는다. "그만 찾기"와 뒤로 가기는 `leaveQuickQueue`. 그새 매칭돼 `busy`면 화면에 남아 대국으로 간다. 홈의 빠른 대국은 진행 중인 대국이 있으면 대기열 대신 그 대국의 상차림 화면을 연다.
+2. 매칭되면 `player_states.gameId`가 생긴다(또는 `joinQuickQueue` 결과). 앱은 `games_active/{gameId}`를 듣고 상대 찾음 화면을 `setup.startsAt`까지 보여준 뒤 상차림으로 간다. 대국이 아직 RTDB에 없으면 생길 때까지 기다린다.
 3. 상차림에서 누를 때마다 `setFormation(confirmed: false)`, 정하기 버튼은 `confirmed: true`. 마감이 지나면 서버가 확정한다.
 4. 대국 중에는 `playMove`, `resign`을 부른다. 상대 시계가 0이 되거나 상대 연결이 끊긴 것을 보면 `checkGame`을 부른다.
 5. `state.result`가 생기면 결과 창을 띄운다. 급수 변동은 `player_states.lastRankChange`로 보여준다.
@@ -411,6 +421,7 @@ sequenceDiagram
 | K 값 | 0~19판 80, 20~99판 40, 100판부터 20 | [rank.md](./game/rank.md) |
 | 급수 구간 | 18급 1050 미만부터 50점마다 한 단계, 9단 2300 이상 | [rank.md](./game/rank.md) |
 | 빠른 대국 매칭 범위 | 처음 100점, 10초마다 50점, 최대 400점 | [rank.md](./game/rank.md) |
+| `quickMatchCandidateLimit` | 10명 | 매칭할 때 내 레이팅 위아래로 각각 읽어 볼 대기열 항목 수. 이 문서 |
 | `challengeResponseSeconds` | 20초 | [matching.md](./game/matching.md) |
 | `challengeFailLimit` | 3회 | [matching.md](./game/matching.md) |
 | `challengeBlockMinutes` | 30분 | [matching.md](./game/matching.md) |

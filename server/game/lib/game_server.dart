@@ -15,8 +15,13 @@ import 'endpoints/dev_create_game.dart';
 import 'endpoints/dev_ping.dart';
 import 'endpoints/dev_ping_task.dart';
 import 'endpoints/game_tasks.dart';
+import 'endpoints/join_quick_queue.dart';
+import 'endpoints/leave_quick_queue.dart';
+import 'endpoints/leave_result.dart';
 import 'endpoints/play_move.dart';
+import 'endpoints/request_rematch.dart';
 import 'endpoints/resign.dart';
+import 'endpoints/retry_quick_match.dart';
 import 'endpoints/set_formation.dart';
 import 'firebase/access_token.dart';
 import 'firebase/firestore_client.dart';
@@ -30,6 +35,8 @@ import 'models/active_game.dart';
 import 'repositories/game_repositories.dart';
 import 'server_environment.dart';
 import 'services/game_service.dart';
+import 'services/quick_match_service.dart';
+import 'services/rematch_service.dart';
 import 'tasks/cloud_tasks_scheduler.dart';
 import 'tasks/local_task_scheduler.dart';
 import 'tasks/task_scheduler.dart';
@@ -73,17 +80,19 @@ class GameServer {
   /// [environment]에 맞게 조립한다. 에뮬레이터에서는 개발용 API(`devPing`, `devCreateGame`)를 함께 연다.
   ///
   /// [onDevPingTask]는 테스트가 `devPing` 예약 작업이 돌았는지 확인할 때 쓴다.
-  /// [devTimeControl], [devMatchIntro], [devDisconnectLimit]은 `devCreateGame`이 만드는 대국의 시간이다. 통합 테스트가 짧게
-  /// 줄일 때 쓴다.
+  /// [testTimeControl], [testMatchIntro], [testDisconnectLimit], [testQuickMatchStepInterval]은 에뮬레이터에서 만드는 모든
+  /// 대국(개발용, 빠른 대국, 다시 두기)의 시간과 매칭 범위를 넓히는 간격이다. 통합 테스트가 짧게 줄일 때 쓰고 운영에서는
+  /// 무시한다.
   factory GameServer.create({
     required ServerEnvironment environment,
     required GameLogger logger,
     http.Client? httpClient,
     Clock clock = utcNow,
     void Function(DevPingTaskParams params)? onDevPingTask,
-    TimeControl? devTimeControl,
-    Duration devMatchIntro = const Duration(seconds: matchIntroSeconds),
-    Duration? devDisconnectLimit,
+    TimeControl? testTimeControl,
+    Duration? testMatchIntro,
+    Duration? testDisconnectLimit,
+    Duration? testQuickMatchStepInterval,
   }) {
     final baseClient = httpClient ?? http.Client();
     final production = environment.mode == ServerMode.production;
@@ -146,8 +155,46 @@ class GameServer {
       playerStates: repositories.playerStates,
       archivedGames: repositories.archivedGames,
       connections: repositories.connections,
+      ratings: repositories.ratings,
+      users: repositories.users,
+      usersPrivate: repositories.usersPrivate,
       taskScheduler: taskScheduler,
       logger: logger,
+    );
+    final newGameSettings = production
+        ? NewGameSettings(
+            timeControl: defaultTimeControl,
+            matchIntro: const Duration(seconds: matchIntroSeconds),
+            disconnectLimit: null,
+          )
+        : NewGameSettings(
+            timeControl: testTimeControl ?? defaultTimeControl,
+            matchIntro: testMatchIntro ?? const Duration(seconds: matchIntroSeconds),
+            disconnectLimit: testDisconnectLimit,
+          );
+    final quickMatchService = QuickMatchService(
+      firestore: firestore,
+      gameService: gameService,
+      quickQueue: repositories.quickQueue,
+      playerStates: repositories.playerStates,
+      ratings: repositories.ratings,
+      users: repositories.users,
+      usersPrivate: repositories.usersPrivate,
+      connections: repositories.connections,
+      configs: repositories.configs,
+      taskScheduler: taskScheduler,
+      logger: logger,
+      settings: newGameSettings,
+      stepInterval: (production ? null : testQuickMatchStepInterval) ?? quickMatchStepInterval,
+    );
+    final rematchService = RematchService(
+      gameService: gameService,
+      activeGames: repositories.activeGames,
+      users: repositories.users,
+      connections: repositories.connections,
+      configs: repositories.configs,
+      logger: logger,
+      settings: newGameSettings,
     );
 
     return GameServer(
@@ -167,6 +214,10 @@ class GameServer {
         PlayMoveEndpoint(gameService: gameService, logger: logger),
         ResignEndpoint(gameService: gameService, logger: logger),
         CheckGameEndpoint(gameService: gameService, logger: logger),
+        JoinQuickQueueEndpoint(quickMatchService: quickMatchService),
+        LeaveQuickQueueEndpoint(quickMatchService: quickMatchService),
+        RequestRematchEndpoint(rematchService: rematchService),
+        LeaveResultEndpoint(rematchService: rematchService),
         if (!production) ...[
           DevPingEndpoint(taskScheduler: taskScheduler, logger: logger),
           DevCreateGameEndpoint(
@@ -175,9 +226,7 @@ class GameServer {
             users: repositories.users,
             configs: repositories.configs,
             logger: logger,
-            timeControl: devTimeControl ?? defaultTimeControl,
-            matchIntro: devMatchIntro,
-            disconnectLimit: devDisconnectLimit,
+            settings: newGameSettings,
           ),
         ],
       ],
@@ -185,6 +234,7 @@ class GameServer {
         EvaluateGameTaskEndpoint(gameService: gameService, logger: logger),
         FinalizeGameTaskEndpoint(gameService: gameService),
         CleanupGameTaskEndpoint(gameService: gameService),
+        RetryQuickMatchTaskEndpoint(quickMatchService: quickMatchService),
         if (!production) DevPingTaskEndpoint(logger: logger, onRun: onDevPingTask),
       ],
     );

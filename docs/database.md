@@ -98,7 +98,7 @@
 |---|---|---|---|
 | `challengesEnabled` | boolean | 앱(본인), Functions(처음 값 `true`) | 설정의 "대국 신청 받기" |
 | `rankProgress` | number | 대국 서버 | 현재 급수 구간 안에서의 위치 0~1. 진행 막대에 쓴다 |
-| `winsToNextRank` | number? | 대국 서버 | "4급까지 약 3승"의 어림 승수. 9단이면 null |
+| `winsToNextRank` | number? | 대국 서버 | "4급까지 약 3승"의 어림 승수. 9단이거나 아직 급수 대국을 두지 않았으면 null(Functions가 null로 만든다) |
 | `nicknameChangeCount` | number | Functions | 닉네임을 바꾼 횟수. 첫 변경 무료 판단에 쓴다 |
 | `nicknameChangedAt` | timestamp? | Functions | 마지막으로 바꾼 시각. 7일 제한에 쓴다 |
 | `sanction` | map? | Functions | 지금 걸린 제재. `type`(SanctionType), `endsAt`(timestamp?, 영구면 null), `reason`(string) |
@@ -109,7 +109,7 @@
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `rating` | number | 레이팅 |
+| `rating` | number | 레이팅. 소수 그대로 저장한다 |
 | `ratedGames` | number | 급수에 반영된 대국 수. K 값을 고르는 데 쓴다 |
 | `updatedAt` | timestamp | |
 
@@ -162,6 +162,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 |---|---|---|
 | `rating` | number | 들어올 때의 레이팅 |
 | `joinedAt` | timestamp | 기다리기 시작한 시각. 매칭 범위 넓히기에 쓴다 |
+
+- 매칭은 `rating`으로 범위 쿼리와 정렬을 한다. 필드 하나의 쿼리라 자동 색인으로 충분하다.
 
 ### `rooms/{roomId}`
 
@@ -356,8 +358,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 |---|---|---|
 | `cho`, `han` | boolean? | 다시 두기를 눌렀다 |
 | `cancelled` | boolean? | 한쪽이 결과 화면을 나가서 취소됐다 |
-| `gameId` | string? | 만들어진 새 대국. 두 앱이 이 값을 보고 옮겨 간다 |
-| `blocked` | boolean? | `quickRematchLimit`에 닿아 다시 두기를 쓸 수 없다 |
+| `gameId` | string? | 두 쪽이 모두 눌러 정한 새 대국. 새 대국을 만들기 전에 정하므로, 앱은 내 `player_states.gameId`가 이 값이 되면 옮겨 간다. 만들지 못하면 지우고 `cancelled`를 쓴다 |
+| `blocked` | boolean? | 빠른 대국의 `quickRematchLimit`에 닿아 다시 두기를 쓸 수 없다. 대국을 만들 때 쓴다 |
 
 ### `spectate_list/{gameId}`
 

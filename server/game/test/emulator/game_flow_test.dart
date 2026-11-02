@@ -2,17 +2,16 @@
 library;
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:http/http.dart' as http;
-import 'package:janggigo_game/firebase/firestore_client.dart';
 import 'package:janggigo_game/game_server.dart';
 import 'package:janggigo_game/logging.dart';
 import 'package:janggigo_game/models/active_game.dart';
 import 'package:janggigo_game/server_environment.dart';
 import 'package:test/test.dart';
+
+import 'support/emulator_helpers.dart';
 
 /// 서로 다른 두 계정으로 대국을 만들고 끝까지 두는 통합 테스트(`docs/server.md`의 개발 환경).
 /// `server/game/README.md`의 "테스트"처럼 `firebase emulators:exec`로 실행하면 돈다.
@@ -31,7 +30,7 @@ void main() {
       server = GameServer.create(
         environment: ServerEnvironment.fromPlatform(),
         logger: GameLogger(format: LogFormat.text, minSeverity: LogSeverity.warning),
-        devTimeControl: const TimeControl(
+        testTimeControl: const TimeControl(
           baseMs: 1000,
           periodMs: 500,
           periods: 1,
@@ -39,10 +38,10 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        devMatchIntro: Duration.zero,
+        testMatchIntro: Duration.zero,
       );
       httpServer = await server.serve(port: 0);
-      await _ensureAppConfig(server.firestore);
+      await ensureAppConfig(server.firestore);
     });
 
     tearDownAll(() async {
@@ -50,21 +49,22 @@ void main() {
       await server.close();
     });
 
-    Future<Map<String, Object?>> callOk(_Account account, String api, Object? data) =>
-        _callOk(client, httpServer.port, account, api, data);
+    Future<Map<String, Object?>> callOk(EmulatorAccount account, String api, Object? data) =>
+        callApiOk(client, httpServer.port, account, api, data);
 
-    Future<void> expectRejected(_Account account, String api, Object? data, String code) =>
-        _expectRejected(client, httpServer.port, account, api, data, code);
+    Future<void> expectRejected(EmulatorAccount account, String api, Object? data, String code) =>
+        expectApiRejected(client, httpServer.port, account, api, data, code);
 
     Future<ActiveGame> getGame(String gameId) async => (await server.repositories.activeGames.getGame(gameId))!;
 
-    Future<String> createGame(_Account cho, _Account han) => _createGame(client, httpServer.port, cho, han);
+    Future<String> createGame(EmulatorAccount cho, EmulatorAccount han) =>
+        createDevGame(client, httpServer.port, cho, han);
 
     test('상차림, 수, 한수쉼으로 끝내고 기보를 저장한다', () async {
-      final cho = await _createAccount(client, server.firestore);
-      final han = await _createAccount(client, server.firestore);
+      final cho = await createEmulatorAccount(client, server.firestore);
+      final han = await createEmulatorAccount(client, server.firestore);
 
-      await expectRejected(cho, 'devCreateGame', {'opponentNickname': 'zz${_randomId(6)}', 'side': 'cho'}, 'notFound');
+      await expectRejected(cho, 'devCreateGame', {'opponentNickname': 'zz${randomId(6)}', 'side': 'cho'}, 'notFound');
       final gameId = await createGame(cho, han);
 
       var game = await getGame(gameId);
@@ -111,7 +111,7 @@ void main() {
       // 응답을 못 받고 다시 보낸 같은 수는 성공으로 본다.
       await callOk(cho, 'playMove', {'gameId': gameId, 'moveIndex': 0, 'move': 'a4b4'});
       await expectRejected(han, 'playMove', {'gameId': gameId, 'moveIndex': 0, 'move': 'a7b7'}, 'moveConflict');
-      final outsider = await _createAccount(client, server.firestore);
+      final outsider = await createEmulatorAccount(client, server.firestore);
       await expectRejected(outsider, 'playMove', {'gameId': gameId, 'moveIndex': 1, 'move': 'pass'}, 'notPlayer');
 
       await callOk(han, 'playMove', {'gameId': gameId, 'moveIndex': 1, 'move': 'pass'});
@@ -144,8 +144,8 @@ void main() {
     });
 
     test('상차림 마감과 시간패를 예약 작업이 판정한다', () async {
-      final cho = await _createAccount(client, server.firestore);
-      final han = await _createAccount(client, server.firestore);
+      final cho = await createEmulatorAccount(client, server.firestore);
+      final han = await createEmulatorAccount(client, server.firestore);
       final gameId = await createGame(cho, han);
       await callOk(han, 'setFormation', {
         'gameId': gameId,
@@ -154,7 +154,7 @@ void main() {
       });
 
       // 한 1초, 초 1초 상차림 마감 뒤 초 차례에서 기본 1초 + 초읽기 0.5초 × 2가 지나면 초가 시간패로 진다.
-      final game = await _waitFor(() async {
+      final game = await waitFor(() async {
         final game = await getGame(gameId);
         return game.state.phase.name == 'finished' ? game : null;
       }, timeout: const Duration(seconds: 15));
@@ -164,7 +164,7 @@ void main() {
       expect(game.state.result?.winner.name, 'han');
       expect(game.state.endedAt, game.state.turnStartedAt! + 1000 + 2 * 500);
 
-      final archived = await _waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
+      final archived = await waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
       expect((archived['result'] as Map)['reason'], 'timeout');
       expect((await server.repositories.playerStates.getPlayerState(cho.uid))?.gameId, isNull);
     });
@@ -182,7 +182,7 @@ void main() {
       server = GameServer.create(
         environment: ServerEnvironment.fromPlatform(),
         logger: GameLogger(format: LogFormat.text, minSeverity: LogSeverity.warning),
-        devTimeControl: const TimeControl(
+        testTimeControl: const TimeControl(
           baseMs: 60000,
           periodMs: 30000,
           periods: 3,
@@ -190,11 +190,11 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        devMatchIntro: Duration.zero,
-        devDisconnectLimit: const Duration(milliseconds: limitMs),
+        testMatchIntro: Duration.zero,
+        testDisconnectLimit: const Duration(milliseconds: limitMs),
       );
       httpServer = await server.serve(port: 0);
-      await _ensureAppConfig(server.firestore);
+      await ensureAppConfig(server.firestore);
     });
 
     tearDownAll(() async {
@@ -205,7 +205,7 @@ void main() {
     Future<ActiveGame> getGame(String gameId) async => (await server.repositories.activeGames.getGame(gameId))!;
 
     Future<void> setConnection(
-      _Account account, {
+      EmulatorAccount account, {
       required bool online,
       required int activeSince,
       required int lastSeenAt,
@@ -218,22 +218,22 @@ void main() {
       });
     }
 
-    Future<void> checkGame(_Account account, String gameId) async {
-      await _callOk(client, httpServer.port, account, 'checkGame', {'gameId': gameId});
+    Future<void> checkGame(EmulatorAccount account, String gameId) async {
+      await callApiOk(client, httpServer.port, account, 'checkGame', {'gameId': gameId});
     }
 
     int nowMs() => DateTime.now().millisecondsSinceEpoch;
 
     test('한 대국 동안 끊긴 시간을 모두 더해 허용 시간에 닿으면 끊긴 쪽이 진다', () async {
-      final cho = await _createAccount(client, server.firestore);
-      final han = await _createAccount(client, server.firestore);
-      final outsider = await _createAccount(client, server.firestore);
+      final cho = await createEmulatorAccount(client, server.firestore);
+      final han = await createEmulatorAccount(client, server.firestore);
+      final outsider = await createEmulatorAccount(client, server.firestore);
       final connectedAt = nowMs();
       await setConnection(cho, online: true, activeSince: connectedAt, lastSeenAt: connectedAt);
       await setConnection(han, online: true, activeSince: connectedAt, lastSeenAt: connectedAt);
-      final gameId = await _createGame(client, httpServer.port, cho, han);
+      final gameId = await createDevGame(client, httpServer.port, cho, han);
 
-      await _expectRejected(client, httpServer.port, outsider, 'checkGame', {'gameId': gameId}, 'notPlayer');
+      await expectApiRejected(client, httpServer.port, outsider, 'checkGame', {'gameId': gameId}, 'notPlayer');
       await checkGame(cho, gameId);
       var game = await getGame(gameId);
       expect(game.meta.disconnectLimitMs, limitMs);
@@ -260,7 +260,7 @@ void main() {
       final secondSince = nowMs();
       await setConnection(han, online: false, activeSince: backAt, lastSeenAt: secondSince);
       await checkGame(cho, gameId);
-      final ended = await _waitFor(() async {
+      final ended = await waitFor(() async {
         final game = await getGame(gameId);
         return game.state.phase.name == 'finished' ? game : null;
       });
@@ -270,22 +270,22 @@ void main() {
 
       // 끝난 대국은 아무것도 하지 않고 성공한다.
       await checkGame(han, gameId);
-      final archived = await _waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
+      final archived = await waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
       expect((archived['result'] as Map)['reason'], 'disconnect');
     });
 
     test('끊긴 쪽은 상대의 수에서도 판정한다', () async {
-      final cho = await _createAccount(client, server.firestore);
-      final han = await _createAccount(client, server.firestore);
+      final cho = await createEmulatorAccount(client, server.firestore);
+      final han = await createEmulatorAccount(client, server.firestore);
       final connectedAt = nowMs();
       await setConnection(cho, online: true, activeSince: connectedAt, lastSeenAt: connectedAt);
       await setConnection(han, online: true, activeSince: connectedAt, lastSeenAt: connectedAt);
-      final gameId = await _createGame(client, httpServer.port, cho, han);
+      final gameId = await createDevGame(client, httpServer.port, cho, han);
 
       // 초가 끊긴 채로 한이 상차림을 정하면 그 요청에서 초의 끊김을 기록한다.
       final since = nowMs();
       await setConnection(cho, online: false, activeSince: connectedAt, lastSeenAt: since);
-      await _callOk(client, httpServer.port, han, 'setFormation', {
+      await callApiOk(client, httpServer.port, han, 'setFormation', {
         'gameId': gameId,
         'formation': 'horseElephantHorseElephant',
         'confirmed': true,
@@ -295,122 +295,4 @@ void main() {
       expect(game.state.disconnect.cho.since, since);
     });
   });
-}
-
-class _Account {
-  final String uid;
-  final String idToken;
-  final String nickname;
-
-  const _Account({required this.uid, required this.idToken, required this.nickname});
-}
-
-/// Auth 에뮬레이터 계정과 프로필. 프로필은 Functions가 만들지만 여기서는 테스트 준비로 직접 쓴다.
-Future<_Account> _createAccount(http.Client client, FirestoreClient firestore) async {
-  final authHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '127.0.0.1:${EmulatorPorts.auth}';
-  final response = await client.post(
-    Uri.parse('http://$authHost/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-api-key'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'email': '${_randomId(20)}@example.com', 'password': 'password123', 'returnSecureToken': true}),
-  );
-  if (response.statusCode != 200) {
-    throw StateError('Auth 에뮬레이터 가입 실패: ${response.statusCode} ${response.body}');
-  }
-  final body = jsonDecode(response.body) as Map<String, Object?>;
-  final uid = body['localId'] as String;
-  final nickname = 't${_randomId(8)}';
-  final now = DateTime.now().toUtc();
-  await firestore.commit([
-    CreateWrite('users/$uid', {
-      'nickname': nickname,
-      'rankLevel': 1,
-      'stats': {'games': 0, 'wins': 0, 'losses': 0},
-      'createdAt': now,
-    }),
-    CreateWrite('nicknames/$nickname', {'uid': uid, 'createdAt': now}),
-  ]);
-  return _Account(uid: uid, idToken: body['idToken'] as String, nickname: nickname);
-}
-
-Future<(int, Map<String, Object?>)> _call(
-  http.Client client,
-  int port,
-  _Account account,
-  String api,
-  Object? data,
-) async {
-  final response = await client.post(
-    Uri.parse('http://127.0.0.1:$port/$api'),
-    headers: {'Authorization': 'Bearer ${account.idToken}', 'Content-Type': 'application/json'},
-    body: jsonEncode({'data': data}),
-  );
-  return (response.statusCode, jsonDecode(response.body) as Map<String, Object?>);
-}
-
-Future<Map<String, Object?>> _callOk(http.Client client, int port, _Account account, String api, Object? data) async {
-  final (status, body) = await _call(client, port, account, api, data);
-  expect(status, 200, reason: '$api: $body');
-  return body;
-}
-
-Future<void> _expectRejected(
-  http.Client client,
-  int port,
-  _Account account,
-  String api,
-  Object? data,
-  String code,
-) async {
-  final (status, body) = await _call(client, port, account, api, data);
-  expect(status, 400, reason: '$api: $body');
-  expect(((body['error'] as Map)['details'] as Map)['code'], code);
-}
-
-/// [cho]가 [han]과의 개발용 대국을 만든다.
-Future<String> _createGame(http.Client client, int port, _Account cho, _Account han) async {
-  final body = await _callOk(client, port, cho, 'devCreateGame', {'opponentNickname': han.nickname, 'side': 'cho'});
-  return (body['result'] as Map)['gameId'] as String;
-}
-
-/// `configs/app`이 없으면 처음 값으로 만든다. 다른 테스트나 앱이 같은 에뮬레이터를 쓰고 있으면 그대로 둔다.
-Future<void> _ensureAppConfig(FirestoreClient firestore) async {
-  try {
-    await firestore.commit([
-      CreateWrite('configs/app', {
-        'disconnectLimitSeconds': 30,
-        'quickRematchLimit': 5,
-        'onlineUsersVisible': false,
-        'autoSanctionEnabled': false,
-        'heartbeatSeconds': 5,
-      }),
-    ]);
-  } on FirestoreException catch (error) {
-    if (error.status != 'ALREADY_EXISTS') {
-      rethrow;
-    }
-  }
-}
-
-/// [read]가 null이 아닌 값을 돌려줄 때까지 다시 읽는다.
-Future<T> _waitFor<T extends Object>(
-  Future<T?> Function() read, {
-  Duration timeout = const Duration(seconds: 10),
-}) async {
-  final deadline = DateTime.now().add(timeout);
-  while (true) {
-    final value = await read();
-    if (value != null) {
-      return value;
-    }
-    if (DateTime.now().isAfter(deadline)) {
-      throw TimeoutException('기다리던 값이 오지 않았습니다', timeout);
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 200));
-  }
-}
-
-String _randomId(int length) {
-  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  final random = Random.secure();
-  return List.generate(length, (_) => characters[random.nextInt(characters.length)]).join();
 }

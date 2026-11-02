@@ -5,20 +5,48 @@ import '../firebase/firestore_client.dart';
 import '../http/callable.dart';
 import '../logging.dart';
 import '../models/active_game.dart';
+import '../models/app_config.dart';
 import '../models/archived_game.dart';
 import '../models/connection.dart';
 import '../models/game_enums.dart';
 import '../models/player_state.dart';
+import '../models/rating.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
 import '../repositories/connections_repository.dart';
 import '../repositories/player_states_repository.dart';
+import '../repositories/ratings_repository.dart';
+import '../repositories/users_private_repository.dart';
+import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
 import 'game_rules.dart';
+import 'rating_rules.dart';
 
 /// [GameService.updateGame]에 넘기는 대국 변경. 판정 다시 보기를 마친 대국을 받아 바꾼 대국을 돌려준다.
 /// 바꿀 수 없으면 [CallableException]을 던진다. RTDB 쓰기가 부딪히면 다시 불리므로 부수 효과를 두지 않는다.
 typedef GameAction = ActiveGame Function(ActiveGame game);
+
+/// [GameService.createGame]이 두 대국자를 새 대국에 묶는 트랜잭션 안에서 부르는 확인. [states]는 이미 읽은 두 대국자의
+/// 상태다. 더 읽을 것이 있으면 읽고, 묶을 수 없으면 예외를 던진다. 대국자 상태 말고 함께 바꿀 문서가 있으면 여기서 쓴다.
+/// 트랜잭션이 다시 실행되면 다시 불린다.
+typedef GameBindingCheck = Future<void> Function(FirestoreTransaction transaction, Map<String, PlayerState?> states);
+
+/// 새 대국의 시간 설정. 운영은 `config.dart`와 `configs/app`의 값이고, 통합 테스트는 짧게 줄인다.
+class NewGameSettings {
+  final TimeControl timeControl;
+
+  /// 상대 찾음 화면 시간.
+  final Duration matchIntro;
+
+  /// 접속 끊김 허용 시간 합계. null이면 `configs/app.disconnectLimitSeconds`를 쓴다.
+  final Duration? disconnectLimit;
+
+  const NewGameSettings({required this.timeControl, required this.matchIntro, required this.disconnectLimit});
+
+  int getDisconnectLimitMs(AppConfig appConfig) {
+    return (disconnectLimit ?? Duration(seconds: appConfig.disconnectLimitSeconds)).inMilliseconds;
+  }
+}
 
 /// 대국을 만들고, 판정하고, 끝내는 흐름(`docs/server.md`의 대국 진행).
 ///
@@ -31,6 +59,9 @@ class GameService {
   final PlayerStatesRepository playerStates;
   final ArchivedGamesRepository archivedGames;
   final ConnectionsRepository connections;
+  final RatingsRepository ratings;
+  final UsersRepository users;
+  final UsersPrivateRepository usersPrivate;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -40,50 +71,54 @@ class GameService {
     required this.playerStates,
     required this.archivedGames,
     required this.connections,
+    required this.ratings,
+    required this.users,
+    required this.usersPrivate,
     required this.taskScheduler,
     required this.logger,
   });
 
   /// [game]을 RTDB에 만들고 두 대국자의 `player_states.gameId`에 묶는다. 만든 대국 ID를 돌려준다.
   ///
-  /// RTDB에 먼저 쓰고 Firestore 트랜잭션으로 묶는다. 한 사람이라도 이미 대기열, 방, 대국, 신청 중 하나에 있으면 `busy`로
-  /// 거절하고 만든 대국을 지운다(`docs/server.md`의 동시에 들어온 요청).
-  Future<String> createGame(ActiveGame game, {required DateTime now}) async {
+  /// RTDB에 먼저 쓰고 Firestore 트랜잭션으로 묶는다(`docs/server.md`의 동시에 들어온 요청). [check]가 없으면 한 사람이라도
+  /// 이미 대기열, 방, 대국, 신청 중 하나에 있을 때 `busy`로 거절한다. 묶지 못하면 만든 대국을 지우고 그 예외를 다시 던진다.
+  /// 묶으면 두 대국자의 대기열 표시(`quickQueueJoinedAt`)는 지운다. [gameId]를 주면 그 ID로 만든다(다시 두기).
+  Future<String> createGame(ActiveGame game, {required DateTime now, String? gameId, GameBindingCheck? check}) async {
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
-    await _settlePreviousGames(uids, now);
+    await settlePreviousGames(uids, now);
 
-    final gameId = activeGames.createGameId();
-    await activeGames.createGame(gameId, game);
+    final newGameId = gameId ?? activeGames.createGameId();
+    await activeGames.createGame(newGameId, game);
     try {
       await firestore.runTransaction((transaction) async {
         final states = await playerStates.getPlayerStatesInTransaction(transaction, uids);
-        for (final uid in uids) {
-          if (_isBusy(states[uid])) {
-            throw const CallableException.failedPrecondition(GameErrorCode.busy, '이미 대국이나 매칭 중인 대국자가 있습니다');
-          }
+        if (check != null) {
+          await check(transaction, states);
+        } else if (uids.any((uid) => isBusy(states[uid]))) {
+          throw const CallableException.failedPrecondition(GameErrorCode.busy, '이미 대국이나 매칭 중인 대국자가 있습니다');
         }
         for (final uid in uids) {
           playerStates.setPlayerStateInTransaction(
             transaction,
             uid,
-            _copyPlayerState(states[uid], gameId: gameId, setupDraft: null, now: now),
+            _copyPlayerState(states[uid], gameId: newGameId, setupDraft: null, quickQueueJoinedAt: null, now: now),
           );
         }
       });
     } catch (_) {
-      await activeGames.deleteGame(gameId);
+      await activeGames.deleteGame(newGameId);
       rethrow;
     }
 
-    await _scheduleEvaluation(gameId, game);
+    await _scheduleEvaluation(newGameId, game);
     final unboundCheckAt = game.meta.createdAt + unboundGameCleanupDelay.inMilliseconds;
     await taskScheduler.schedule(
       TaskName.cleanupGame,
-      {'gameId': gameId, 'eventAt': unboundCheckAt},
+      {'gameId': newGameId, 'eventAt': unboundCheckAt},
       runAt: _fromMs(unboundCheckAt),
-      taskId: 'cleanup-created-$gameId',
+      taskId: 'cleanup-created-$newGameId',
     );
-    return gameId;
+    return newGameId;
   }
 
   /// 대국 판정을 다시 보고(`docs/server.md`의 판정 다시 보기) [action]을 적용해 RTDB에 쓴다. 쓴 뒤의 대국을 돌려준다.
@@ -147,7 +182,8 @@ class GameService {
   /// 끝난 대국의 기보를 저장하고 두 대국자를 대국에서 푼다(`docs/server.md`의 결과와 레이팅).
   ///
   /// 한 트랜잭션에서 하며 `games_archived/{gameId}`가 이미 있으면 아무것도 하지 않는다. 여러 번 불려도 결과가 같다.
-  /// 급수와 레이팅 반영은 7단계(빠른 대국), `users.stats`는 셀 대국이 정해진 뒤(`docs/database.md`의 미정)에 붙인다.
+  /// 급수 대국(`meta.rated`)이면 레이팅과 급수도 반영한다. `users.stats`는 셀 대국이 정해진 뒤(`docs/database.md`의 미정)에
+  /// 붙인다.
   Future<void> finalizeGame(String gameId, {required DateTime now}) async {
     final game = await activeGames.getGame(gameId);
     if (game == null) {
@@ -159,11 +195,15 @@ class GameService {
       return;
     }
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
+    final rated = game.meta.rated;
     final archived = await firestore.runTransaction((transaction) async {
       if (await archivedGames.hasArchivedGameInTransaction(transaction, gameId)) {
         return false;
       }
       final states = await playerStates.getPlayerStatesInTransaction(transaction, uids);
+      final rankChanges = rated
+          ? await _applyRatingsInTransaction(transaction, gameId, game, now)
+          : const <String, RankChange>{};
       archivedGames.createArchivedGameInTransaction(transaction, gameId, _buildArchivedGame(game));
       for (final uid in uids) {
         final state = states[uid];
@@ -176,13 +216,74 @@ class GameService {
             gameId: state?.gameId == gameId ? null : state?.gameId,
             lastGameId: gameId,
             setupDraft: draft?.gameId == gameId ? null : draft,
+            quickQueueJoinedAt: state?.quickQueueJoinedAt,
+            lastRankChange: rankChanges[uid],
             now: now,
           ),
         );
       }
       return true;
     });
-    logger.info('finalizeGame 완료', {'gameId': gameId, 'archived': archived, 'reason': game.state.result?.reason.name});
+    logger.info('finalizeGame 완료', {
+      'gameId': gameId,
+      'archived': archived,
+      'rated': rated,
+      'reason': game.state.result?.reason.name,
+    });
+  }
+
+  /// 급수 대국의 결과로 두 대국자의 레이팅, 급수, 급수 진행을 바꾼다(`docs/server.md`의 결과와 레이팅). 트랜잭션의 읽기를 먼저
+  /// 하고 쓰기를 모은다. uid별 급수 변동을 돌려준다.
+  Future<Map<String, RankChange>> _applyRatingsInTransaction(
+    FirestoreTransaction transaction,
+    String gameId,
+    ActiveGame game,
+    DateTime now,
+  ) async {
+    final players = game.meta.players;
+    final uids = [players.cho.uid, players.han.uid];
+    final (before, privateExists) = await (
+      ratings.getRatingsInTransaction(transaction, uids),
+      usersPrivate.hasUsersPrivateInTransaction(transaction, uids),
+    ).wait;
+    final winner = game.state.result!.winner;
+    final changes = <String, RankChange>{};
+    for (final side in Side.values) {
+      final uid = players.get(side).uid;
+      final mine = before[uid];
+      final rating = mine?.rating ?? initialRating;
+      final outcome = getRatedOutcome(
+        rating: rating,
+        ratedGames: mine?.ratedGames ?? 0,
+        opponentRating: before[players.get(side.opponent).uid]?.rating ?? initialRating,
+        won: side == winner,
+      );
+      ratings.setRatingInTransaction(
+        transaction,
+        uid,
+        Rating(rating: outcome.rating, ratedGames: outcome.ratedGames, updatedAt: now),
+      );
+      users.updateRankLevelInTransaction(transaction, uid, outcome.rankLevel);
+      if (privateExists[uid] == true) {
+        usersPrivate.updateRankProgressInTransaction(
+          transaction,
+          uid,
+          rankProgress: outcome.rankProgress,
+          winsToNextRank: outcome.winsToNextRank,
+        );
+      } else {
+        // Functions가 프로필과 함께 만드는 문서다. 없어도 대국 마무리는 막지 않는다.
+        logger.warning('users_private가 없어 급수 진행을 쓰지 않습니다', {'uid': uid, 'gameId': gameId});
+      }
+      changes[uid] = RankChange(
+        gameId: gameId,
+        rankLevelBefore: getRankLevel(rating),
+        rankLevelAfter: outcome.rankLevel,
+        rankProgressBefore: getRankProgress(rating),
+        rankProgressAfter: outcome.rankProgress,
+      );
+    }
+    return changes;
   }
 
   /// 묶이지 않은 대국과 끝난 지 [finishedGameRetentionMinutes]가 지난 대국을 RTDB에서 지운다.
@@ -218,8 +319,9 @@ class GameService {
     logger.info('cleanupGame 묶이지 않은 대국 지움', {'gameId': gameId});
   }
 
-  /// [uids]가 묶인 대국 중 이미 끝났어야 하는 것(예: 시간패 예약 작업이 돌지 못한 대국)을 판정하고 끝냈으면 푼다.
-  Future<void> _settlePreviousGames(List<String> uids, DateTime now) async {
+  /// [uids]가 묶인 대국 중 이미 끝났어야 하는 것(예: 시간패 예약 작업이 돌지 못한 대국)을 판정하고, 끝났으면 기보를 저장해
+  /// 대국자를 푼다. 새 대국이나 대기열에 넣기 전에 부른다.
+  Future<void> settlePreviousGames(List<String> uids, DateTime now) async {
     final states = await playerStates.getPlayerStates(uids);
     for (final uid in uids) {
       final gameId = states[uid]?.gameId;
@@ -227,7 +329,10 @@ class GameService {
         continue;
       }
       try {
-        await updateGame(gameId, now: now);
+        final game = await updateGame(gameId, now: now);
+        if (game.state.phase == GamePhase.finished) {
+          await finalizeGame(gameId, now: now);
+        }
       } on CallableException catch (error) {
         logger.warning('이전 대국을 판정하지 못했습니다', {'uid': uid, 'gameId': gameId, 'code': error.code?.name});
       }
@@ -339,24 +444,26 @@ class GameService {
     );
   }
 
-  /// 이미 대기열, 방, 대국, 신청 중 하나에 있다.
-  static bool _isBusy(PlayerState? state) {
+  /// 이미 대기열, 방, 대국, 신청 중 하나에 있다. [ignoreQuickQueue]면 대기열에 있는 것은 빼고 본다.
+  static bool isBusy(PlayerState? state, {bool ignoreQuickQueue = false}) {
     if (state == null) {
       return false;
     }
     return state.gameId != null ||
         state.roomId != null ||
-        state.quickQueueJoinedAt != null ||
+        (!ignoreQuickQueue && state.quickQueueJoinedAt != null) ||
         state.outgoingChallengeId != null ||
         state.incomingChallengeId != null;
   }
 
-  /// [state]에서 대국 관련 필드만 바꾼 상태. 문서가 없었으면 나머지는 비운다.
+  /// [state]에서 대국과 대기열 필드만 바꾼 상태. 문서가 없었으면 나머지는 비운다.
   static PlayerState _copyPlayerState(
     PlayerState? state, {
     required String? gameId,
     String? lastGameId,
     required SetupDraft? setupDraft,
+    required DateTime? quickQueueJoinedAt,
+    RankChange? lastRankChange,
     required DateTime now,
   }) {
     return PlayerState(
@@ -366,8 +473,8 @@ class GameService {
       outgoingChallengeId: state?.outgoingChallengeId,
       incomingChallengeId: state?.incomingChallengeId,
       setupDraft: setupDraft,
-      lastRankChange: state?.lastRankChange,
-      quickQueueJoinedAt: state?.quickQueueJoinedAt,
+      lastRankChange: lastRankChange ?? state?.lastRankChange,
+      quickQueueJoinedAt: quickQueueJoinedAt,
       updatedAt: now,
     );
   }

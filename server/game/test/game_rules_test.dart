@@ -351,4 +351,102 @@ void main() {
     expect(json.containsKey('rematch'), isFalse);
     expect(ActiveGame.fromJson(json).toJson(), json);
   });
+
+  group('다시 두기', () {
+    ActiveGame finishedGame({GameMode mode = GameMode.quick, int rematchCount = 0}) {
+      final created = createActiveGame(
+        mode: mode,
+        rated: mode == GameMode.quick,
+        listed: true,
+        players: const GamePlayers(
+          cho: GamePlayer(uid: 'cho-uid', nickname: '초사람', rankLevel: 1),
+          han: GamePlayer(uid: 'han-uid', nickname: '한사람', rankLevel: 2),
+        ),
+        timeControl: defaultTimeControl,
+        disconnectLimitMs: 30000,
+        introMs: _introMs,
+        now: _createdAt,
+        rematchCount: rematchCount,
+      );
+      return resign(created, Side.cho, _startsAt + 100);
+    }
+
+    ActiveGame press(ActiveGame game, Side side, {bool opponentPresent = true, int limit = 5}) =>
+        pressRematch(game, side, quickRematchLimit: limit, opponentPresent: opponentPresent, newGameId: 'new-game');
+
+    test('한쪽이 누르면 기다리고 두 쪽이 모두 누르면 새 대국 ID를 정한다', () {
+      final first = press(finishedGame(), Side.han);
+      expect(first.rematch?.han, isTrue);
+      expect(first.rematch?.gameId, isNull);
+
+      final both = press(first, Side.cho);
+      expect(both.rematch?.cho, isTrue);
+      expect(both.rematch?.gameId, 'new-game');
+
+      // 이미 정해졌으면 다시 눌러도 그대로다.
+      expect(identical(press(both, Side.han), both), isTrue);
+    });
+
+    test('상대가 앱에 없으면 취소한다', () {
+      final cancelled = press(finishedGame(), Side.han, opponentPresent: false);
+      expect(cancelled.rematch?.cancelled, isTrue);
+      expect(cancelled.rematch?.han, isNull);
+      expect(() => press(cancelled, Side.cho), _rejectedWith(GameErrorCode.rematchUnavailable));
+    });
+
+    test('끝나지 않은 대국과 횟수에 닿은 빠른 대국은 거절한다', () {
+      expect(() => press(_playingGame(), Side.cho), _rejectedWith(GameErrorCode.rematchUnavailable));
+      expect(() => press(finishedGame(rematchCount: 5), Side.cho), _rejectedWith(GameErrorCode.rematchUnavailable));
+      // 빠른 대국이 아니면 횟수를 세지 않는다.
+      expect(press(finishedGame(mode: GameMode.challenge, rematchCount: 9), Side.cho).rematch?.cho, isTrue);
+    });
+
+    test('횟수에 닿을 대국은 처음부터 막아 둔다', () {
+      final blocked = createActiveGame(
+        mode: GameMode.quick,
+        rated: true,
+        listed: true,
+        players: _newGame().meta.players,
+        timeControl: defaultTimeControl,
+        disconnectLimitMs: 30000,
+        introMs: _introMs,
+        now: _createdAt,
+        rematchOf: 'old',
+        rematchCount: 5,
+        rematchBlocked: true,
+      );
+      expect(blocked.rematch?.blocked, isTrue);
+      expect(blocked.meta.rematchOf, 'old');
+      expect(
+        () => press(resign(blocked, Side.han, _startsAt + 100), Side.cho),
+        _rejectedWith(GameErrorCode.rematchUnavailable),
+      );
+    });
+
+    test('결과 화면을 나가면 정해지기 전의 다시 두기를 취소한다', () {
+      final pressed = press(finishedGame(), Side.han);
+      expect(cancelRematch(pressed).rematch?.cancelled, isTrue);
+      final both = press(pressed, Side.cho);
+      expect(identical(cancelRematch(both), both), isTrue);
+      expect(cancelRematch(_playingGame()).rematch, isNull);
+    });
+
+    test('새 대국을 만들지 못하면 ID를 지우고 취소한다', () {
+      final both = press(press(finishedGame(), Side.han), Side.cho);
+      final failed = failRematch(both);
+      expect(failed.rematch?.gameId, isNull);
+      expect(failed.rematch?.cancelled, isTrue);
+      expect(failed.rematch?.cho, isTrue);
+    });
+
+    test('초와 한을 바꾸고 닉네임과 급수는 지금 값으로 바꾼다', () {
+      final players = getRematchPlayers(finishedGame(), {
+        'cho-uid': const GamePlayer(uid: 'cho-uid', nickname: '초사람', rankLevel: 3),
+      });
+      expect(players.cho.uid, 'han-uid');
+      expect(players.han.uid, 'cho-uid');
+      expect(players.han.rankLevel, 3);
+      expect(players.cho.rankLevel, 2);
+    });
+  });
 }

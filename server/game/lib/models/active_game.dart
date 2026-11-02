@@ -18,7 +18,7 @@ class ActiveGame {
   @JsonKey(defaultValue: <GameMoveRecord>[])
   final List<GameMoveRecord> moves;
 
-  /// 다시 두기 상태. 7단계(빠른 대국)부터 쓴다.
+  /// 다시 두기 상태. 아무도 누르지 않았으면 null.
   final GameRematch? rematch;
 
   const ActiveGame({required this.meta, required this.state, required this.moves, required this.rematch});
@@ -27,8 +27,13 @@ class ActiveGame {
 
   Map<String, dynamic> toJson() => _$ActiveGameToJson(this);
 
-  ActiveGame copyWith({GameState? state, List<GameMoveRecord>? moves}) {
-    return ActiveGame(meta: meta, state: state ?? this.state, moves: moves ?? this.moves, rematch: rematch);
+  ActiveGame copyWith({GameState? state, List<GameMoveRecord>? moves, GameRematch? rematch}) {
+    return ActiveGame(
+      meta: meta,
+      state: state ?? this.state,
+      moves: moves ?? this.moves,
+      rematch: rematch ?? this.rematch,
+    );
   }
 }
 
@@ -354,13 +359,22 @@ class GameMoveRecord {
   Map<String, dynamic> toJson() => _$GameMoveRecordToJson(this);
 }
 
-/// 다시 두기. 7단계(빠른 대국)부터 쓴다.
+/// 다시 두기(`docs/server.md`의 다시 두기).
 @JsonSerializable(createToJson: true, includeIfNull: false)
 class GameRematch {
+  /// 초가 다시 두기를 눌렀다.
   final bool? cho;
+
+  /// 한이 다시 두기를 눌렀다.
   final bool? han;
+
+  /// 한쪽이 결과 화면을 나가서 취소됐다.
   final bool? cancelled;
+
+  /// 두 쪽이 모두 눌러 만든 새 대국. 두 앱이 이 대국으로 옮겨 간다.
   final String? gameId;
+
+  /// 빠른 대국의 다시 두기 횟수(`configs/app.quickRematchLimit`)에 닿아 다시 두기를 쓸 수 없다.
   final bool? blocked;
 
   const GameRematch({
@@ -374,4 +388,27 @@ class GameRematch {
   factory GameRematch.fromJson(Map<String, dynamic> json) => _$GameRematchFromJson(json);
 
   Map<String, dynamic> toJson() => _$GameRematchToJson(this);
+
+  bool? get(Side side) => side == Side.cho ? cho : han;
+
+  /// 바꿀 값만 넘긴다. 이 값들은 한 번 정해지면 null로 돌아가지 않는다.
+  GameRematch copyWith({bool? cancelled, String? gameId}) {
+    return GameRematch(
+      cho: cho,
+      han: han,
+      cancelled: cancelled ?? this.cancelled,
+      gameId: gameId ?? this.gameId,
+      blocked: blocked,
+    );
+  }
+
+  GameRematch copyWithSide(Side side, bool pressed) {
+    return GameRematch(
+      cho: side == Side.cho ? pressed : cho,
+      han: side == Side.han ? pressed : han,
+      cancelled: cancelled,
+      gameId: gameId,
+      blocked: blocked,
+    );
+  }
 }

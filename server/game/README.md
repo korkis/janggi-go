@@ -2,9 +2,9 @@
 
 Cloud Run에서 도는 Dart 대국 서버다. 설계는 [docs/server.md](../../docs/server.md), 데이터는 [docs/database.md](../../docs/database.md), 코드 규칙은 [docs/dev_rules.md](../../docs/dev_rules.md)의 "Dart 대국 서버 규칙"을 따른다.
 
-구현 순서 6번(접속 끊김과 재접속)까지 있다. 대국 API는 `setFormation`, `playMove`, `resign`, `checkGame`, 예약 작업은 `/tasks/evaluateGame`(상차림 마감, 시간패, 접속 끊김 마감), `/tasks/finalizeGame`(기보 저장, 대국자 풀기), `/tasks/cleanupGame`(RTDB 정리)이다. 판정은 `lib/services/game_rules.dart`(순수 함수), 쓰기와 예약은 `lib/services/game_service.dart`에 있다. 접속 끊김은 판정마다 RTDB `connections`(앱이 쓴다)를 읽어 센다.
+구현 순서 7번(빠른 대국)까지 있다. 대국 API는 `setFormation`, `playMove`, `resign`, `checkGame`, `requestRematch`, `leaveResult`, 매칭 API는 `joinQuickQueue`, `leaveQuickQueue`, 예약 작업은 `/tasks/evaluateGame`(상차림 마감, 시간패, 접속 끊김 마감), `/tasks/finalizeGame`(기보 저장, 레이팅·급수 반영, 대국자 풀기), `/tasks/cleanupGame`(RTDB 정리), `/tasks/retryQuickMatch`(매칭 범위 넓히기)이다. 판정은 `lib/services/game_rules.dart`, 레이팅과 급수는 `lib/services/rating_rules.dart`(둘 다 순수 함수), 쓰기와 예약은 `lib/services/game_service.dart`(대국), `quick_match_service.dart`(대기열과 매칭), `rematch_service.dart`(다시 두기)에 있다. 접속 끊김은 판정마다 RTDB `connections`(앱이 쓴다)를 읽어 센다.
 
-매칭(빠른 대국, 방, 신청)이 생기기 전에는 에뮬레이터 전용 개발용 API `devCreateGame`(`opponentNickname`, `side`)으로 두 계정의 대국을 만든다. 앱 개발 빌드의 홈에 있는 "개발용 온라인 대국" 카드가 이것을 부른다.
+방과 신청이 생기기 전에 아는 두 계정의 대국을 만들 때는 에뮬레이터 전용 개발용 API `devCreateGame`(`opponentNickname`, `side`)을 쓴다. 앱 개발 빌드의 홈에 있는 "개발용 온라인 대국" 카드가 이것을 부른다.
 
 ## 구조
 
@@ -21,7 +21,7 @@ Cloud Run에서 도는 Dart 대국 서버다. 설계는 [docs/server.md](../../d
 | `lib/models/` | DB 문서 모델(`json_serializable`) |
 | `lib/tasks/` | `TaskScheduler`와 Cloud Tasks·에뮬레이터 구현 |
 | `lib/endpoints/` | API와 예약 작업. 파일마다 `validateParams()`를 둔다 |
-| `lib/services/` | 대국 판정(`game_rules.dart`, DB에 닿지 않는 순수 함수)과 대국 흐름(`game_service.dart`) |
+| `lib/services/` | 대국 판정(`game_rules.dart`)과 레이팅·급수 계산(`rating_rules.dart`)은 DB에 닿지 않는 순수 함수, 대국 흐름(`game_service.dart`), 빠른 대국(`quick_match_service.dart`), 다시 두기(`rematch_service.dart`) |
 
 ### API 추가하기
 
@@ -120,10 +120,16 @@ dart test
 firebase emulators:exec --project demo-janggi-go --only auth,firestore,database "cd game && dart test"
 ```
 
-모델(`lib/models/`)을 바꾸면 코드를 다시 만든다.
+통합 테스트는 `GameServer.create`의 `test*` 인자로 대국 시간과 매칭 범위를 넓히는 간격을 줄이고, 계정 준비와 API 호출은 `test/emulator/support/emulator_helpers.dart`를 같이 쓴다. 빠른 대국 테스트는 같은 에뮬레이터에 남은 대기열 항목과 만나지 않도록 계정마다 큰 레이팅을 따로 준다.
+
+모델(`lib/models/`)을 바꾸면 코드를 다시 만들고, 만든 코드를 120자 폭으로 다시 맞춘다.
 
 ```bash
 dart run build_runner build
+```
+
+```bash
+dart format lib
 ```
 
 ## 운영 배포
