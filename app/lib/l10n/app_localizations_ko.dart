@@ -163,4 +163,30 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get resultHome => '홈으로';
+
+  @override
+  String get resultReview => '복기하기';
+
+  @override
+  String get reviewTitle => '복기';
+
+  @override
+  String reviewMoveCounter(int current, int total) {
+    return '$current / $total수';
+  }
+
+  @override
+  String get reviewTrial => '놓아보기';
+
+  @override
+  String get reviewFirst => '처음';
+
+  @override
+  String get reviewPrevious => '이전';
+
+  @override
+  String get reviewNext => '다음';
+
+  @override
+  String get reviewLast => '끝';
 }

@@ -12,6 +12,7 @@ import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
 import 'game_result_sheet.dart';
+import 'review_screen.dart';
 import 'setup_screen.dart';
 
 /// 대국 화면. 지금은 서버 없이 한 기기에서 양쪽을 두는 개발용 대국이다.
@@ -115,35 +116,24 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// 아래쪽 버튼 줄. 테두리 있는 상자로 나누지 않고 한 줄 막대 안에 아이콘과 글자를 담는다.
   Widget _buildButtonBar(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final playing = !_board.isOver;
-    return DecoratedBox(
-      decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          children: [
-            Expanded(
-              child: _BarButton(
-                icon: Icons.pause,
-                // 한수쉼
-                label: l10n.pass,
-                onPressed: playing && _board.canPass ? _onPass : null,
-              ),
-            ),
-            Expanded(
-              child: _BarButton(
-                icon: Icons.more_horiz,
-                // 더보기
-                label: l10n.more,
-                onPressed: playing ? _onMore : null,
-              ),
-            ),
-          ],
+    return GameButtonBar(
+      children: [
+        GameBarButton(
+          icon: Icons.pause,
+          // 한수쉼
+          label: l10n.pass,
+          onPressed: playing && _board.canPass ? _onPass : null,
         ),
-      ),
+        GameBarButton(
+          icon: Icons.more_horiz,
+          // 더보기
+          label: l10n.more,
+          onPressed: playing ? _onMore : null,
+        ),
+      ],
     );
   }
 
@@ -171,6 +161,9 @@ class _GameScreenState extends State<GameScreen> {
     switch (action) {
       case GameResultAction.rematch:
         Navigator.of(context).pushReplacement(createGameRoute<void>((context) => const SetupScreen()));
+      case GameResultAction.review:
+        final record = _board.game;
+        Navigator.of(context).pushReplacement(createGameRoute<void>((context) => ReviewScreen(record: record)));
       case GameResultAction.home:
         Navigator.of(context).pop();
     }
@@ -288,39 +281,6 @@ class _MenuItem extends StatelessWidget {
         style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
       ),
       onTap: () => Navigator.of(context).pop(action),
-    );
-  }
-}
-
-class _BarButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
-
-  const _BarButton({required this.icon, required this.label, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = onPressed == null ? GameColors.inactiveText : GameColors.buttonText;
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(minTouchSize, 60),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        foregroundColor: GameColors.buttonText,
-        disabledForegroundColor: GameColors.inactiveText,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w500, color: color),
-          ),
-        ],
-      ),
     );
   }
 }

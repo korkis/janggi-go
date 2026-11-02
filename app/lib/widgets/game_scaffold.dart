@@ -72,3 +72,72 @@ class GameHeader extends StatelessWidget {
     );
   }
 }
+
+/// 대국 화면 계열 아래쪽 버튼 줄. 테두리 있는 상자로 나누지 않고 한 줄 막대 안에 버튼을 담는다.
+class GameButtonBar extends StatelessWidget {
+  final List<Widget> children;
+
+  const GameButtonBar({super.key, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(children: [for (final child in children) Expanded(child: child)]),
+      ),
+    );
+  }
+}
+
+/// [GameButtonBar] 안의 아이콘과 글자 버튼. [emphasized]면 바탕을 깔아 자주 쓰는 버튼을 드러낸다.
+class GameBarButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool emphasized;
+
+  const GameBarButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.emphasized = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    var color = GameColors.buttonText;
+    if (onPressed == null) {
+      color = GameColors.inactiveText;
+    } else if (emphasized) {
+      color = Colors.white;
+    }
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        minimumSize: const Size(minTouchSize, 60),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: emphasized ? GameColors.raisedButton : null,
+        foregroundColor: GameColors.buttonText,
+        disabledForegroundColor: GameColors.inactiveText,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: emphasized ? 26 : 24),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: AppTextSizes.body,
+              fontWeight: emphasized ? FontWeight.w700 : FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

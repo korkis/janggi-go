@@ -7,11 +7,11 @@ import '../utils/score_format.dart';
 import '../widgets/player_bar.dart';
 
 /// 대국 결과 창에서 고른 다음 할 일.
-enum GameResultAction { rematch, home }
+enum GameResultAction { rematch, review, home }
 
 /// 대국 결과 창. 끝난 판을 뒤에 둔 채 아래에서 올라온다.
 ///
-/// 개발용 대국이라 급수 변동, 한 판 더, 복기하기는 두지 않는다.
+/// 개발용 대국이라 급수 변동과 한 판 더는 두지 않는다.
 class GameResultSheet extends StatelessWidget {
   final GameResult result;
   final int moveCount;
@@ -82,10 +82,24 @@ class GameResultSheet extends StatelessWidget {
               child: Text(l10n.resultRematch),
             ),
             const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(GameResultAction.home),
-              // 홈으로
-              child: Text(l10n.resultHome),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(GameResultAction.review),
+                    // 복기하기
+                    child: Text(l10n.resultReview),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(GameResultAction.home),
+                    // 홈으로
+                    child: Text(l10n.resultHome),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

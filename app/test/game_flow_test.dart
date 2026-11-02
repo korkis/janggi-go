@@ -4,6 +4,7 @@ import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/app.dart';
 import 'package:janggigo/l10n/app_localizations.dart';
 import 'package:janggigo/screens/game_screen.dart';
+import 'package:janggigo/screens/review_screen.dart';
 import 'package:janggigo/screens/setup_screen.dart';
 import 'package:janggigo/theme/app_theme.dart';
 import 'package:janggigo/widgets/board/board_geometry.dart';
@@ -89,6 +90,35 @@ void main() {
     expect(find.text('초 승리'), findsOneWidget);
   });
 
+  testWidgets('결과 창에서 복기로 가서 수를 넘기고 놓아보기를 켰다 끈다', (tester) async {
+    _usePhoneView(tester);
+    await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i10');
+
+    await tester.tap(find.text('복기하기'));
+    await tester.pumpAndSettle();
+    expect(find.text('복기'), findsOneWidget);
+    expect(find.text('1 / 1수'), findsOneWidget);
+
+    await tester.tap(find.text('이전'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 / 1수'), findsOneWidget);
+
+    await tester.tap(find.text('놓아보기'));
+    await tester.pumpAndSettle();
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i5');
+    final board = tester.widget<BoardView>(find.byType(BoardView));
+    expect(board.position.pieceAt(Square.parse('i5')), const Piece(Side.cho, PieceType.chariot));
+
+    await tester.tap(find.text('놓아보기'));
+    await tester.pumpAndSettle();
+    final restored = tester.widget<BoardView>(find.byType(BoardView));
+    expect(restored.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
+    expect(find.text('0 / 1수'), findsOneWidget);
+  });
+
   testWidgets('기권은 확인을 받은 뒤 차례인 쪽이 진다', (tester) async {
     _usePhoneView(tester);
     await tester.pumpWidget(
@@ -131,6 +161,31 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Theme(data: gameTheme, child: const SetupScreen()),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('글자를 1.3배로 키워도 복기 화면이 넘치지 않는다', (tester) async {
+    _usePhoneView(tester);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    // 수가 두 자리인 기보. 매번 둘 수 있는 첫 수를 둔다.
+    var record = Game.start(
+      createInitialPosition(cho: Formation.horseElephantHorseElephant, han: Formation.horseElephantHorseElephant),
+    );
+    while (record.moves.length < 87 && !record.isOver) {
+      record = record.play(record.legalMoves().first);
+    }
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Theme(
+          data: gameTheme,
+          child: ReviewScreen(record: record),
+        ),
       ),
     );
 

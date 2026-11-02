@@ -177,4 +177,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resultHome => 'Home';
+
+  @override
+  String get resultReview => 'Review';
+
+  @override
+  String get reviewTitle => 'Review';
+
+  @override
+  String reviewMoveCounter(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get reviewTrial => 'Try moves';
+
+  @override
+  String get reviewFirst => 'First';
+
+  @override
+  String get reviewPrevious => 'Back';
+
+  @override
+  String get reviewNext => 'Next';
+
+  @override
+  String get reviewLast => 'Last';
 }

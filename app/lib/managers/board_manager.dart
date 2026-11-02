@@ -15,9 +15,12 @@ class BoardManager extends ChangeNotifier {
   final DateTime _startedAt;
   DateTime? _endedAt;
 
-  BoardManager({required Position initialPosition, this._flipped = false, DateTime? startedAt})
-    : _game = Game.start(initialPosition),
-      _legalMoves = const [],
+  BoardManager({required Position initialPosition, bool flipped = false, DateTime? startedAt})
+    : this.fromGame(Game.start(initialPosition), flipped: flipped, startedAt: startedAt);
+
+  /// 이미 수를 둔 [game]에서 이어서 둔다. 복기의 놓아보기처럼 지나온 수(반복수 판정)가 필요할 때 쓴다.
+  BoardManager.fromGame(this._game, {this._flipped = false, DateTime? startedAt})
+    : _legalMoves = const [],
       _startedAt = startedAt ?? DateTime.now() {
     _legalMoves = _game.legalMoves();
     if (_game.isOver) {

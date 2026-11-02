@@ -32,5 +32,13 @@
   "resultMoveLimit": "The game reached {limit} moves, so points decided it",
   "resultNoLegalMoves": "No moves were left, so points decided the game",
   "resultRematch": "Play again",
-  "resultHome": "Home"
+  "resultHome": "Home",
+  "resultReview": "Review",
+  "reviewTitle": "Review",
+  "reviewMoveCounter": "{current} / {total}",
+  "reviewTrial": "Try moves",
+  "reviewFirst": "First",
+  "reviewPrevious": "Back",
+  "reviewNext": "Next",
+  "reviewLast": "Last"
 }

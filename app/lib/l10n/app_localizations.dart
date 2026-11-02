@@ -295,6 +295,54 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'홈으로'**
   String get resultHome;
+
+  /// 대국 결과 창에서 방금 둔 대국을 복기하는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'복기하기'**
+  String get resultReview;
+
+  /// 복기 화면 위쪽 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'복기'**
+  String get reviewTitle;
+
+  /// 복기에서 지금 보는 수와 전체 수
+  ///
+  /// In ko, this message translates to:
+  /// **'{current} / {total}수'**
+  String reviewMoveCounter(int current, int total);
+
+  /// 복기 중 판에 직접 수를 두어 보는 기능을 켜고 끄는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'놓아보기'**
+  String get reviewTrial;
+
+  /// 복기 처음 국면으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'처음'**
+  String get reviewFirst;
+
+  /// 복기 한 수 앞으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'이전'**
+  String get reviewPrevious;
+
+  /// 복기 한 수 뒤로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'다음'**
+  String get reviewNext;
+
+  /// 복기 마지막 국면으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'끝'**
+  String get reviewLast;
 }
 
 class _AppLocalizationsDelegate
