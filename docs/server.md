@@ -132,7 +132,7 @@ flowchart LR
 | `playMove` | `gameId`, `moveIndex`, `move` | 수 또는 `pass`를 둔다. `moveIndex`는 이 수가 몇 번째 수인지(0부터)다. 같은 수를 다시 보내면 성공으로 본다 |
 | `resign` | `gameId` | 기권한다 |
 | `useTimeExtension` | `gameId` | 시간 연장권을 쓴다. 연장권 보유는 3단계에서 정하므로 2단계에는 만들지 않는다 |
-| `checkGame` | `gameId` | 대국 판정을 다시 보게 한다(아래 "판정 다시 보기"). 앱이 상대 시계가 0이 되거나 상대 연결이 끊긴 것을 보면 부른다 |
+| `checkGame` | `gameId` | 대국 판정을 다시 보게 한다(아래 "판정 다시 보기"). 대국자만 부를 수 있고, 끝난 대국이면 아무것도 하지 않고 성공한다. 앱이 부르는 때는 아래 "접속 끊김" |
 | `requestRematch` | `gameId` | 다시 두기를 누른다. 두 사람이 모두 누르면 새 대국을 만든다 |
 | `leaveResult` | `gameId` | 결과 화면을 나간다. 기다리던 다시 두기를 취소하고, 방 대국이면 방 대기실로 돌린다 |
 
@@ -193,20 +193,28 @@ flowchart LR
 
 [rules.md](./game/rules.md)의 접속 끊김을 서버가 판정한다.
 
-- 앱은 RTDB `connections/{uid}/{connectionId}`에 접속 상태를 쓴다.
-  - 연결되면 `online: true`, `foreground: true`, `activeSince`·`lastSeenAt`에 서버 시각을 쓰고 `onDisconnect`로 `online: false`를 걸어 둔다.
-  - 대국(상차림 포함) 중에는 `heartbeatSeconds`마다 `lastSeenAt`을 갱신한다.
-  - 다른 앱으로 넘어가면 `foreground: false`와 `lastSeenAt`을 쓴다. 돌아오면 `foreground: true`와 `activeSince`를 쓴다.
+- 앱은 로그인한 동안 RTDB `connections/{uid}/{connectionId}`에 접속 상태를 쓴다(`ConnectionManager`).
+  - RTDB에 연결될 때마다(`.info/connected`) 지난 연결 키를 지우고 새 연결에 `online: true`, `foreground`, `activeSince`·`lastSeenAt`(서버 시각)을 쓴 뒤 `onDisconnect`로 `online: false`를 걸어 둔다. 보안 규칙이 연결의 필드를 모두 요구하므로 연결을 쓴 뒤에 건다.
+  - 진행 중 대국(`player_states.gameId`, 상차림 포함)이 있는 동안 `heartbeatSeconds`마다 `lastSeenAt`을 갱신한다. 대국이 생기면 바로 한 번 쓴다.
+  - 다른 앱으로 넘어가면(앱 생명주기 `hidden`, `paused`) `foreground: false`와 `lastSeenAt`을 쓴다. 돌아오면(`resumed`, `inactive`) `foreground: true`와 `activeSince`를 쓴다.
 - 서버는 대국자의 연결 중 `online`이고 `foreground`이며 `lastSeenAt`이 `presenceStaleSeconds` 안인 것이 하나라도 있으면 연결된 것으로 본다.
-- 끊긴 시각은 그 사람의 가장 최근 `lastSeenAt`이다. 네트워크가 갑자기 끊겨 RTDB가 늦게 알아채도 마지막으로 살아 있던 시각부터 센다. 대국을 만든 시각보다 앞이면 만든 시각으로 한다.
-- 다시 연결되면 끊긴 시간(`activeSince` − 끊긴 시각)을 `usedMs`에 더한다.
+- 판정 다시 보기마다 두 대국자의 `connections`를 읽어 `state.disconnect`를 그 시각에 맞춘다.
+  - 끊긴 시각은 그 사람의 가장 최근 `lastSeenAt`이다. 네트워크가 갑자기 끊겨 RTDB가 늦게 알아채도 마지막으로 살아 있던 시각부터 센다. 대국을 만든 시각보다 앞이면(연결 기록이 없을 때 포함) 만든 시각으로 한다.
+  - 끊긴 시각보다 뒤의 `activeSince`가 있는 연결이 있으면 그중 가장 이른 `activeSince`에 돌아온 것으로 보고 끊긴 시간(`activeSince` − 끊긴 시각)을 `usedMs`에 더한다. 그 연결이 다시 끊겨 있으면(서버가 돌아온 것을 보지 못한 사이 다시 나간 경우) 가장 최근 `lastSeenAt`부터 다시 센다.
+  - 연결되어 있는데 끊긴 시각보다 뒤의 `activeSince`가 없으면(네트워크가 잠깐 멈췄다가 RTDB 연결이 바뀌지 않고 이어진 경우) 끊긴 시간을 더하지 않고 끊김을 지운다. 이렇게 되지 않도록 앱은 서버가 자기를 끊긴 것으로 기록했는데 자기는 연결되어 있으면 `activeSince`를 새로 쓰고 `checkGame`을 부른다.
+  - 돌아오기 전에 `usedMs` + 끊긴 시간이 `disconnectLimitMs`에 닿았으면 돌아왔어도 그 시각에 진다.
 - `usedMs` + 지금 끊겨 있는 시간이 `disconnectLimitMs`에 닿으면 끊긴 쪽이 진다. 그 시각에 `evaluateGame`을 예약한다.
-- 서버는 끊김을 스스로 알 수 없으므로 판정을 다시 보는 계기가 필요하다.
-  - 상대 앱이 `connections/{상대 uid}`를 듣다가 끊긴 것을 보면 `checkGame`을 부른다.
-  - 돌아온 앱도 `checkGame`을 불러 끊김 표시를 바로 지운다.
-  - 둘 다 끊기면 시간패 예약 작업이 판정한다. 그때 접속 끊김 마감과 시간패 중 먼저 온 것으로 끝낸다.
+- 서버는 끊김을 스스로 알 수 없으므로 판정을 다시 보는 계기가 필요하다. 앱은 대국 화면과 상차림 화면에서 다음을 보면 `checkGame`을 부른다. 같은 서버 상태(`state.version`)에서는 같은 까닭으로 한 번만 부른다.
+  - 상대의 `connections`에 `online`이고 `foreground`인 연결이 없는데 서버 기록에 상대 끊김이 없을 때.
+  - 상대가 돌아왔는데(`online`이고 `foreground`인 연결이 있다) 서버 기록에 상대 끊김이 남아 있을 때.
+  - 서버 기록에 내 끊김이 있는데 나는 연결되어 있을 때(먼저 `activeSince`를 새로 쓴다).
+  - 상대 시계가 0이 되었을 때(차례마다 한 번).
+  - 진행 중 대국이 있는 동안 RTDB에 다시 연결되거나 다른 앱에서 돌아왔을 때(돌아온 앱, 화면과 상관없이).
+  - 둘 다 끊기면 시간패 예약 작업이 판정한다. 그때 접속 끊김 마감과 시간패 중 먼저 온 것으로 끝낸다. 같은 시각이면 시간패다.
+- 상대의 수, 상차림 같은 다른 대국 API도 처음에 같은 판정을 하므로 그때도 끊김을 기록한다.
 - 누가 `checkGame`을 부르든 서버는 RTDB의 접속 기록만 보고 판정하므로 부른 사람이 결과를 바꿀 수 없다.
-- 상차림 시간에도 끊긴 시간을 센다.
+- 상차림 시간에도 끊긴 시간을 센다. 끊긴 동안에도 시계는 흐른다.
+- 앱의 표시는 서버 기록(`state.disconnect`)과 대국을 만들 때 정한 `meta.disconnectLimitMs`로 한다. 상대 끊김은 상대 정보 줄에 남은 허용 시간을, 내 기기의 RTDB 연결이 끊기면 판 위에 "다시 연결하는 중"을 보여준다([screens.md](./screens.md)의 대국 화면).
 
 ### 기권
 
@@ -368,7 +376,7 @@ sequenceDiagram
 ### 재접속
 
 - 앱을 다시 켜거나 네트워크가 돌아오면 앱은 RTDB에 다시 연결하면서 `connections`를 쓰고 `enterLobby`를 부른다.
-- `player_states.gameId`가 있으면 홈에 "대국으로 돌아가기"를 보여준다. 대국 화면에서 끊겼다 돌아온 경우에는 같은 대국에 바로 다시 붙는다.
+- `player_states.gameId`가 있으면 홈 맨 위에 "대국으로 돌아가기"를 보여준다. 누르면 상차림 화면으로 열고, 상차림이 끝난 대국이면 상차림 화면이 바로 대국 화면으로 넘긴다. 대국 화면에서 끊겼다 돌아온 경우에는 같은 대국에 바로 다시 붙는다.
 - 대국 화면은 `games_active/{gameId}` 전체를 다시 받아 그린다. 기다리던 수가 서버에 없으면(`moveConflict`) 서버 상태를 따른다.
 - 돌아온 앱은 `checkGame`을 불러 끊김 시간을 바로 정리하게 한다.
 - 이미 끝난 대국이면 결과 창을 보여준다.
@@ -387,7 +395,7 @@ sequenceDiagram
 | `quickRematchLimit` | number | `5` | 빠른 대국에서 같은 상대와 연달아 다시 둘 수 있는 횟수 | [matching.md](./game/matching.md) |
 | `onlineUsersVisible` | boolean | `false` | 대국실 접속자 탭과 방 대기실의 접속자 초대하기를 보여준다 | [matching.md](./game/matching.md) |
 | `autoSanctionEnabled` | boolean | `false` | 자동 제재 사용 | [moderation.md](./moderation.md) |
-| `heartbeatSeconds` | number | `5` (제안) | 대국 중 앱이 `lastSeenAt`을 갱신하는 주기 | 이 문서 |
+| `heartbeatSeconds` | number | `5` | 대국 중 앱이 `lastSeenAt`을 갱신하는 주기 | 이 문서 |
 
 ### 대국 서버 설정 (`server/game/lib/config.dart`)
 
@@ -407,7 +415,7 @@ sequenceDiagram
 | `challengeFailLimit` | 3회 | [matching.md](./game/matching.md) |
 | `challengeBlockMinutes` | 30분 | [matching.md](./game/matching.md) |
 | `matchIntroSeconds` | 3초 (제안) | 상대 찾음 화면 표시 시간. 이 문서 |
-| `presenceStaleSeconds` | 15초 (제안) | `lastSeenAt`이 이보다 오래되면 끊긴 것으로 본다. 이 문서 |
+| `presenceStaleSeconds` | 15초 | `lastSeenAt`이 이보다 오래되면 끊긴 것으로 본다. `heartbeatSeconds`(5초)로 세 번 갱신하지 못한 때다. 이 문서 |
 | `roomAbsentSeconds` | 60초 (제안) | 방장이나 상대가 이만큼 끊기면 방을 닫거나 자리를 비운다. 이 문서 |
 | `finishedGameRetentionMinutes` | 10분 (제안) | 끝난 대국을 RTDB에 남겨 두는 시간. 이 문서 |
 

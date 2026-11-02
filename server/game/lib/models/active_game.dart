@@ -191,6 +191,7 @@ class GameState {
     Side? turn,
     int? turnStartedAt,
     SideClocks? clock,
+    SideDisconnects? disconnect,
     GameResultRecord? result,
     int? endedAt,
   }) {
@@ -202,7 +203,7 @@ class GameState {
       turn: turn ?? this.turn,
       turnStartedAt: turnStartedAt ?? this.turnStartedAt,
       clock: clock ?? this.clock,
-      disconnect: disconnect,
+      disconnect: disconnect ?? this.disconnect,
       extensionNotice: extensionNotice,
       result: result ?? this.result,
       endedAt: endedAt ?? this.endedAt,
@@ -286,9 +287,15 @@ class SideDisconnects {
   factory SideDisconnects.fromJson(Map<String, dynamic> json) => _$SideDisconnectsFromJson(json);
 
   Map<String, dynamic> toJson() => _$SideDisconnectsToJson(this);
+
+  SideDisconnect get(Side side) => side == Side.cho ? cho : han;
+
+  SideDisconnects copyWithSide(Side side, SideDisconnect disconnect) {
+    return side == Side.cho ? SideDisconnects(cho: disconnect, han: han) : SideDisconnects(cho: cho, han: disconnect);
+  }
 }
 
-/// 한 진영의 접속 끊김 기록. 6단계(접속 끊김)부터 쓴다.
+/// 한 진영의 접속 끊김 기록(`docs/server.md`의 접속 끊김).
 @JsonSerializable(createToJson: true, includeIfNull: false)
 class SideDisconnect {
   /// 지금까지 끊긴 시간 합계.

@@ -40,7 +40,7 @@
 | `Side` | `cho`, `han` | `janggi_core` |
 | `Formation` | `horseElephantHorseElephant` 등 4개 | `janggi_core` |
 | `HandicapPiece` | `leftChariot` 등 8개 | `janggi_core` |
-| `GameEndReason` | `checkmate`, `resignation`, `timeout`, `disconnect`, `consecutivePasses`, `moveLimit`, `noLegalMoves` | `janggi_core`. `disconnect`는 아직 없어서 추가해야 한다([rules.md](./game/rules.md)의 접속 끊김) |
+| `GameEndReason` | `checkmate`, `resignation`, `timeout`, `disconnect`, `consecutivePasses`, `moveLimit`, `noLegalMoves` | `janggi_core` |
 | `GameMode` | `quick`, `room`, `challenge` | 앱, 대국 서버 |
 | `GamePhase` | `setup`, `playing`, `finished` | 앱, 대국 서버 |
 | `SideChoice` | `cho`, `han`, `random` | 앱, 대국 서버 |
@@ -395,7 +395,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `activeSince` | ms | `online`이고 `foreground`가 된 시각 |
 | `lastSeenAt` | ms | 마지막으로 살아 있음을 알린 시각. 대국 중에는 주기적으로 갱신하고, 다른 앱으로 넘어갈 때도 갱신한다 |
 
-- 읽기: 로그인한 사용자. 쓰기: 본인. `activeSince`와 `lastSeenAt`은 서버 시각(`now`)만 허용한다.
+- 읽기: 로그인한 사용자가 `uid`로 읽는다. `connections` 전체 목록은 막는다. 쓰기: 본인.
+- 연결마다 네 필드가 모두 있어야 하고 다른 필드는 막는다. `activeSince`와 `lastSeenAt`은 서버 시각(`now`)이거나 이미 있는 값 그대로여야 한다(`onDisconnect`의 `online: false`처럼 다른 필드만 바꾸는 쓰기).
 - 앱은 연결할 때 자기 `uid` 아래의 지난 연결 키를 지운다.
 
 ### `online_users/{uid}`

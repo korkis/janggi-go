@@ -6,10 +6,12 @@ import '../http/callable.dart';
 import '../logging.dart';
 import '../models/active_game.dart';
 import '../models/archived_game.dart';
+import '../models/connection.dart';
 import '../models/game_enums.dart';
 import '../models/player_state.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
+import '../repositories/connections_repository.dart';
 import '../repositories/player_states_repository.dart';
 import '../tasks/task_scheduler.dart';
 import 'game_rules.dart';
@@ -28,6 +30,7 @@ class GameService {
   final ActiveGamesRepository activeGames;
   final PlayerStatesRepository playerStates;
   final ArchivedGamesRepository archivedGames;
+  final ConnectionsRepository connections;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -36,6 +39,7 @@ class GameService {
     required this.activeGames,
     required this.playerStates,
     required this.archivedGames,
+    required this.connections,
     required this.taskScheduler,
     required this.logger,
   });
@@ -91,7 +95,7 @@ class GameService {
     if (current == null) {
       throw const CallableException.failedPrecondition(GameErrorCode.notFound, '대국이 없습니다');
     }
-    final drafts = await _getDueSetupDrafts(gameId, current, nowMs);
+    final (drafts, presence) = await (_getDueSetupDrafts(gameId, current, nowMs), _getPlayerConnections(current)).wait;
 
     ActiveGame? before;
     CallableException? rejection;
@@ -101,7 +105,7 @@ class GameService {
       }
       before = game;
       rejection = null;
-      final evaluated = applyDueEvents(game, nowMs, drafts: drafts);
+      final evaluated = applyDueEvents(game, nowMs, drafts: drafts, connections: presence);
       var next = evaluated;
       if (action != null) {
         try {
@@ -247,6 +251,19 @@ class GameService {
     return drafts;
   }
 
+  /// 두 대국자의 접속 상태(`connections`). 끝난 대국이면 읽지 않는다.
+  Future<Map<Side, List<Connection>>> _getPlayerConnections(ActiveGame game) async {
+    if (game.state.phase == GamePhase.finished) {
+      return const {};
+    }
+    final players = game.meta.players;
+    final (cho, han) = await (
+      connections.getConnections(players.cho.uid),
+      connections.getConnections(players.han.uid),
+    ).wait;
+    return {Side.cho: cho, Side.han: han};
+  }
+
   /// RTDB에 쓴 뒤의 일. 끝났으면 기보 저장과 정리를 예약하고 바로 한 번 저장한다. 아니면 다음 판정을 예약한다.
   Future<void> _onGameWritten(String gameId, ActiveGame before, ActiveGame after, DateTime now) async {
     final endedAt = after.state.endedAt;
@@ -281,7 +298,7 @@ class GameService {
     }
   }
 
-  /// 다음 사건(상차림 마감, 시간패) 시각에 `evaluateGame`을 예약한다. 같은 사건은 한 번만 예약한다.
+  /// 다음 사건(상차림 마감, 시간패, 접속 끊김 마감) 시각에 `evaluateGame`을 예약한다. 같은 사건은 한 번만 예약한다.
   Future<void> _scheduleEvaluation(String gameId, ActiveGame game) async {
     final eventAt = getNextEventAt(game);
     if (eventAt == null) {

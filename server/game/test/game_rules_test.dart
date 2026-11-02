@@ -2,6 +2,7 @@ import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo_game/config.dart';
 import 'package:janggigo_game/http/callable.dart';
 import 'package:janggigo_game/models/active_game.dart';
+import 'package:janggigo_game/models/connection.dart';
 import 'package:janggigo_game/models/game_enums.dart';
 import 'package:janggigo_game/services/game_rules.dart';
 import 'package:test/test.dart';
@@ -32,6 +33,22 @@ ActiveGame _playingGame({int startedAt = _startsAt + 1000}) {
   final hanDone = confirmFormation(_newGame(), Side.han, Formation.elephantHorseElephantHorse, _startsAt + 500);
   return confirmFormation(hanDone, Side.cho, Formation.horseElephantElephantHorse, startedAt);
 }
+
+const _limitMs = 30000;
+
+/// [lastSeenAt]까지 살아 있음을 알린 화면에 떠 있는 연결.
+Connection _active({required int activeSince, required int lastSeenAt}) =>
+    Connection(online: true, foreground: true, activeSince: activeSince, lastSeenAt: lastSeenAt);
+
+/// [lastSeenAt]에 끊긴 연결.
+Connection _offline({required int activeSince, required int lastSeenAt}) =>
+    Connection(online: false, foreground: true, activeSince: activeSince, lastSeenAt: lastSeenAt);
+
+/// 두 대국자 모두 [now]에 연결되어 있다.
+Map<Side, List<Connection>> _bothConnected(int now) => {
+  Side.cho: [_active(activeSince: _createdAt, lastSeenAt: now)],
+  Side.han: [_active(activeSince: _createdAt, lastSeenAt: now)],
+};
 
 Matcher _rejectedWith(GameErrorCode code) =>
     throwsA(isA<CallableException>().having((error) => error.code, 'code', code));
@@ -79,6 +96,7 @@ void main() {
         _newGame(),
         hanDeadline + _setupMs + 5000,
         drafts: {Side.han: Formation.horseElephantElephantHorse},
+        connections: _bothConnected(hanDeadline + _setupMs + 5000),
       );
       expect(game.state.setup.han, Formation.horseElephantElephantHorse);
       expect(game.state.setup.cho, defaultFormation);
@@ -89,7 +107,8 @@ void main() {
 
     test('마감 전에는 바꾸지 않는다', () {
       final game = _newGame();
-      expect(identical(applyDueEvents(game, _startsAt + _setupMs - 1, drafts: const {}), game), isTrue);
+      final now = _startsAt + _setupMs - 1;
+      expect(identical(applyDueEvents(game, now, drafts: const {}, connections: _bothConnected(now)), game), isTrue);
     });
   });
 
@@ -122,13 +141,142 @@ void main() {
     test('시간패 시각이 지나면 차례인 쪽이 시간패로 진다', () {
       final game = _playingGame(startedAt: 5000000);
       final timeoutAt = getTimeoutAt(game);
-      expect(applyDueEvents(game, timeoutAt - 1, drafts: const {}).state.phase, GamePhase.playing);
-      final ended = applyDueEvents(game, timeoutAt + 9999, drafts: const {});
+      final before = applyDueEvents(game, timeoutAt - 1, drafts: const {}, connections: _bothConnected(timeoutAt - 1));
+      expect(before.state.phase, GamePhase.playing);
+      final ended = applyDueEvents(game, timeoutAt + 9999, drafts: const {}, connections: _bothConnected(timeoutAt));
       expect(ended.state.phase, GamePhase.finished);
       expect(ended.state.result?.winner, Side.han);
       expect(ended.state.result?.reason, GameEndReason.timeout);
       expect(ended.state.endedAt, timeoutAt);
       expect(getNextEventAt(ended), isNull);
+    });
+  });
+
+  group('접속 끊김', () {
+    const since = 5100000;
+
+    DisconnectUpdate update(SideDisconnect current, List<Connection> connections, int now) {
+      return updateDisconnect(current, connections, now: now, createdAt: _createdAt, limitMs: _limitMs);
+    }
+
+    test('연결되어 있으면 바꾸지 않는다', () {
+      const current = SideDisconnect(usedMs: 1000, since: null);
+      final result = update(current, [_active(activeSince: _createdAt, lastSeenAt: since)], since + 3000);
+      expect(identical(result.disconnect, current), isTrue);
+      expect(result.lossAt, isNull);
+    });
+
+    test('끊기면 가장 최근 lastSeenAt부터 세고 남은 허용 시간 뒤에 진다', () {
+      final result = update(const SideDisconnect(usedMs: 4000, since: null), [
+        _offline(activeSince: _createdAt, lastSeenAt: since - 9000),
+        _offline(activeSince: _createdAt, lastSeenAt: since),
+      ], since + 2000);
+      expect(result.disconnect.since, since);
+      expect(result.disconnect.usedMs, 4000);
+      expect(result.lossAt, since + _limitMs - 4000);
+    });
+
+    test('다른 앱으로 넘어가거나 lastSeenAt이 오래되면 끊긴 것으로 본다', () {
+      const background = Connection(online: true, foreground: false, activeSince: _createdAt, lastSeenAt: since);
+      expect(update(const SideDisconnect(usedMs: 0, since: null), [background], since + 1000).disconnect.since, since);
+      final stale = _active(activeSince: _createdAt, lastSeenAt: since);
+      final staleMs = const Duration(seconds: presenceStaleSeconds).inMilliseconds;
+      expect(update(const SideDisconnect(usedMs: 0, since: null), [stale], since + staleMs).disconnect.since, isNull);
+      expect(
+        update(const SideDisconnect(usedMs: 0, since: null), [stale], since + staleMs + 1).disconnect.since,
+        since,
+      );
+    });
+
+    test('연결 기록이 없거나 대국 전 기록이면 대국을 만든 시각부터 센다', () {
+      expect(update(const SideDisconnect(usedMs: 0, since: null), [], since).disconnect.since, _createdAt);
+      final old = _offline(activeSince: _createdAt - 9000, lastSeenAt: _createdAt - 5000);
+      expect(update(const SideDisconnect(usedMs: 0, since: null), [old], since).disconnect.since, _createdAt);
+    });
+
+    test('돌아오면 끊긴 시간을 합계에 더한다', () {
+      final result = update(const SideDisconnect(usedMs: 3000, since: since), [
+        _active(activeSince: since + 7000, lastSeenAt: since + 9000),
+      ], since + 9500);
+      expect(result.disconnect.usedMs, 10000);
+      expect(result.disconnect.since, isNull);
+      expect(result.lossAt, isNull);
+    });
+
+    test('돌아왔다가 다시 끊긴 것을 서버가 못 봤어도 돌아온 동안은 빼고 센다', () {
+      final result = update(const SideDisconnect(usedMs: 0, since: since), [
+        _offline(activeSince: _createdAt, lastSeenAt: since),
+        _offline(activeSince: since + 5000, lastSeenAt: since + 12000),
+      ], since + 15000);
+      expect(result.disconnect.usedMs, 5000);
+      expect(result.disconnect.since, since + 12000);
+      expect(result.lossAt, since + 12000 + _limitMs - 5000);
+    });
+
+    test('돌아오기 전에 합계가 허용 시간에 닿았으면 그 시각에 진다', () {
+      const current = SideDisconnect(usedMs: 25000, since: since);
+      final result = update(current, [_active(activeSince: since + 8000, lastSeenAt: since + 8000)], since + 8000);
+      expect(identical(result.disconnect, current), isTrue);
+      expect(result.lossAt, since + 5000);
+    });
+
+    test('끊긴 뒤 돌아온 연결 없이 다시 살아나면 끊긴 시간을 더하지 않는다', () {
+      final result = update(const SideDisconnect(usedMs: 2000, since: since), [
+        _active(activeSince: _createdAt, lastSeenAt: since + 20000),
+      ], since + 20000);
+      expect(result.disconnect.usedMs, 2000);
+      expect(result.disconnect.since, isNull);
+    });
+
+    test('합계가 허용 시간에 닿으면 끊긴 쪽이 접속 끊김으로 지고 다음 판정을 그 시각에 예약한다', () {
+      final game = _playingGame(startedAt: since - 1000);
+      final connections = {
+        Side.cho: [_active(activeSince: _createdAt, lastSeenAt: since + 1000)],
+        Side.han: [_offline(activeSince: _createdAt, lastSeenAt: since)],
+      };
+      final marked = applyDueEvents(game, since + 1000, drafts: const {}, connections: connections);
+      expect(marked.state.disconnect.han.since, since);
+      expect(marked.state.phase, GamePhase.playing);
+      expect(getNextEventAt(marked), since + _limitMs);
+      expect(
+        identical(applyDueEvents(marked, since + 2000, drafts: const {}, connections: connections), marked),
+        isTrue,
+      );
+
+      final ended = applyDueEvents(marked, since + _limitMs + 3000, drafts: const {}, connections: connections);
+      expect(ended.state.phase, GamePhase.finished);
+      expect(ended.state.result?.reason, GameEndReason.disconnect);
+      expect(ended.state.result?.winner, Side.cho);
+      expect(ended.state.endedAt, since + _limitMs);
+    });
+
+    test('끊긴 동안에도 시계가 흘러 시간패가 먼저 올 수 있다', () {
+      final game = _playingGame(startedAt: since);
+      final timeoutAt = getTimeoutAt(game);
+      // 초 차례에 초가 시간패 20초 전에 끊겼다.
+      final connections = {
+        Side.cho: [_offline(activeSince: _createdAt, lastSeenAt: timeoutAt - 20000)],
+        Side.han: [_active(activeSince: _createdAt, lastSeenAt: timeoutAt + 60000)],
+      };
+      final ended = applyDueEvents(game, timeoutAt + 60000, drafts: const {}, connections: connections);
+      expect(ended.state.result?.reason, GameEndReason.timeout);
+      expect(ended.state.endedAt, timeoutAt);
+    });
+
+    test('상차림 중에도 센다', () {
+      final connections = {
+        Side.cho: [_active(activeSince: _createdAt, lastSeenAt: _startsAt + 1000)],
+        Side.han: <Connection>[],
+      };
+      final marked = applyDueEvents(_newGame(), _startsAt + 1000, drafts: const {}, connections: connections);
+      // 한은 대국을 만든 때부터 끊겨 있었고, 30초는 한의 상차림 마감(상대 찾음 3초 + 20초)보다 늦다.
+      expect(marked.state.phase, GamePhase.setup);
+      expect(marked.state.disconnect.han.since, _createdAt);
+      final lost = applyDueEvents(marked, _createdAt + _limitMs, drafts: const {}, connections: connections);
+      expect(lost.state.result?.reason, GameEndReason.disconnect);
+      expect(lost.state.result?.winner, Side.cho);
+      expect(lost.state.setup.han, defaultFormation);
+      expect(lost.state.endedAt, _createdAt + _limitMs);
     });
   });
 

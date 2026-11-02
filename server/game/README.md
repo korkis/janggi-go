@@ -2,7 +2,7 @@
 
 Cloud Run에서 도는 Dart 대국 서버다. 설계는 [docs/server.md](../../docs/server.md), 데이터는 [docs/database.md](../../docs/database.md), 코드 규칙은 [docs/dev_rules.md](../../docs/dev_rules.md)의 "Dart 대국 서버 규칙"을 따른다.
 
-구현 순서 5번(한 판 두기)까지 있다. 대국 API는 `setFormation`, `playMove`, `resign`, 예약 작업은 `/tasks/evaluateGame`(상차림 마감, 시간패), `/tasks/finalizeGame`(기보 저장, 대국자 풀기), `/tasks/cleanupGame`(RTDB 정리)이다. 판정은 `lib/services/game_rules.dart`(순수 함수), 쓰기와 예약은 `lib/services/game_service.dart`에 있다.
+구현 순서 6번(접속 끊김과 재접속)까지 있다. 대국 API는 `setFormation`, `playMove`, `resign`, `checkGame`, 예약 작업은 `/tasks/evaluateGame`(상차림 마감, 시간패, 접속 끊김 마감), `/tasks/finalizeGame`(기보 저장, 대국자 풀기), `/tasks/cleanupGame`(RTDB 정리)이다. 판정은 `lib/services/game_rules.dart`(순수 함수), 쓰기와 예약은 `lib/services/game_service.dart`에 있다. 접속 끊김은 판정마다 RTDB `connections`(앱이 쓴다)를 읽어 센다.
 
 매칭(빠른 대국, 방, 신청)이 생기기 전에는 에뮬레이터 전용 개발용 API `devCreateGame`(`opponentNickname`, `side`)으로 두 계정의 대국을 만든다. 앱 개발 빌드의 홈에 있는 "개발용 온라인 대국" 카드가 이것을 부른다.
 

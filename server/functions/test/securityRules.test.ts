@@ -5,7 +5,7 @@ import {
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {doc, getDoc, setDoc, updateDoc, deleteDoc} from "firebase/firestore";
-import {ref, get, set} from "firebase/database";
+import {ref, get, set, update, serverTimestamp} from "firebase/database";
 import {readFileSync} from "fs";
 import {resolve} from "path";
 import {TEST_PROJECT_ID} from "./testEnv";
@@ -169,6 +169,66 @@ describe("Realtime Database", () => {
 
   test("규칙을 연 경로가 아니면 막는다", async () => {
     const db = testEnv.authenticatedContext(ALICE).database();
-    await assertFails(set(ref(db, `connections/${ALICE}/c1`), {online: true}));
+    await assertFails(set(ref(db, `online_users/${ALICE}`), {nickname: "앨리스"}));
+  });
+});
+
+describe("Realtime Database connections", () => {
+  function connection(online: boolean) {
+    return {online, foreground: true, activeSince: serverTimestamp(), lastSeenAt: serverTimestamp()};
+  }
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await set(ref(context.database(), `connections/${ALICE}/old`), {
+        online: false,
+        foreground: true,
+        activeSince: 1000,
+        lastSeenAt: 2000,
+      });
+    });
+  });
+
+  test("로그인한 사용자는 다른 사람의 연결을 읽는다", async () => {
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(BOB).database(), `connections/${ALICE}`)));
+    await assertFails(get(ref(testEnv.unauthenticatedContext().database(), `connections/${ALICE}`)));
+  });
+
+  test("connections 전체 목록은 읽지 못한다", async () => {
+    await assertFails(get(ref(testEnv.authenticatedContext(ALICE).database(), "connections")));
+  });
+
+  test("본인은 지난 연결을 지우고 새 연결을 서버 시각으로 쓴다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertSucceeds(update(ref(db, `connections/${ALICE}`), {old: null, c1: connection(true)}));
+    await assertSucceeds(update(ref(db, `connections/${ALICE}/c1`), {lastSeenAt: serverTimestamp()}));
+    await assertSucceeds(
+      update(ref(db, `connections/${ALICE}/c1`), {foreground: false, lastSeenAt: serverTimestamp()}),
+    );
+    // onDisconnect로 걸어 두는 쓰기
+    await assertSucceeds(update(ref(db, `connections/${ALICE}/c1`), {online: false}));
+  });
+
+  test("시각은 서버 시각만 받는다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertFails(set(ref(db, `connections/${ALICE}/c1`), {...connection(true), activeSince: 1234}));
+    await assertFails(update(ref(db, `connections/${ALICE}/old`), {lastSeenAt: Date.now()}));
+  });
+
+  test("필드가 빠지거나 다른 필드가 있으면 막는다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertFails(set(ref(db, `connections/${ALICE}/c1`), {online: true, foreground: true}));
+    await assertFails(set(ref(db, `connections/${ALICE}/c1`), {...connection(true), extra: 1}));
+    await assertFails(set(ref(db, `connections/${ALICE}/c1`), {...connection(true), online: "yes"}));
+    await assertFails(set(ref(db, `connections/${ALICE}`), "online"));
+  });
+
+  test("다른 사람의 연결은 쓰거나 지우지 못한다", async () => {
+    const db = testEnv.authenticatedContext(BOB).database();
+    await assertFails(set(ref(db, `connections/${ALICE}/c1`), connection(true)));
+    await assertFails(set(ref(db, `connections/${ALICE}/old`), null));
+    await assertFails(
+      set(ref(testEnv.unauthenticatedContext().database(), `connections/${ALICE}/c1`), connection(true)),
+    );
   });
 });

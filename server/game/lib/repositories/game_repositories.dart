@@ -4,6 +4,7 @@ import '../firebase/rtdb_client.dart';
 import 'active_games_repository.dart';
 import 'archived_games_repository.dart';
 import 'configs_repository.dart';
+import 'connections_repository.dart';
 import 'nicknames_repository.dart';
 import 'player_states_repository.dart';
 import 'users_repository.dart';
@@ -18,6 +19,7 @@ class GameRepositories {
   final PlayerStatesRepository playerStates;
   final ArchivedGamesRepository archivedGames;
   final ActiveGamesRepository activeGames;
+  final ConnectionsRepository connections;
 
   const GameRepositories({
     required this.users,
@@ -26,6 +28,7 @@ class GameRepositories {
     required this.playerStates,
     required this.archivedGames,
     required this.activeGames,
+    required this.connections,
   });
 
   factory GameRepositories.createDefault({
@@ -40,6 +43,7 @@ class GameRepositories {
       playerStates: PlayerStatesRepository(firestore: firestore),
       archivedGames: ArchivedGamesRepository(firestore: firestore),
       activeGames: ActiveGamesRepository(rtdb: rtdb),
+      connections: ConnectionsRepository(rtdb: rtdb),
     );
   }
 }

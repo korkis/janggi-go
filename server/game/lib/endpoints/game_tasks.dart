@@ -41,7 +41,7 @@ GameTaskParams validateParams(Object? requestParams) {
   return GameTaskParams(gameId: gameId, eventAt: eventAt as int?);
 }
 
-/// 상차림 마감, 시간패 시각에 판정을 다시 본다. 대국이 이미 지워졌으면 아무것도 하지 않는다.
+/// 상차림 마감, 시간패 시각, 접속 끊김 마감에 판정을 다시 본다. 대국이 이미 지워졌으면 아무것도 하지 않는다.
 class EvaluateGameTaskEndpoint extends TaskEndpoint {
   final GameService gameService;
   final GameLogger logger;

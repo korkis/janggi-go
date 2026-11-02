@@ -6,6 +6,31 @@
       "$gameId": {
         ".read": true
       }
+    },
+    "connections": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren()",
+        "$connectionId": {
+          ".validate": "newData.hasChildren(['online', 'foreground', 'activeSince', 'lastSeenAt'])",
+          "online": {
+            ".validate": "newData.isBoolean()"
+          },
+          "foreground": {
+            ".validate": "newData.isBoolean()"
+          },
+          "activeSince": {
+            ".validate": "newData.isNumber() && (newData.val() === now || newData.val() === data.val())"
+          },
+          "lastSeenAt": {
+            ".validate": "newData.isNumber() && (newData.val() === now || newData.val() === data.val())"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
     }
   }
 }

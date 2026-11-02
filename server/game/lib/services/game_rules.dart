@@ -1,7 +1,11 @@
+import 'dart:math';
+
 import 'package:janggi_core/janggi_core.dart';
 
+import '../config.dart';
 import '../http/callable.dart';
 import '../models/active_game.dart';
+import '../models/connection.dart';
 import '../models/game_enums.dart';
 
 // 한 대국의 진행 판정이다(`docs/server.md`의 대국 진행). DB에 닿지 않는 순수 함수로 두고 `GameService`가 부른다.
@@ -62,42 +66,179 @@ ActiveGame createActiveGame({
   );
 }
 
-/// [now]까지 지나간 사건(상차림 마감, 시간패)을 시각 순서대로 적용한다(`docs/server.md`의 판정 다시 보기).
+/// [now]까지 지나간 사건(상차림 마감, 시간패, 접속 끊김 마감)을 시각 순서대로 적용한다(`docs/server.md`의 판정 다시 보기).
 ///
-/// 상차림 마감이 지나면 [drafts]에 골라 둔 것이나 [defaultFormation]으로 확정하고, 다음 사건은 지금이 아니라 그 마감 시각부터
-/// 센다. 대국이 끝나는 사건을 만나면 멈춘다. 지난 사건이 없으면 [game]을 그대로 돌려준다.
-ActiveGame applyDueEvents(ActiveGame game, int now, {required Map<Side, Formation> drafts}) {
-  var current = game;
-  while (true) {
-    final state = current.state;
-    switch (state.phase) {
-      case GamePhase.finished:
-        return current;
-      case GamePhase.setup:
-        final setup = state.setup;
-        if (now < setup.deadlineAt) {
-          return current;
-        }
-        current = _confirmFormation(current, setup.turn, drafts[setup.turn] ?? defaultFormation, setup.deadlineAt);
-      case GamePhase.playing:
-        final timeoutAt = getTimeoutAt(current);
-        if (now < timeoutAt) {
-          return current;
-        }
-        final result = replayGame(current).timeout(state.turn!).result!;
-        current = _finish(current, result, timeoutAt);
+/// 먼저 [connections](진영마다 대국자의 `connections` 연결들)로 접속 끊김 기록을 [now]에 맞춘다. 상차림 마감이 지나면
+/// [drafts]에 골라 둔 것이나 [defaultFormation]으로 확정하고, 다음 사건은 지금이 아니라 그 마감 시각부터 센다.
+/// 대국이 끝나는 사건을 만나면 멈춘다. 바뀐 것이 없으면 [game]을 그대로 돌려준다.
+ActiveGame applyDueEvents(
+  ActiveGame game,
+  int now, {
+  required Map<Side, Formation> drafts,
+  required Map<Side, List<Connection>> connections,
+}) {
+  if (game.state.phase == GamePhase.finished) {
+    return game;
+  }
+  final lossAts = <Side, int>{};
+  var disconnect = game.state.disconnect;
+  for (final side in Side.values) {
+    final update = updateDisconnect(
+      disconnect.get(side),
+      connections[side] ?? const [],
+      now: now,
+      createdAt: game.meta.createdAt,
+      limitMs: game.meta.disconnectLimitMs,
+    );
+    if (!_isSameDisconnect(update.disconnect, disconnect.get(side))) {
+      disconnect = disconnect.copyWithSide(side, update.disconnect);
+    }
+    final lossAt = update.lossAt;
+    if (lossAt != null) {
+      lossAts[side] = lossAt;
     }
   }
+  var current = identical(disconnect, game.state.disconnect)
+      ? game
+      : game.copyWith(state: game.state.copyWith(disconnect: disconnect));
+
+  while (current.state.phase != GamePhase.finished) {
+    final state = current.state;
+    // 접속 끊김 마감 중 가장 이른 것. 같은 시각이면 시계가 먼저다.
+    Side? disconnectedSide;
+    for (final side in Side.values) {
+      final lossAt = lossAts[side];
+      if (lossAt != null && lossAt <= now && (disconnectedSide == null || lossAt < lossAts[disconnectedSide]!)) {
+        disconnectedSide = side;
+      }
+    }
+    final clockEventAt = state.phase == GamePhase.setup ? state.setup.deadlineAt : getTimeoutAt(current);
+    if (clockEventAt <= now && (disconnectedSide == null || clockEventAt <= lossAts[disconnectedSide]!)) {
+      if (state.phase == GamePhase.setup) {
+        final setup = state.setup;
+        current = _confirmFormation(current, setup.turn, drafts[setup.turn] ?? defaultFormation, setup.deadlineAt);
+      } else {
+        current = _finish(current, replayGame(current).timeout(state.turn!).result!, clockEventAt);
+      }
+      continue;
+    }
+    if (disconnectedSide == null) {
+      break;
+    }
+    final played = state.phase == GamePhase.setup ? Game.start(getInitialPosition(current)) : replayGame(current);
+    current = _finish(current, played.disconnect(disconnectedSide).result!, lossAts[disconnectedSide]!);
+  }
+  return current;
 }
 
-/// 다음에 판정을 다시 봐야 하는 시각. 상차림 마감 또는 시간패 시각이다. 끝난 대국이면 null.
+/// 다음에 판정을 다시 봐야 하는 시각. 상차림 마감, 시간패 시각, 지금 끊겨 있는 쪽의 접속 끊김 마감 중 가장 이른 것이다.
+/// 끝난 대국이면 null.
 int? getNextEventAt(ActiveGame game) {
-  return switch (game.state.phase) {
-    GamePhase.setup => game.state.setup.deadlineAt,
-    GamePhase.playing => getTimeoutAt(game),
-    GamePhase.finished => null,
-  };
+  final state = game.state;
+  final int clockEventAt;
+  switch (state.phase) {
+    case GamePhase.finished:
+      return null;
+    case GamePhase.setup:
+      clockEventAt = state.setup.deadlineAt;
+    case GamePhase.playing:
+      clockEventAt = getTimeoutAt(game);
+  }
+  var eventAt = clockEventAt;
+  for (final side in Side.values) {
+    final lossAt = getDisconnectLossAt(state.disconnect.get(side), game.meta.disconnectLimitMs);
+    if (lossAt != null && lossAt < eventAt) {
+      eventAt = lossAt;
+    }
+  }
+  return eventAt;
 }
+
+// ---- 접속 끊김 ----
+
+/// 연결이 [now]에 살아 있는지. 연결되어 있고, 앱이 화면에 떠 있고, [presenceStaleSeconds] 안에 살아 있음을 알렸다.
+bool isConnectionActive(Connection connection, int now) {
+  return connection.online &&
+      connection.foreground &&
+      now - connection.lastSeenAt <= const Duration(seconds: presenceStaleSeconds).inMilliseconds;
+}
+
+/// [updateDisconnect]의 결과.
+class DisconnectUpdate {
+  final SideDisconnect disconnect;
+
+  /// 끊긴 시간 합계가 한도에 닿는(닿은) 시각. 지금 연결되어 있고 한도에 닿지 않았으면 null. 판정 시각보다 뒤일 수 있다.
+  final int? lossAt;
+
+  const DisconnectUpdate({required this.disconnect, required this.lossAt});
+}
+
+/// 한 진영의 접속 끊김 기록 [current]를 판정 시각 [now]에 읽은 그 대국자의 연결들 [connections]로 바꾼다
+/// (`docs/server.md`의 접속 끊김).
+///
+/// - 끊긴 시각은 가장 최근 `lastSeenAt`이다. 대국을 만든 시각 [createdAt]보다 앞이면 만든 시각으로 한다.
+/// - 끊긴 뒤 화면에 돌아온 연결(`activeSince`가 끊긴 시각보다 뒤)이 있으면 그 가장 이른 `activeSince`까지를 끊긴 시간으로
+///   더한다. 돌아왔다가 다시 끊겼으면 그 연결의 `lastSeenAt`부터 다시 센다.
+/// - 연결되어 있는데 끊긴 뒤 돌아온 연결이 없으면(네트워크가 잠깐 멈췄다 이어진 경우) 끊긴 시간을 더하지 않는다.
+///   앱은 서버가 자기를 끊긴 것으로 기록한 것을 보면 `activeSince`를 새로 쓰고 `checkGame`을 부른다.
+/// - 돌아오기 전에 합계가 [limitMs]에 닿았으면 기록을 바꾸지 않고 그 시각을 [DisconnectUpdate.lossAt]으로 돌려준다.
+DisconnectUpdate updateDisconnect(
+  SideDisconnect current,
+  List<Connection> connections, {
+  required int now,
+  required int createdAt,
+  required int limitMs,
+}) {
+  final connected = connections.any((connection) => isConnectionActive(connection, now));
+  int? lastSeenAt;
+  for (final connection in connections) {
+    if (lastSeenAt == null || connection.lastSeenAt > lastSeenAt) {
+      lastSeenAt = connection.lastSeenAt;
+    }
+  }
+  var usedMs = current.usedMs;
+  var since = current.since;
+  if (since == null) {
+    if (connected) {
+      return DisconnectUpdate(disconnect: current, lossAt: null);
+    }
+    since = min(max(lastSeenAt ?? createdAt, createdAt), now);
+    return DisconnectUpdate(
+      disconnect: SideDisconnect(usedMs: usedMs, since: since),
+      lossAt: since + limitMs - usedMs,
+    );
+  }
+
+  int? returnedAt;
+  for (final connection in connections) {
+    if (connection.activeSince > since && (returnedAt == null || connection.activeSince < returnedAt)) {
+      returnedAt = connection.activeSince;
+    }
+  }
+  if (connected || returnedAt != null) {
+    final backAt = min(returnedAt ?? since, now);
+    if (usedMs + backAt - since >= limitMs) {
+      return DisconnectUpdate(disconnect: current, lossAt: since + limitMs - usedMs);
+    }
+    usedMs += backAt - since;
+    if (connected) {
+      return DisconnectUpdate(disconnect: SideDisconnect(usedMs: usedMs, since: null), lossAt: null);
+    }
+    since = min(max(lastSeenAt!, backAt), now);
+  }
+  return DisconnectUpdate(
+    disconnect: SideDisconnect(usedMs: usedMs, since: since),
+    lossAt: since + limitMs - usedMs,
+  );
+}
+
+/// 지금 끊겨 있는 쪽이 접속 끊김으로 지는 시각. 끊겨 있지 않으면 null.
+int? getDisconnectLossAt(SideDisconnect disconnect, int limitMs) {
+  final since = disconnect.since;
+  return since == null ? null : since + limitMs - disconnect.usedMs;
+}
+
+bool _isSameDisconnect(SideDisconnect a, SideDisconnect b) => a.usedMs == b.usedMs && a.since == b.since;
 
 /// 지금 차례인 쪽의 시간패 시각. "초읽기를 모두 쓴 뒤 한 번 더 초읽기 시간 안에 두지 못하면 시간패"다(`docs/server.md`의 시계).
 int getTimeoutAt(ActiveGame game) {
@@ -153,7 +294,7 @@ ActiveGame confirmFormation(ActiveGame game, Side side, Formation formation, int
 /// [side]가 [moveIndex]번째 수(0부터)로 [move]를 둔다(`docs/server.md`의 수).
 ///
 /// 같은 수를 다시 보내면(응답을 못 받고 다시 보낸 경우) 바꾸지 않고 [game]을 그대로 돌려준다.
-/// 시간패는 [applyDueEvents]가 먼저 판정하므로 여기서는 [now]가 시간패 시각 전이다.
+/// 시간패와 접속 끊김은 [applyDueEvents]가 먼저 판정하므로 여기서는 [now]가 시간패 시각 전이다.
 ActiveGame playMove(ActiveGame game, Side side, int moveIndex, Move move, int now) {
   final state = game.state;
   if (moveIndex < game.moves.length) {

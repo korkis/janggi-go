@@ -53,6 +53,9 @@ class DevCreateGameEndpoint extends CallableEndpoint {
 
   /// 상대 찾음 화면 시간.
   final Duration matchIntro;
+
+  /// 접속 끊김 허용 시간 합계. null이면 `configs/app.disconnectLimitSeconds`를 쓴다. 통합 테스트가 짧게 줄일 때 쓴다.
+  final Duration? disconnectLimit;
   final Random _random;
 
   DevCreateGameEndpoint({
@@ -63,6 +66,7 @@ class DevCreateGameEndpoint extends CallableEndpoint {
     required this.logger,
     required this.timeControl,
     required this.matchIntro,
+    this.disconnectLimit,
     Random? random,
   }) : _random = random ?? Random();
 
@@ -99,7 +103,7 @@ class DevCreateGameEndpoint extends CallableEndpoint {
       listed: true,
       players: callerSide == Side.cho ? GamePlayers(cho: caller, han: other) : GamePlayers(cho: other, han: caller),
       timeControl: timeControl,
-      disconnectLimitMs: Duration(seconds: appConfig.disconnectLimitSeconds).inMilliseconds,
+      disconnectLimitMs: (disconnectLimit ?? Duration(seconds: appConfig.disconnectLimitSeconds)).inMilliseconds,
       introMs: matchIntro.inMilliseconds,
       now: request.receivedAt.millisecondsSinceEpoch,
     );

@@ -10,6 +10,7 @@ import 'auth/public_keys.dart';
 import 'auth/task_request_verifier.dart';
 import 'clock.dart';
 import 'config.dart';
+import 'endpoints/check_game.dart';
 import 'endpoints/dev_create_game.dart';
 import 'endpoints/dev_ping.dart';
 import 'endpoints/dev_ping_task.dart';
@@ -72,7 +73,8 @@ class GameServer {
   /// [environment]에 맞게 조립한다. 에뮬레이터에서는 개발용 API(`devPing`, `devCreateGame`)를 함께 연다.
   ///
   /// [onDevPingTask]는 테스트가 `devPing` 예약 작업이 돌았는지 확인할 때 쓴다.
-  /// [devTimeControl]과 [devMatchIntro]는 `devCreateGame`이 만드는 대국의 시간이다. 통합 테스트가 짧게 줄일 때 쓴다.
+  /// [devTimeControl], [devMatchIntro], [devDisconnectLimit]은 `devCreateGame`이 만드는 대국의 시간이다. 통합 테스트가 짧게
+  /// 줄일 때 쓴다.
   factory GameServer.create({
     required ServerEnvironment environment,
     required GameLogger logger,
@@ -81,6 +83,7 @@ class GameServer {
     void Function(DevPingTaskParams params)? onDevPingTask,
     TimeControl? devTimeControl,
     Duration devMatchIntro = const Duration(seconds: matchIntroSeconds),
+    Duration? devDisconnectLimit,
   }) {
     final baseClient = httpClient ?? http.Client();
     final production = environment.mode == ServerMode.production;
@@ -142,6 +145,7 @@ class GameServer {
       activeGames: repositories.activeGames,
       playerStates: repositories.playerStates,
       archivedGames: repositories.archivedGames,
+      connections: repositories.connections,
       taskScheduler: taskScheduler,
       logger: logger,
     );
@@ -162,6 +166,7 @@ class GameServer {
         SetFormationEndpoint(gameService: gameService, logger: logger),
         PlayMoveEndpoint(gameService: gameService, logger: logger),
         ResignEndpoint(gameService: gameService, logger: logger),
+        CheckGameEndpoint(gameService: gameService, logger: logger),
         if (!production) ...[
           DevPingEndpoint(taskScheduler: taskScheduler, logger: logger),
           DevCreateGameEndpoint(
@@ -172,6 +177,7 @@ class GameServer {
             logger: logger,
             timeControl: devTimeControl ?? defaultTimeControl,
             matchIntro: devMatchIntro,
+            disconnectLimit: devDisconnectLimit,
           ),
         ],
       ],
