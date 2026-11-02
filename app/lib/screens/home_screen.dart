@@ -35,6 +35,7 @@ class HomeScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
+            const _ResumeGameButton(),
             const _MyCard(),
             const SizedBox(height: 16),
             if (!kReleaseMode) const _DevGameCard(),
@@ -43,6 +44,41 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// 진행 중인 온라인 대국이 있으면(앱이 꺼졌다 켜진 경우 등) 맨 위에 "대국으로 돌아가기"를 보여준다
+/// (`docs/screens.md`의 홈). 상차림 화면으로 열고, 상차림이 끝난 대국이면 상차림 화면이 바로 대국 화면으로 넘긴다.
+class _ResumeGameButton extends StatelessWidget {
+  const _ResumeGameButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([managers.authManager, managers.playerStateManager]),
+      builder: _buildButton,
+    );
+  }
+
+  Widget _buildButton(BuildContext context, Widget? child) {
+    final l10n = AppLocalizations.of(context);
+    final gameId = managers.playerStateManager.gameId;
+    if (managers.authManager.profile == null || gameId == null) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: FilledButton.icon(
+        onPressed: () => _onResume(context, gameId),
+        icon: const Icon(Icons.play_arrow),
+        // 대국으로 돌아가기
+        label: Text(l10n.homeResumeGame),
+      ),
+    );
+  }
+
+  void _onResume(BuildContext context, String gameId) {
+    Navigator.of(context).push(createGameRoute<void>((context) => SetupScreen.online(gameId: gameId)));
   }
 }
 
@@ -132,7 +168,10 @@ class _DevOnlineGameCardState extends State<_DevOnlineGameCard> {
     if (managers.authManager.profile == null) {
       return const SizedBox.shrink();
     }
-    final gameId = managers.playerStateManager.gameId;
+    // 진행 중인 대국은 맨 위의 "대국으로 돌아가기"로 간다.
+    if (managers.playerStateManager.gameId != null) {
+      return const SizedBox.shrink();
+    }
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -151,41 +190,33 @@ class _DevOnlineGameCardState extends State<_DevOnlineGameCard> {
               style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
             ),
             const SizedBox(height: 16),
-            if (gameId != null)
-              FilledButton(
-                onPressed: () => _openGame(gameId),
-                // 대국으로 가기
-                child: Text(l10n.homeDevOnlineResume),
-              )
-            else ...[
-              TextField(
-                controller: _opponentController,
-                textInputAction: TextInputAction.done,
-                decoration: InputDecoration(
-                  // 상대 닉네임
-                  labelText: l10n.homeDevOnlineOpponent,
-                ),
+            TextField(
+              controller: _opponentController,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                // 상대 닉네임
+                labelText: l10n.homeDevOnlineOpponent,
               ),
-              const SizedBox(height: 12),
-              SegmentedButton<SideChoice>(
-                segments: [
-                  for (final side in SideChoice.values)
-                    ButtonSegment(
-                      value: side,
-                      // 초 / 한 / 무작위
-                      label: Text(l10n.sideChoiceName(side.name)),
-                    ),
-                ],
-                selected: {_side},
-                onSelectionChanged: _onSideChanged,
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _creating ? null : _onCreate,
-                // 대국 만들기
-                child: Text(l10n.homeDevOnlineCreate),
-              ),
-            ],
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<SideChoice>(
+              segments: [
+                for (final side in SideChoice.values)
+                  ButtonSegment(
+                    value: side,
+                    // 초 / 한 / 무작위
+                    label: Text(l10n.sideChoiceName(side.name)),
+                  ),
+              ],
+              selected: {_side},
+              onSelectionChanged: _onSideChanged,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _creating ? null : _onCreate,
+              // 대국 만들기
+              child: Text(l10n.homeDevOnlineCreate),
+            ),
           ],
         ),
       ),
@@ -225,7 +256,7 @@ class _DevOnlineGameCardState extends State<_DevOnlineGameCard> {
     }
   }
 
-  /// 새 대국이 생기면 홈이 맨 위에 있을 때 상차림으로 간다. 다른 화면에 있으면 카드의 "대국으로 가기"로 간다.
+  /// 새 대국이 생기면 홈이 맨 위에 있을 때 상차림으로 간다. 다른 화면에 있으면 홈의 "대국으로 돌아가기"로 간다.
   void _onPlayerStateChanged() {
     final gameId = managers.playerStateManager.gameId;
     if (gameId == null || gameId == _openedGameId || !(ModalRoute.of(context)?.isCurrent ?? false)) {

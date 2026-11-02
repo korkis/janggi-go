@@ -40,6 +40,11 @@ class GameRepository {
     await _call('resign', {'gameId': gameId});
   }
 
+  /// 대국 판정을 다시 보게 한다. 상대 연결이 끊기거나 돌아온 것, 상대 시계가 0이 된 것, 내가 돌아온 것을 보면 부른다.
+  Future<void> checkGame(String gameId) async {
+    await _call('checkGame', {'gameId': gameId});
+  }
+
   /// 대국 서버 API를 Callable 프로토콜로 부른다. 서버가 알려 준 거절 사유는 [AppException]으로 바꾼다.
   Future<void> _call(String name, Map<String, Object?> data) async {
     final callable = functions.httpsCallableFromUrl(getServerUrl().resolve(name).toString());

@@ -6,14 +6,21 @@ import 'package:janggi_core/janggi_core.dart';
 
 import '../config.dart';
 import '../models/active_game.dart';
+import '../models/connection.dart';
 import '../models/game_enums.dart';
 import '../repositories/app_repositories.dart';
+import '../utils/game_clock.dart';
 import 'board_manager.dart';
+import 'connection_manager.dart';
 
 /// 온라인 대국 하나의 상태. 상차림 화면과 대국 화면이 각자 만들고 `dispose()`한다.
 ///
 /// RTDB `games_active/{gameId}`를 듣고 상차림과 판을 서버 상태에 맞춘다. 대국 상태는 서버만 쓰므로 앱은 API를 부르고
 /// 바뀐 값을 다시 받아 그린다. 내 수는 서버에 보내자마자 판에 먼저 보여주고, 서버가 거절하면 서버 상태로 되돌린다.
+///
+/// 접속 끊김은 서버가 판정하므로(`docs/server.md`의 접속 끊김) 앱은 판정을 다시 볼 계기만 준다. 상대의 `connections`가
+/// 서버 기록과 다르거나(끊겼는데 기록이 없거나, 돌아왔는데 기록이 남아 있다), 서버가 나를 끊긴 것으로 기록했는데 나는
+/// 연결되어 있거나, 상대 시계가 0이 되면 `checkGame`을 부른다.
 class OnlineGameManager extends ChangeNotifier {
   /// 상차림 시간 안에 아무것도 누르지 않았을 때의 상차림(`docs/game/time.md`).
   static const defaultFormation = Formation.horseElephantHorseElephant;
@@ -26,11 +33,15 @@ class OnlineGameManager extends ChangeNotifier {
   /// 이 기기에 로그인한 사용자.
   final String uid;
 
+  /// 내 접속 상태. 서버가 나를 끊긴 것으로 기록했을 때 연결되어 있는지 본다.
+  final ConnectionManager connectionManager;
+
   /// 서버 시각(ms)을 [gameClockTickInterval]마다 알린다. 시계와 상차림 남은 시간만 이 값을 듣고 다시 그린다.
   final ValueNotifier<int> serverNow;
 
   StreamSubscription<ActiveGame?>? _gameSubscription;
   StreamSubscription<Duration>? _offsetSubscription;
+  StreamSubscription<List<Connection>>? _opponentSubscription;
   Timer? _ticker;
 
   ActiveGame? _game;
@@ -47,7 +58,16 @@ class OnlineGameManager extends ChangeNotifier {
   // 서버에 보내고 답을 기다리는 내 수의 번호. 그동안 온 서버 상태에 그 수가 없어도 판을 되돌리지 않는다.
   int? _pendingMoveIndex;
 
-  OnlineGameManager({required this.gameId, required this.uid})
+  // 상대의 연결 중 `online`이고 `foreground`인 것이 있는지. 처음 값을 받기 전에는 null이다.
+  bool? _opponentOnline;
+
+  // 마지막으로 `checkGame`을 부른 까닭과 그때의 대국 `version`. 서버 상태가 그대로인 동안 같은 까닭으로 다시 부르지 않는다.
+  String? _checkedReason;
+
+  // 상대 시계가 0이 되어 `checkGame`을 부른 차례의 시작 시각.
+  int? _timeoutCheckedTurnStartedAt;
+
+  OnlineGameManager({required this.gameId, required this.uid, required this.connectionManager})
     : serverNow = ValueNotifier(DateTime.now().millisecondsSinceEpoch) {
     _gameSubscription = repositories.gameRepository.watchGame(gameId).listen(_onGameChanged, onError: _onGameError);
     _offsetSubscription = repositories.serverTimeRepository.watchServerTimeOffset().listen(
@@ -55,13 +75,16 @@ class OnlineGameManager extends ChangeNotifier {
       onError: _onServerTimeOffsetError,
     );
     _ticker = Timer.periodic(gameClockTickInterval, _onTick);
+    connectionManager.addListener(_onConnectionChanged);
   }
 
   @override
   void dispose() {
     _gameSubscription?.cancel();
     _offsetSubscription?.cancel();
+    _opponentSubscription?.cancel();
     _ticker?.cancel();
+    connectionManager.removeListener(_onConnectionChanged);
     _board?.removeListener(_onBoardChanged);
     _board?.dispose();
     serverNow.dispose();
@@ -235,7 +258,96 @@ class OnlineGameManager extends ChangeNotifier {
     _loaded = true;
     _loadError = null;
     _syncBoard();
+    _watchOpponent();
     notifyListeners();
+    _checkGameIfNeeded();
+  }
+
+  /// 대국자를 알게 되면 상대의 연결을 듣기 시작한다.
+  void _watchOpponent() {
+    final side = mySide;
+    if (_opponentSubscription != null || side == null) {
+      return;
+    }
+    final opponentUid = _game!.meta.players.get(side.opponent).uid;
+    _opponentSubscription = repositories.connectionRepository
+        .watchConnections(opponentUid)
+        .listen(_onOpponentConnectionsChanged, onError: _onOpponentConnectionsError);
+  }
+
+  void _onOpponentConnectionsChanged(List<Connection> connections) {
+    final online = connections.any((connection) => connection.online && connection.foreground);
+    if (online == _opponentOnline) {
+      return;
+    }
+    _opponentOnline = online;
+    // 상대가 끊겼다 돌아오기를 반복하면 서버 상태가 같아도 다시 알린다.
+    _checkedReason = null;
+    _checkGameIfNeeded();
+  }
+
+  void _onOpponentConnectionsError(Object error, StackTrace stackTrace) {
+    developer.log('OnlineGameManager 상대 연결 듣기 실패', error: error, stackTrace: stackTrace);
+  }
+
+  void _onConnectionChanged() {
+    _checkGameIfNeeded();
+  }
+
+  /// 서버의 접속 끊김 기록이 앱이 본 것과 다르면 판정을 다시 보게 한다.
+  void _checkGameIfNeeded() {
+    final game = _game;
+    final side = mySide;
+    if (game == null || side == null || game.state.phase == GamePhase.finished) {
+      return;
+    }
+    final disconnect = game.state.disconnect;
+    final opponentSince = disconnect.get(side.opponent).since;
+    final String reason;
+    if (disconnect.get(side).since != null && connectionManager.active) {
+      reason = 'returned';
+    } else if (_opponentOnline == false && opponentSince == null) {
+      reason = 'opponentLeft';
+    } else if (_opponentOnline == true && opponentSince != null) {
+      reason = 'opponentReturned';
+    } else {
+      return;
+    }
+    final checkedReason = '$reason:${game.state.version}';
+    if (checkedReason == _checkedReason) {
+      return;
+    }
+    _checkedReason = checkedReason;
+    _requestCheck(renewActiveSince: reason == 'returned');
+  }
+
+  /// 상대 시계가 0이 되면 판정을 다시 보게 한다. 차례마다 한 번만 부른다.
+  void _checkTimeoutIfNeeded(int nowMs) {
+    final game = _game;
+    final side = mySide;
+    if (game == null || side == null || game.state.turn != side.opponent) {
+      return;
+    }
+    final timeoutAt = getTimeoutAt(game);
+    final turnStartedAt = game.state.turnStartedAt;
+    if (timeoutAt == null || nowMs < timeoutAt || turnStartedAt == _timeoutCheckedTurnStartedAt) {
+      return;
+    }
+    _timeoutCheckedTurnStartedAt = turnStartedAt;
+    _requestCheck(renewActiveSince: false);
+  }
+
+  /// `checkGame`을 부른다. [renewActiveSince]면 서버가 돌아온 것으로 셀 수 있게 먼저 `activeSince`를 새로 쓴다.
+  /// 실패해도 상대 앱이나 예약 작업이 다시 판정하므로 로그만 남긴다.
+  Future<void> _requestCheck({required bool renewActiveSince}) async {
+    try {
+      if (renewActiveSince) {
+        await connectionManager.renewActiveSince();
+      }
+      await repositories.gameRepository.checkGame(gameId);
+    } catch (error, stackTrace) {
+      developer.log('OnlineGameManager checkGame 실패', error: error, stackTrace: stackTrace);
+    }
   }
 
   void _onGameError(Object error, StackTrace stackTrace) {
@@ -252,7 +364,9 @@ class OnlineGameManager extends ChangeNotifier {
   }
 
   void _onTick(Timer timer) {
-    serverNow.value = getServerNowMs();
+    final nowMs = getServerNowMs();
+    serverNow.value = nowMs;
+    _checkTimeoutIfNeeded(nowMs);
   }
 
   void _onBoardChanged() {

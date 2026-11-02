@@ -4,6 +4,7 @@ import 'package:janggigo/app.dart';
 import 'package:janggigo/l10n/app_localizations.dart';
 import 'package:janggigo/models/player_state.dart';
 import 'package:janggigo/models/user_profile.dart';
+import 'package:janggigo/screens/game_screen.dart';
 import 'package:janggigo/screens/setup_screen.dart';
 import 'package:janggigo/theme/app_theme.dart';
 
@@ -135,6 +136,91 @@ void main() {
     await _pumpFor(tester);
     expect(find.text('상차림을 골라 주세요'), findsOneWidget);
 
+    // 대국이 풀리면 lastSeenAt 갱신을 멈춘다. 화면도 닫아 시계 타이머를 멈춘다.
+    fakes.playerStates.emit('opp', null);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('상대 연결이 끊기면 상대 정보 줄에 남은 시간을, 내 연결이 끊기면 판 위에 다시 연결하는 중을 보여준다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = setUpFakeApp();
+    await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Theme(
+          data: gameTheme,
+          child: const GameScreen.online(gameId: 'g1'),
+        ),
+      ),
+    );
+    final now = DateTime.now().millisecondsSinceEpoch;
+    fakes.games.emit(
+      'g1',
+      buildGameJson(
+        phase: 'playing',
+        setupTurn: 'cho',
+        hanFormation: 'horseElephantHorseElephant',
+        choFormation: 'horseElephantHorseElephant',
+        turn: 'cho',
+        turnStartedAt: now,
+        disconnect: {
+          'cho': {'usedMs': 4000, 'since': now - 5000},
+          'han': {'usedMs': 0},
+        },
+      ),
+    );
+    await _pumpFor(tester);
+    // 30초 - 앞서 끊긴 4초 - 지금 끊긴 5초
+    expect(find.textContaining(RegExp(r'^연결이 끊겼어요 2[01]초$')), findsOneWidget);
+    expect(find.text('다시 연결하는 중'), findsNothing);
+
+    fakes.connections.setConnected(false);
+    await _pumpFor(tester);
+    expect(find.text('다시 연결하는 중'), findsOneWidget);
+    fakes.connections.setConnected(true);
+    await _pumpFor(tester);
+    expect(find.text('다시 연결하는 중'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('진행 중인 대국이 있으면 홈 맨 위의 대국으로 돌아가기로 대국에 다시 들어간다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = setUpFakeApp();
+    fakes.users.profiles['opp'] = UserProfile(
+      nickname: '한사람',
+      rankLevel: 1,
+      stats: const UserStats(games: 0, wins: 0, losses: 0),
+      createdAt: DateTime.utc(2026, 11, 2),
+    );
+    await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
+    // 앱을 다시 켠 것처럼 진행 중인 대국이 이미 있다.
+    fakes.playerStates.emit(
+      'opp',
+      PlayerState(
+        roomId: null,
+        gameId: 'g1',
+        lastGameId: null,
+        outgoingChallengeId: null,
+        incomingChallengeId: null,
+        setupDraft: null,
+        lastRankChange: null,
+        quickQueueJoinedAt: null,
+        updatedAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await tester.pumpWidget(const JanggigoApp());
+    await _pumpFor(tester);
+    expect(find.text('대국 만들기'), findsNothing);
+
+    await tester.tap(find.text('대국으로 돌아가기'));
+    fakes.games.emit('g1', buildGameJson());
+    await _pumpFor(tester);
+    expect(find.text('상차림을 골라 주세요'), findsOneWidget);
+
+    fakes.playerStates.emit('opp', null);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

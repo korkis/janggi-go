@@ -25,7 +25,7 @@
   "resignAction": "Resign",
   "leaveGameConfirm": "Leave this game?",
   "leaveGameAction": "Leave",
-  "resultReason": "{reason, select, checkmate{Checkmate} resignation{Resignation} timeout{Timeout} consecutivePasses{On points} moveLimit{On points} noLegalMoves{On points} other{}}",
+  "resultReason": "{reason, select, checkmate{Checkmate} resignation{Resignation} timeout{Timeout} consecutivePasses{On points} moveLimit{On points} noLegalMoves{On points} disconnect{Disconnection} other{}}",
   "resultWinner": "{side, select, cho{Cho wins} han{Han wins} other{}}",
   "resultSummary": "{moves, plural, =1{1 move} other{{moves} moves}} · {minutes}m {seconds}s",
   "resultConsecutivePasses": "Both sides passed in a row, so points decided the game",
@@ -106,7 +106,6 @@
   "homeDevOnlineDescription": "Enter an opponent nickname to start a game between two accounts",
   "homeDevOnlineOpponent": "Opponent nickname",
   "homeDevOnlineCreate": "Create game",
-  "homeDevOnlineResume": "Go to game",
   "sideChoiceName": "{side, select, cho{Cho} han{Han} random{Random} other{}}",
   "gameOnlineTitle": "Online game · {count} moves",
   "playerNameWithRank": "{nickname} · {rank}",
@@ -126,5 +125,8 @@
   "errorGameNotYourTurn": "It is not your turn.",
   "errorGameIllegalMove": "That move is not allowed.",
   "errorGameMoveConflict": "The board was synced with the server.",
-  "errorGameOver": "The game is already over."
+  "errorGameOver": "The game is already over.",
+  "opponentDisconnected": "Disconnected {seconds}s",
+  "reconnecting": "Reconnecting",
+  "homeResumeGame": "Back to game"
 }

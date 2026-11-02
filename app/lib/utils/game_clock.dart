@@ -70,3 +70,28 @@ String formatClock(Duration duration) {
   final seconds = totalSeconds % 60;
   return '${totalSeconds ~/ 60}:${seconds.toString().padLeft(2, '0')}';
 }
+
+/// 지금 차례인 쪽의 시간패 시각(ms). 서버와 같은 식이다. 대국 중이 아니면 null.
+int? getTimeoutAt(ActiveGame game) {
+  final state = game.state;
+  final turn = state.turn;
+  final turnStartedAt = state.turnStartedAt;
+  if (state.phase != GamePhase.playing || turn == null || turnStartedAt == null) {
+    return null;
+  }
+  final clock = state.clock.get(turn);
+  return turnStartedAt + clock.baseMs + (clock.periods + 1) * game.meta.timeControl.periodMs;
+}
+
+/// [side]가 지금 끊겨 있으면 이번 대국에서 남은 끊김 허용 시간. 대국을 만들 때 정한 `meta.disconnectLimitMs`
+/// (`configs/app.disconnectLimitSeconds`)에서 지금까지 끊긴 시간을 뺀다. 끊겨 있지 않거나 끝난 대국이면 null.
+Duration? getDisconnectRemaining(ActiveGame game, Side side, int nowMs) {
+  final disconnect = game.state.disconnect.get(side);
+  final since = disconnect.since;
+  if (since == null || game.state.phase == GamePhase.finished) {
+    return null;
+  }
+  final limitMs = game.meta.disconnectLimitMs;
+  final remainingMs = limitMs - disconnect.usedMs - max(0, nowMs - since);
+  return Duration(milliseconds: remainingMs.clamp(0, limitMs).toInt());
+}

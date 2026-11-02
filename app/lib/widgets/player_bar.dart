@@ -19,6 +19,9 @@ class PlayerBar extends StatelessWidget {
   /// 이름 아래 한 줄. 없으면 이름만 보여준다.
   final String? detail;
 
+  /// 이름 아래 줄 오른쪽에 붙는 알림(상대 연결 끊김). 자주 바뀌는 값이면 그 위젯만 다시 그리도록 따로 만든다.
+  final Widget? notice;
+
   /// 오른쪽에 붙는 표시(장군, 정했어요 등).
   final List<Widget> trailing;
 
@@ -28,6 +31,7 @@ class PlayerBar extends StatelessWidget {
     required this.active,
     this.name,
     this.detail,
+    this.notice,
     this.trailing = const [],
   });
 
@@ -35,6 +39,7 @@ class PlayerBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final detail = this.detail;
+    final notice = this.notice;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -57,10 +62,17 @@ class PlayerBar extends StatelessWidget {
                     color: active ? GameColors.text : GameColors.subText,
                   ),
                 ),
-                if (detail != null)
-                  Text(
-                    detail,
-                    style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.subText),
+                if (detail != null || notice != null)
+                  Row(
+                    children: [
+                      if (detail != null)
+                        Text(
+                          detail,
+                          style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.subText),
+                        ),
+                      if (detail != null && notice != null) const SizedBox(width: 8),
+                      if (notice != null) Flexible(child: notice),
+                    ],
                   ),
               ],
             ),

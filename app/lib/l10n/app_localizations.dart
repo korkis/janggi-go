@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// 대국 결과 종류
   ///
   /// In ko, this message translates to:
-  /// **'{reason, select, checkmate{외통승} resignation{기권승} timeout{시간승} consecutivePasses{점수승} moveLimit{점수승} noLegalMoves{점수승} other{}}'**
+  /// **'{reason, select, checkmate{외통승} resignation{기권승} timeout{시간승} consecutivePasses{점수승} moveLimit{점수승} noLegalMoves{점수승} disconnect{접속 끊김승} other{}}'**
   String resultReason(String reason);
 
   /// 대국 결과 창의 큰 제목
@@ -734,12 +734,6 @@ abstract class AppLocalizations {
   /// **'대국 만들기'**
   String get homeDevOnlineCreate;
 
-  /// 진행 중인 개발용 온라인 대국으로 가는 버튼
-  ///
-  /// In ko, this message translates to:
-  /// **'대국으로 가기'**
-  String get homeDevOnlineResume;
-
   /// 진영 고르기. 무작위는 서버가 정한다
   ///
   /// In ko, this message translates to:
@@ -859,6 +853,24 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'이미 끝난 대국이에요'**
   String get errorGameOver;
+
+  /// 대국 화면 상대 정보 줄. 상대 연결이 끊긴 동안 이번 대국에서 남은 끊김 허용 시간(초)
+  ///
+  /// In ko, this message translates to:
+  /// **'연결이 끊겼어요 {seconds}초'**
+  String opponentDisconnected(int seconds);
+
+  /// 대국 화면 판 위. 내 기기의 연결이 끊긴 동안
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 연결하는 중'**
+  String get reconnecting;
+
+  /// 홈 맨 위. 진행 중인 온라인 대국이 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'대국으로 돌아가기'**
+  String get homeResumeGame;
 }
 
 class _AppLocalizationsDelegate

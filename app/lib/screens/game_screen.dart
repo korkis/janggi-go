@@ -51,7 +51,11 @@ class _GameScreenState extends State<GameScreen> {
     if (gameId == null) {
       _localBoard = BoardManager(initialPosition: widget.initialPosition!)..addListener(_onBoardChanged);
     } else {
-      _online = OnlineGameManager(gameId: gameId, uid: managers.authManager.uid!)..addListener(_onBoardChanged);
+      _online = OnlineGameManager(
+        gameId: gameId,
+        uid: managers.authManager.uid!,
+        connectionManager: managers.connectionManager,
+      )..addListener(_onBoardChanged);
     }
   }
 
@@ -106,14 +110,20 @@ class _GameScreenState extends State<GameScreen> {
             child: Column(
               children: [
                 Flexible(
-                  child: BoardView(
-                    position: board.position,
-                    flipped: board.flipped,
-                    selected: board.selected,
-                    targets: board.targets,
-                    lastMove: board.lastMove,
-                    dimmedSide: board.dimmedSide,
-                    onSquareTap: _onSquareTap,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      BoardView(
+                        position: board.position,
+                        flipped: board.flipped,
+                        selected: board.selected,
+                        targets: board.targets,
+                        lastMove: board.lastMove,
+                        dimmedSide: board.dimmedSide,
+                        onSquareTap: _onSquareTap,
+                      ),
+                      if (online != null) const ReconnectingNotice(),
+                    ],
                   ),
                 ),
                 _buildPlayerBar(context, board, bottomSide),
@@ -148,13 +158,15 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildPlayerBar(BuildContext context, BoardManager board, Side side) {
     final l10n = AppLocalizations.of(context);
-    final game = _online?.game;
+    final online = _online;
+    final game = online?.game;
     return PlayerBar(
       side: side,
       active: !board.isOver && board.turn == side,
       name: game == null ? null : getPlayerName(l10n, game.meta.players.get(side)),
       // 72점
       detail: l10n.score(formatScore(board.position.score(side))),
+      notice: online != null && side != online.mySide ? DisconnectNotice(online: online, side: side) : null,
       trailing: [
         if (board.checkedSide == side)
           PlayerBadge(
@@ -396,6 +408,83 @@ class _PlayerClock extends StatelessWidget {
       periods: l10n.clockPeriods(clock.periods),
       warning: period != null,
       running: game.state.endedAt == null && game.state.turn == side,
+    );
+  }
+}
+
+/// 상대 연결이 끊긴 동안 상대 정보 줄에 "연결이 끊겼어요"와 이번 대국에서 남은 끊김 허용 시간을 보여준다
+/// (`docs/screens.md`의 대국 화면). 서버가 끊긴 것으로 기록한 동안만 보이고, 서버 시각이 바뀔 때마다 이것만 다시 그린다.
+class DisconnectNotice extends StatelessWidget {
+  final OnlineGameManager online;
+  final Side side;
+
+  const DisconnectNotice({super.key, required this.online, required this.side});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(valueListenable: online.serverNow, builder: _buildNotice);
+  }
+
+  Widget _buildNotice(BuildContext context, int nowMs, Widget? child) {
+    final l10n = AppLocalizations.of(context);
+    final game = online.game;
+    final remaining = game == null ? null : getDisconnectRemaining(game, side, nowMs);
+    if (remaining == null) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.wifi_off, size: 18, color: GameColors.check),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            // 연결이 끊겼어요 25초
+            l10n.opponentDisconnected((remaining.inMilliseconds / 1000).ceil()),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: AppTextSizes.body,
+              fontWeight: FontWeight.w700,
+              color: GameColors.check,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 내 기기가 RTDB에서 끊긴 동안 판 위에 "다시 연결하는 중"을 보여준다. 다시 연결되면 대국은 같은 화면에서 이어진다.
+class ReconnectingNotice extends StatelessWidget {
+  const ReconnectingNotice({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(listenable: managers.connectionManager, builder: _buildNotice);
+  }
+
+  Widget _buildNotice(BuildContext context, Widget? child) {
+    final l10n = AppLocalizations.of(context);
+    if (managers.connectionManager.connected) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5)),
+          const SizedBox(width: 12),
+          Text(
+            // 다시 연결하는 중
+            l10n.reconnecting,
+            style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700, color: GameColors.text),
+          ),
+        ],
+      ),
     );
   }
 }

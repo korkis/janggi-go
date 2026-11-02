@@ -16,6 +16,7 @@ Future<void> main() async {
   await _initializeFirebase();
   repositories = AppRepositories.createDefault();
   managers = AppManagers.createDefault();
+  managers.connectionManager.observeAppLifecycle();
   runApp(const JanggigoApp());
 }
 

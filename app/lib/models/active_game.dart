@@ -233,9 +233,11 @@ class SideDisconnects {
   const SideDisconnects({required this.cho, required this.han});
 
   factory SideDisconnects.fromJson(Map<String, dynamic> json) => _$SideDisconnectsFromJson(json);
+
+  SideDisconnect get(Side side) => side == Side.cho ? cho : han;
 }
 
-/// 한 진영의 접속 끊김 기록. 6단계(접속 끊김)부터 쓴다.
+/// 한 진영의 접속 끊김 기록(`docs/server.md`의 접속 끊김).
 @JsonSerializable(createToJson: false)
 class SideDisconnect {
   /// 지금까지 끊긴 시간 합계.

@@ -15,6 +15,7 @@ Map<String, dynamic> buildGameJson({
   int? turnStartedAt,
   Map<String, dynamic>? clock,
   List<String> moves = const [],
+  Map<String, dynamic>? disconnect,
   Map<String, dynamic>? result,
   int? endedAt,
 }) {
@@ -59,10 +60,12 @@ Map<String, dynamic> buildGameJson({
       'turn': ?turn,
       'turnStartedAt': ?turnStartedAt,
       'clock': clock ?? {'cho': sideClock, 'han': sideClock},
-      'disconnect': {
-        'cho': {'usedMs': 0},
-        'han': {'usedMs': 0},
-      },
+      'disconnect':
+          disconnect ??
+          {
+            'cho': {'usedMs': 0},
+            'han': {'usedMs': 0},
+          },
       'result': ?result,
       'endedAt': ?endedAt,
     },

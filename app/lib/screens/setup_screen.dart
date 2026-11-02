@@ -50,7 +50,11 @@ class _SetupScreenState extends State<SetupScreen> {
     if (gameId == null) {
       _setup = SetupManager()..addListener(_onSetupChanged);
     } else {
-      _online = OnlineGameManager(gameId: gameId, uid: managers.authManager.uid!)..addListener(_onOnlineChanged);
+      _online = OnlineGameManager(
+        gameId: gameId,
+        uid: managers.authManager.uid!,
+        connectionManager: managers.connectionManager,
+      )..addListener(_onOnlineChanged);
     }
   }
 
@@ -156,6 +160,7 @@ class _SetupScreenState extends State<SetupScreen> {
             side: opponentSide,
             active: setupTurn == opponentSide,
             name: getPlayerName(l10n, game.meta.players.get(opponentSide)),
+            notice: DisconnectNotice(online: online, side: opponentSide),
             trailing: [
               if (online.hasConfirmedFormation(opponentSide))
                 _buildDecidedBadge(

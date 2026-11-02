@@ -133,6 +133,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'consecutivePasses': 'On points',
       'moveLimit': 'On points',
       'noLegalMoves': 'On points',
+      'disconnect': 'Disconnection',
       'other': '',
     });
     return '$_temp0';
@@ -429,9 +430,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeDevOnlineCreate => 'Create game';
 
   @override
-  String get homeDevOnlineResume => 'Go to game';
-
-  @override
   String sideChoiceName(String side) {
     String _temp0 = intl.Intl.selectLogic(side, {
       'cho': 'Cho',
@@ -509,4 +507,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorGameOver => 'The game is already over.';
+
+  @override
+  String opponentDisconnected(int seconds) {
+    return 'Disconnected ${seconds}s';
+  }
+
+  @override
+  String get reconnecting => 'Reconnecting';
+
+  @override
+  String get homeResumeGame => 'Back to game';
 }

@@ -127,6 +127,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'consecutivePasses': '점수승',
       'moveLimit': '점수승',
       'noLegalMoves': '점수승',
+      'disconnect': '접속 끊김승',
       'other': '',
     });
     return '$_temp0';
@@ -398,9 +399,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeDevOnlineCreate => '대국 만들기';
 
   @override
-  String get homeDevOnlineResume => '대국으로 가기';
-
-  @override
   String sideChoiceName(String side) {
     String _temp0 = intl.Intl.selectLogic(side, {
       'cho': '초',
@@ -475,4 +473,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get errorGameOver => '이미 끝난 대국이에요';
+
+  @override
+  String opponentDisconnected(int seconds) {
+    return '연결이 끊겼어요 $seconds초';
+  }
+
+  @override
+  String get reconnecting => '다시 연결하는 중';
+
+  @override
+  String get homeResumeGame => '대국으로 돌아가기';
 }

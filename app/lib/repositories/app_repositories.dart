@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../config.dart';
 import 'auth_repository.dart';
 import 'config_repository.dart';
+import 'connection_repository.dart';
 import 'game_repository.dart';
 import 'player_state_repository.dart';
 import 'server_time_repository.dart';
@@ -21,6 +22,7 @@ class AppRepositories {
   final PlayerStateRepository playerStateRepository;
   final GameRepository gameRepository;
   final ServerTimeRepository serverTimeRepository;
+  final ConnectionRepository connectionRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -29,6 +31,7 @@ class AppRepositories {
     required this.playerStateRepository,
     required this.gameRepository,
     required this.serverTimeRepository,
+    required this.connectionRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -42,6 +45,7 @@ class AppRepositories {
       playerStateRepository: PlayerStateRepository(firestore: firestore),
       gameRepository: GameRepository(database: database, functions: functions, getServerUrl: getGameServerUrl),
       serverTimeRepository: ServerTimeRepository(database: database),
+      connectionRepository: ConnectionRepository(database: database),
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/active_game.dart';
 import 'package:janggigo/models/app_config.dart';
+import 'package:janggigo/models/connection.dart';
 import 'package:janggigo/models/game_enums.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
 import 'package:janggigo/models/player_state.dart';
@@ -15,6 +16,7 @@ import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
 import 'package:janggigo/repositories/config_repository.dart';
+import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/game_repository.dart';
 import 'package:janggigo/repositories/player_state_repository.dart';
 import 'package:janggigo/repositories/server_time_repository.dart';
@@ -54,8 +56,7 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> signInWithEmail({required String email, required String password}) => _signIn('email', email);
 
   @override
-  Future<void> createEmailAccount({required String email, required String password}) =>
-      _signIn('emailSignUp', email);
+  Future<void> createEmailAccount({required String email, required String password}) => _signIn('emailSignUp', email);
 
   @override
   Future<void> sendPasswordResetEmail(String email) async {}
@@ -204,6 +205,9 @@ class FakeGameRepository implements GameRepository {
   @override
   Future<void> resign(String gameId) => _record('resign $gameId');
 
+  @override
+  Future<void> checkGame(String gameId) => _record('checkGame $gameId');
+
   Future<void> _record(String call) async {
     calls.add(call);
     final error = nextError;
@@ -215,6 +219,58 @@ class FakeGameRepository implements GameRepository {
 
   StreamController<ActiveGame?> _getController(String gameId) =>
       _controllers.putIfAbsent(gameId, StreamController<ActiveGame?>.broadcast);
+}
+
+/// 접속 상태 쓰기를 기록하고, 테스트가 RTDB 연결 상태와 상대의 연결을 직접 보내는 가짜 ConnectionRepository.
+/// 처음에는 RTDB에 연결되어 있다.
+class FakeConnectionRepository implements ConnectionRepository {
+  final _connectedController = StreamController<bool>.broadcast();
+  final _connectionsControllers = <String, StreamController<List<Connection>>>{};
+  var _connected = true;
+  var _createdCount = 0;
+
+  /// 쓴 것. 예: `create opp true`, `foreground opp c1`, `background opp c1`, `lastSeenAt opp c1`.
+  final writes = <String>[];
+
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  Stream<bool> watchConnected() async* {
+    yield _connected;
+    yield* _connectedController.stream;
+  }
+
+  /// 이 기기의 RTDB 연결이 바뀐 것처럼 보낸다.
+  void setConnected(bool connected) {
+    _connected = connected;
+    _connectedController.add(connected);
+  }
+
+  @override
+  Stream<List<Connection>> watchConnections(String uid) => _getController(uid).stream;
+
+  /// [uid]의 연결이 바뀐 것처럼 보낸다.
+  void emitConnections(String uid, List<Connection> connections) => _getController(uid).add(connections);
+
+  @override
+  Future<String> createConnection(String uid, {required bool foreground}) async {
+    writes.add('create $uid $foreground');
+    _createdCount++;
+    return 'c$_createdCount';
+  }
+
+  @override
+  Future<void> markForeground(String uid, String connectionId) async => writes.add('foreground $uid $connectionId');
+
+  @override
+  Future<void> markBackground(String uid, String connectionId) async => writes.add('background $uid $connectionId');
+
+  @override
+  Future<void> updateLastSeenAt(String uid, String connectionId) async => writes.add('lastSeenAt $uid $connectionId');
+
+  StreamController<List<Connection>> _getController(String uid) =>
+      _connectionsControllers.putIfAbsent(uid, StreamController<List<Connection>>.broadcast);
 }
 
 class FakeServerTimeRepository implements ServerTimeRepository {
@@ -231,12 +287,14 @@ class FakeServerTimeRepository implements ServerTimeRepository {
   FakeUserRepository users,
   FakePlayerStateRepository playerStates,
   FakeGameRepository games,
+  FakeConnectionRepository connections,
 })
 setUpFakeApp() {
   final authRepository = FakeAuthRepository();
   final userRepository = FakeUserRepository(authRepository);
   final playerStateRepository = FakePlayerStateRepository();
   final gameRepository = FakeGameRepository();
+  final connectionRepository = FakeConnectionRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: FakeConfigRepository(),
@@ -244,7 +302,14 @@ setUpFakeApp() {
     playerStateRepository: playerStateRepository,
     gameRepository: gameRepository,
     serverTimeRepository: FakeServerTimeRepository(),
+    connectionRepository: connectionRepository,
   );
   managers = AppManagers.createDefault();
-  return (auth: authRepository, users: userRepository, playerStates: playerStateRepository, games: gameRepository);
+  return (
+    auth: authRepository,
+    users: userRepository,
+    playerStates: playerStateRepository,
+    games: gameRepository,
+    connections: connectionRepository,
+  );
 }

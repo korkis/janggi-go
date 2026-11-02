@@ -56,6 +56,28 @@ void main() {
     expect(getSetupRemaining(game, 5030000), Duration.zero);
   });
 
+  test('시간패 시각은 서버와 같은 식이다', () {
+    expect(getTimeoutAt(playing(baseMs: 10000, periods: 2)), startedAt + 10000 + 3 * 30000);
+    expect(getTimeoutAt(playing(endedAt: startedAt + 5000)), isNull);
+  });
+
+  test('끊겨 있는 동안 남은 끊김 허용 시간은 대국을 만들 때의 한도에서 지금까지 끊긴 시간을 뺀다', () {
+    final game = ActiveGame.fromJson(
+      buildGameJson(
+        phase: 'playing',
+        turn: 'cho',
+        turnStartedAt: startedAt,
+        disconnect: {
+          'cho': {'usedMs': 0},
+          'han': {'usedMs': 8000, 'since': startedAt},
+        },
+      ),
+    );
+    expect(getDisconnectRemaining(game, Side.cho, startedAt + 5000), isNull);
+    expect(getDisconnectRemaining(game, Side.han, startedAt + 5000), const Duration(seconds: 17));
+    expect(getDisconnectRemaining(game, Side.han, startedAt + 60000), Duration.zero);
+  });
+
   test('시계 글자는 초를 올림한다', () {
     expect(formatClock(const Duration(milliseconds: 299001)), '5:00');
     expect(formatClock(const Duration(seconds: 65)), '1:05');
