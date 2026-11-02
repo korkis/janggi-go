@@ -14,7 +14,7 @@ RUN dart pub get
 COPY packages/janggi_core /src/packages/janggi_core
 COPY server/game /src/server/game
 RUN dart pub get --offline
-RUN dart compile exe bin/server.dart -o /app/server
+RUN mkdir -p /app && dart compile exe bin/server.dart -o /app/server
 
 # 실행에 필요한 런타임 파일과 실행 파일만 담는다.
 FROM scratch

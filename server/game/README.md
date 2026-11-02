@@ -128,7 +128,7 @@ dart run build_runner build
 
 ## 운영 배포
 
-아직 하지 않았다. 처음 한 번 GCP를 설정하고, 이후에는 이미지를 만들어 배포한다. 모든 명령은 저장소 루트에서 [gcloud CLI](https://cloud.google.com/sdk/docs/install)로 실행한다.
+2026-11-02에 처음 배포했다. 서비스 주소는 `https://game-724506591713.asia-northeast3.run.app`이며 앱 운영 빌드의 `--dart-define=GAME_SERVER_URL`에 넣는다. 처음 한 번 GCP를 설정하고, 이후에는 이미지를 만들어 배포한다. 모든 명령은 저장소 루트에서 [gcloud CLI](https://cloud.google.com/sdk/docs/install)로 실행한다.
 
 ### 처음 한 번
 
