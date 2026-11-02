@@ -182,6 +182,16 @@ dart run build_runner build
    gcloud tasks queues create game-tasks --location=asia-northeast3 --max-attempts=10 --min-backoff=1s --max-backoff=60s
    ```
 
+6. 이미지 저장소에 정리 정책을 건다. 배포할 때마다 이미지가 쌓이므로 이미지마다 최근 3개만 남긴다([cleanup-policy.json](cleanup-policy.json)). 3개보다 오래된 버전으로는 되돌릴 수 없다. `gcf-artifacts`는 Functions 배포가 만드는 저장소이며 처음 Functions를 배포한 뒤에 생긴다.
+
+   ```bash
+   gcloud artifacts repositories set-cleanup-policies janggigo --location=asia-northeast3 --policy=server/game/cleanup-policy.json --no-dry-run
+   ```
+
+   ```bash
+   gcloud artifacts repositories set-cleanup-policies gcf-artifacts --location=asia-northeast3 --policy=server/game/cleanup-policy.json --no-dry-run
+   ```
+
 ### 배포
 
 1. 이미지를 만든다.
