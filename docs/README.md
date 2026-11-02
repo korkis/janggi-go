@@ -16,6 +16,8 @@
 | 문서 | 내용 |
 |---|---|
 | [dev_rules.md](./dev_rules.md) | 개발 규칙. 코드 수정 전에 반드시 읽는다 |
+| [server.md](./server.md) | 서버 구성, 대국 서버 API, 앱과 서버의 흐름, 설정 목록, 구현 순서 |
+| [database.md](./database.md) | Firestore 컬렉션, Realtime Database 경로, 보안 규칙 방향, 보관 기간 |
 
 ## 게임
 

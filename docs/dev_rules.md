@@ -48,13 +48,14 @@
 |---|---|
 | 앱과 서버가 같이 쓰는 설정, 운영하면서 바꾸는 설정 | Firestore `configs/app` 문서 |
 | 서버만 쓰고 운영 중 바꿀 일이 없는 설정 (예: 외부 API 모델 이름) | `server/functions/src/config.ts` |
+| 대국 서버만 쓰는 설정, 알려지면 악용될 수 있는 대국·매칭 값 (예: 레이팅 K 값) | `server/game/lib/config.dart` |
 | 앱만 쓰고 운영 중 바꿀 일이 없는 설정 | `app/lib/config.dart` |
 | 비밀값 (API 키 등) | Secret Manager |
 
 - `configs/app`은 앱이 로그인 전에도 읽을 수 있게 읽기를 열고, 쓰기는 막는다. Admin 웹은 Callable로 바꾼다.
-- `configs/app`의 모델은 앱과 Functions 양쪽에 선언하고 필드를 일치시킨다.
+- `configs/app`의 모델은 앱, Functions, 대국 서버에 선언하고 필드를 일치시킨다.
 - 알려지면 악용될 수 있는 값(검사 기준값 등)은 `configs/app`에 두지 않는다.
-- Functions는 요청마다 `configs/app`을 읽지 않도록 짧은 시간 동안 메모리에 캐시한다.
+- Functions와 대국 서버는 요청마다 `configs/app`을 읽지 않도록 짧은 시간 동안 메모리에 캐시한다.
 
 ### 개발 환경
 
