@@ -26,6 +26,7 @@
 | [game/time.md](./game/time.md) | 기본 시간, 초읽기, 시간 연장 |
 | [game/handicap.md](./game/handicap.md) | 접장기(기물 떼기) |
 | [game/matching.md](./game/matching.md) | 빠른 대국, 방 만들기(방 목록, 링크, 신청) |
+| [game/rank.md](./game/rank.md) | 급수 범위, 레이팅, 급수 표시, 빠른 대국 매칭 범위 |
 
 ## 화면
 
