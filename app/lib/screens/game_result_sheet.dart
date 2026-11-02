@@ -122,6 +122,7 @@ class GameResultSheet extends StatelessWidget {
       case GameEndReason.checkmate:
       case GameEndReason.resignation:
       case GameEndReason.timeout:
+      case GameEndReason.disconnect:
         return null;
     }
   }

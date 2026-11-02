@@ -12,6 +12,35 @@ abstract final class DialogUtils {
     );
     return confirmed ?? false;
   }
+
+  /// [message]를 보여주고 확인을 누르면 닫는다.
+  static Future<void> showMessage(BuildContext context, {required String message}) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _MessageDialog(message: message),
+    );
+  }
+}
+
+class _MessageDialog extends StatelessWidget {
+  final String message;
+
+  const _MessageDialog({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          // 확인
+          child: Text(l10n.ok),
+        ),
+      ],
+    );
+  }
 }
 
 class _ConfirmDialog extends StatelessWidget {

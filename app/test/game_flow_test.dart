@@ -10,6 +10,8 @@ import 'package:janggigo/theme/app_theme.dart';
 import 'package:janggigo/widgets/board/board_geometry.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
 
+import 'fakes.dart';
+
 /// 판의 [square] 교차점을 누른다. 판은 [BoardView] 안에서 비율을 지키며 가운데 놓인다.
 Future<void> _tapSquare(WidgetTester tester, String square) async {
   final box = tester.renderObject<RenderBox>(find.byType(BoardView));
@@ -43,6 +45,7 @@ void _usePhoneView(WidgetTester tester) {
 void main() {
   testWidgets('홈에서 상차림을 거쳐 대국을 시작하고 양쪽 한수쉼으로 끝낸 뒤 홈으로 돌아간다', (tester) async {
     _usePhoneView(tester);
+    setUpFakeApp();
     await tester.pumpWidget(const JanggigoApp());
     await tester.tap(find.text('시작하기'));
     await tester.pumpAndSettle();

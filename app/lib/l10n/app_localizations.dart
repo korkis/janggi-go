@@ -343,6 +343,372 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'끝'**
   String get reviewLast;
+
+  /// 확인 창의 확인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'확인'**
+  String get ok;
+
+  /// 닫기 버튼의 화면 읽기 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'닫기'**
+  String get close;
+
+  /// 로그인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인'**
+  String get login;
+
+  /// 이메일 가입 화면의 가입 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'가입하기'**
+  String get signUp;
+
+  /// 홈 내 카드의 로그인 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 급수와 전적이 저장돼요'**
+  String get homeLoginGuide;
+
+  /// 홈 내 카드의 로그아웃 버튼. 개발 빌드에만 보인다
+  ///
+  /// In ko, this message translates to:
+  /// **'로그아웃 (개발용)'**
+  String get homeDevSignOut;
+
+  /// 홈의 로그인 버튼으로 띄운 로그인 창 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하고\n온라인 대국을 둬 보세요'**
+  String get loginSheetTitleHome;
+
+  /// 빠른 대국을 눌러 띄운 로그인 창 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 바로\n상대를 찾아 드릴게요'**
+  String get loginSheetTitleQuickMatch;
+
+  /// 로그인 창 제목 아래의 로그인이 필요한 이유
+  ///
+  /// In ko, this message translates to:
+  /// **'온라인 대국은 로그인 후 둘 수 있어요.\n급수와 전적이 저장돼요.'**
+  String get loginSheetDescription;
+
+  /// Google 로그인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'Google로 계속하기'**
+  String get loginWithGoogle;
+
+  /// Apple 로그인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'Apple로 계속하기'**
+  String get loginWithApple;
+
+  /// 이메일 로그인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일로 계속하기'**
+  String get loginWithEmail;
+
+  /// 이용약관 문서 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'이용약관'**
+  String get termsOfService;
+
+  /// 개인정보처리방침 문서 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'개인정보처리방침'**
+  String get privacyPolicy;
+
+  /// 로그인 창 맨 아래의 약관 동의 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'계속하면 {terms}과 {privacy}에\n동의하는 것으로 봅니다.'**
+  String loginTermsNotice(String terms, String privacy);
+
+  /// 이메일 로그인 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일로 로그인'**
+  String get emailLoginTitle;
+
+  /// 이메일 로그인 화면 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'가입할 때 쓴 이메일과 비밀번호를 넣어 주세요.'**
+  String get emailLoginDescription;
+
+  /// 이메일 가입 화면 제목과 이메일 로그인 화면의 가입 링크
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일로 가입하기'**
+  String get emailSignUpTitle;
+
+  /// 이메일 가입 화면 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인에 쓸 이메일과 비밀번호를 정해 주세요.'**
+  String get emailSignUpDescription;
+
+  /// 이메일 로그인 화면의 가입 링크 앞 글
+  ///
+  /// In ko, this message translates to:
+  /// **'처음이신가요?'**
+  String get emailSignUpPrompt;
+
+  /// 이메일 입력칸 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일'**
+  String get email;
+
+  /// 비밀번호 입력칸 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호'**
+  String get password;
+
+  /// 이메일 가입의 비밀번호 확인 입력칸 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호 확인'**
+  String get passwordConfirm;
+
+  /// 비밀번호 보기 버튼의 화면 읽기 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호 보기'**
+  String get showPassword;
+
+  /// 비밀번호 숨기기 버튼의 화면 읽기 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호 숨기기'**
+  String get hidePassword;
+
+  /// 비밀번호 재설정 메일 보내기 링크
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호를 잊으셨나요?'**
+  String get forgotPassword;
+
+  /// 비밀번호 재설정 메일을 보낸 뒤의 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호를 다시 정하는 메일을 보냈어요. 메일함을 확인해 주세요.'**
+  String get passwordResetSent;
+
+  /// 닉네임 정하기 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'장기판에서 쓸\n이름을 정해 주세요'**
+  String get nicknameTitle;
+
+  /// 닉네임 정하기 화면 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 상대와 관전하는 사람에게 보여요.'**
+  String get nicknameDescription;
+
+  /// 닉네임 입력칸 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임'**
+  String get nickname;
+
+  /// 닉네임 입력칸의 글자 수
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}/{max}'**
+  String nicknameLength(int count, int max);
+
+  /// 닉네임 입력칸 아래의 규칙 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'한글, 영문, 숫자로 {min}~{max}자'**
+  String nicknameRule(int min, int max);
+
+  /// 닉네임을 쓸 수 있는지 확인하는 중
+  ///
+  /// In ko, this message translates to:
+  /// **'확인하고 있어요'**
+  String get nicknameChecking;
+
+  /// 닉네임을 쓸 수 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'쓸 수 있는 닉네임이에요'**
+  String get nicknameAvailable;
+
+  /// 닉네임을 쓸 수 없고 앱이 모르는 이유일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'쓸 수 없는 닉네임이에요'**
+  String get nicknameUnavailable;
+
+  /// 닉네임 확인 요청이 실패했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'확인하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get nicknameCheckFailed;
+
+  /// 닉네임 형식이 틀렸을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'한글, 영문, 숫자로 2~10자로 정해 주세요'**
+  String get nicknameInvalidFormat;
+
+  /// 닉네임이 이미 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 다른 사람이 쓰고 있어요'**
+  String get nicknameTaken;
+
+  /// 닉네임에 금칙어가 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'쓸 수 없는 말이 들어 있어요'**
+  String get nicknameBannedWord;
+
+  /// 닉네임이 운영진 사칭일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'운영진으로 오해할 수 있는 이름은 쓸 수 없어요'**
+  String get nicknameImpersonation;
+
+  /// 닉네임 미리보기 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 화면에서는 이렇게 보여요'**
+  String get nicknamePreviewLabel;
+
+  /// 닉네임 미리보기의 급수와 전적 줄
+  ///
+  /// In ko, this message translates to:
+  /// **'{rank} · 첫 대국'**
+  String nicknamePreviewDetail(String rank);
+
+  /// 닉네임을 정하는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'시작하기'**
+  String get nicknameStart;
+
+  /// 빠른 대국으로 온 닉네임 정하기의 이어서 할 일 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 바로 상대를 찾아요'**
+  String get nicknameStartHintQuickMatch;
+
+  /// 급수(급)
+  ///
+  /// In ko, this message translates to:
+  /// **'{kyu}급'**
+  String rankKyu(int kyu);
+
+  /// 급수(단)
+  ///
+  /// In ko, this message translates to:
+  /// **'{dan}단'**
+  String rankDan(int dan);
+
+  /// 로그인 창을 닫았을 때. 보통 보여주지 않는다
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인을 그만뒀어요'**
+  String get errorSignInCanceled;
+
+  /// 로그인 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorSignIn;
+
+  /// 이메일 형식 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일 주소를 다시 확인해 주세요'**
+  String get errorInvalidEmail;
+
+  /// 이메일 로그인 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일 또는 비밀번호가 맞지 않아요'**
+  String get errorWrongEmailOrPassword;
+
+  /// 이메일 가입 시 이미 있는 이메일
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 가입한 이메일이에요. 로그인해 주세요'**
+  String get errorEmailAlreadyInUse;
+
+  /// 짧은 비밀번호
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호는 6자 이상으로 정해 주세요'**
+  String get errorWeakPassword;
+
+  /// 비밀번호를 넣지 않았을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호를 넣어 주세요'**
+  String get errorPasswordEmpty;
+
+  /// 비밀번호 확인이 다를 때
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호가 서로 달라요'**
+  String get errorPasswordMismatch;
+
+  /// 비밀번호 재설정 메일을 보낼 이메일이 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호를 다시 정할 이메일을 넣어 주세요'**
+  String get errorPasswordResetEmail;
+
+  /// 비밀번호 재설정 메일 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'메일을 보내지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorPasswordReset;
+
+  /// 요청이 너무 많을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'시도가 너무 많아요. 잠시 후 다시 해 주세요'**
+  String get errorTooManyRequests;
+
+  /// 네트워크 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'인터넷 연결을 확인해 주세요'**
+  String get errorNetwork;
+
+  /// 로그인 뒤 프로필 읽기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'내 정보를 불러오지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorProfileLoad;
+
+  /// 프로필 만들기 기본 오류
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임을 정하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorCreateProfile;
+
+  /// 로그아웃 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'로그아웃하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorSignOut;
 }
 
 class _AppLocalizationsDelegate

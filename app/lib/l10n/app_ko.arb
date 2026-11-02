@@ -227,5 +227,288 @@
   "reviewLast": "끝",
   "@reviewLast": {
     "description": "복기 마지막 국면으로 가는 버튼"
+  },
+  "ok": "확인",
+  "@ok": {
+    "description": "확인 창의 확인 버튼"
+  },
+  "close": "닫기",
+  "@close": {
+    "description": "닫기 버튼의 화면 읽기 이름"
+  },
+  "login": "로그인",
+  "@login": {
+    "description": "로그인 버튼"
+  },
+  "signUp": "가입하기",
+  "@signUp": {
+    "description": "이메일 가입 화면의 가입 버튼"
+  },
+  "homeLoginGuide": "로그인하면 급수와 전적이 저장돼요",
+  "@homeLoginGuide": {
+    "description": "홈 내 카드의 로그인 안내"
+  },
+  "homeDevSignOut": "로그아웃 (개발용)",
+  "@homeDevSignOut": {
+    "description": "홈 내 카드의 로그아웃 버튼. 개발 빌드에만 보인다"
+  },
+  "loginSheetTitleHome": "로그인하고\n온라인 대국을 둬 보세요",
+  "@loginSheetTitleHome": {
+    "description": "홈의 로그인 버튼으로 띄운 로그인 창 제목"
+  },
+  "loginSheetTitleQuickMatch": "로그인하면 바로\n상대를 찾아 드릴게요",
+  "@loginSheetTitleQuickMatch": {
+    "description": "빠른 대국을 눌러 띄운 로그인 창 제목"
+  },
+  "loginSheetDescription": "온라인 대국은 로그인 후 둘 수 있어요.\n급수와 전적이 저장돼요.",
+  "@loginSheetDescription": {
+    "description": "로그인 창 제목 아래의 로그인이 필요한 이유"
+  },
+  "loginWithGoogle": "Google로 계속하기",
+  "@loginWithGoogle": {
+    "description": "Google 로그인 버튼"
+  },
+  "loginWithApple": "Apple로 계속하기",
+  "@loginWithApple": {
+    "description": "Apple 로그인 버튼"
+  },
+  "loginWithEmail": "이메일로 계속하기",
+  "@loginWithEmail": {
+    "description": "이메일 로그인 버튼"
+  },
+  "termsOfService": "이용약관",
+  "@termsOfService": {
+    "description": "이용약관 문서 이름"
+  },
+  "privacyPolicy": "개인정보처리방침",
+  "@privacyPolicy": {
+    "description": "개인정보처리방침 문서 이름"
+  },
+  "loginTermsNotice": "계속하면 {terms}과 {privacy}에\n동의하는 것으로 봅니다.",
+  "@loginTermsNotice": {
+    "description": "로그인 창 맨 아래의 약관 동의 안내",
+    "placeholders": {
+      "terms": {
+        "type": "String"
+      },
+      "privacy": {
+        "type": "String"
+      }
+    }
+  },
+  "emailLoginTitle": "이메일로 로그인",
+  "@emailLoginTitle": {
+    "description": "이메일 로그인 화면 제목"
+  },
+  "emailLoginDescription": "가입할 때 쓴 이메일과 비밀번호를 넣어 주세요.",
+  "@emailLoginDescription": {
+    "description": "이메일 로그인 화면 설명"
+  },
+  "emailSignUpTitle": "이메일로 가입하기",
+  "@emailSignUpTitle": {
+    "description": "이메일 가입 화면 제목과 이메일 로그인 화면의 가입 링크"
+  },
+  "emailSignUpDescription": "로그인에 쓸 이메일과 비밀번호를 정해 주세요.",
+  "@emailSignUpDescription": {
+    "description": "이메일 가입 화면 설명"
+  },
+  "emailSignUpPrompt": "처음이신가요?",
+  "@emailSignUpPrompt": {
+    "description": "이메일 로그인 화면의 가입 링크 앞 글"
+  },
+  "email": "이메일",
+  "@email": {
+    "description": "이메일 입력칸 이름"
+  },
+  "password": "비밀번호",
+  "@password": {
+    "description": "비밀번호 입력칸 이름"
+  },
+  "passwordConfirm": "비밀번호 확인",
+  "@passwordConfirm": {
+    "description": "이메일 가입의 비밀번호 확인 입력칸 이름"
+  },
+  "showPassword": "비밀번호 보기",
+  "@showPassword": {
+    "description": "비밀번호 보기 버튼의 화면 읽기 이름"
+  },
+  "hidePassword": "비밀번호 숨기기",
+  "@hidePassword": {
+    "description": "비밀번호 숨기기 버튼의 화면 읽기 이름"
+  },
+  "forgotPassword": "비밀번호를 잊으셨나요?",
+  "@forgotPassword": {
+    "description": "비밀번호 재설정 메일 보내기 링크"
+  },
+  "passwordResetSent": "비밀번호를 다시 정하는 메일을 보냈어요. 메일함을 확인해 주세요.",
+  "@passwordResetSent": {
+    "description": "비밀번호 재설정 메일을 보낸 뒤의 안내"
+  },
+  "nicknameTitle": "장기판에서 쓸\n이름을 정해 주세요",
+  "@nicknameTitle": {
+    "description": "닉네임 정하기 화면 제목"
+  },
+  "nicknameDescription": "대국 상대와 관전하는 사람에게 보여요.",
+  "@nicknameDescription": {
+    "description": "닉네임 정하기 화면 설명"
+  },
+  "nickname": "닉네임",
+  "@nickname": {
+    "description": "닉네임 입력칸 이름"
+  },
+  "nicknameLength": "{count}/{max}",
+  "@nicknameLength": {
+    "description": "닉네임 입력칸의 글자 수",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameRule": "한글, 영문, 숫자로 {min}~{max}자",
+  "@nicknameRule": {
+    "description": "닉네임 입력칸 아래의 규칙 안내",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameChecking": "확인하고 있어요",
+  "@nicknameChecking": {
+    "description": "닉네임을 쓸 수 있는지 확인하는 중"
+  },
+  "nicknameAvailable": "쓸 수 있는 닉네임이에요",
+  "@nicknameAvailable": {
+    "description": "닉네임을 쓸 수 있을 때"
+  },
+  "nicknameUnavailable": "쓸 수 없는 닉네임이에요",
+  "@nicknameUnavailable": {
+    "description": "닉네임을 쓸 수 없고 앱이 모르는 이유일 때"
+  },
+  "nicknameCheckFailed": "확인하지 못했어요. 잠시 후 다시 해 주세요",
+  "@nicknameCheckFailed": {
+    "description": "닉네임 확인 요청이 실패했을 때"
+  },
+  "nicknameInvalidFormat": "한글, 영문, 숫자로 2~10자로 정해 주세요",
+  "@nicknameInvalidFormat": {
+    "description": "닉네임 형식이 틀렸을 때"
+  },
+  "nicknameTaken": "이미 다른 사람이 쓰고 있어요",
+  "@nicknameTaken": {
+    "description": "닉네임이 이미 있을 때"
+  },
+  "nicknameBannedWord": "쓸 수 없는 말이 들어 있어요",
+  "@nicknameBannedWord": {
+    "description": "닉네임에 금칙어가 있을 때"
+  },
+  "nicknameImpersonation": "운영진으로 오해할 수 있는 이름은 쓸 수 없어요",
+  "@nicknameImpersonation": {
+    "description": "닉네임이 운영진 사칭일 때"
+  },
+  "nicknamePreviewLabel": "대국 화면에서는 이렇게 보여요",
+  "@nicknamePreviewLabel": {
+    "description": "닉네임 미리보기 제목"
+  },
+  "nicknamePreviewDetail": "{rank} · 첫 대국",
+  "@nicknamePreviewDetail": {
+    "description": "닉네임 미리보기의 급수와 전적 줄",
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      }
+    }
+  },
+  "nicknameStart": "시작하기",
+  "@nicknameStart": {
+    "description": "닉네임을 정하는 버튼"
+  },
+  "nicknameStartHintQuickMatch": "정하고 나면 바로 상대를 찾아요",
+  "@nicknameStartHintQuickMatch": {
+    "description": "빠른 대국으로 온 닉네임 정하기의 이어서 할 일 안내"
+  },
+  "rankKyu": "{kyu}급",
+  "@rankKyu": {
+    "description": "급수(급)",
+    "placeholders": {
+      "kyu": {
+        "type": "int"
+      }
+    }
+  },
+  "rankDan": "{dan}단",
+  "@rankDan": {
+    "description": "급수(단)",
+    "placeholders": {
+      "dan": {
+        "type": "int"
+      }
+    }
+  },
+  "errorSignInCanceled": "로그인을 그만뒀어요",
+  "@errorSignInCanceled": {
+    "description": "로그인 창을 닫았을 때. 보통 보여주지 않는다"
+  },
+  "errorSignIn": "로그인하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorSignIn": {
+    "description": "로그인 기본 오류"
+  },
+  "errorInvalidEmail": "이메일 주소를 다시 확인해 주세요",
+  "@errorInvalidEmail": {
+    "description": "이메일 형식 오류"
+  },
+  "errorWrongEmailOrPassword": "이메일 또는 비밀번호가 맞지 않아요",
+  "@errorWrongEmailOrPassword": {
+    "description": "이메일 로그인 실패"
+  },
+  "errorEmailAlreadyInUse": "이미 가입한 이메일이에요. 로그인해 주세요",
+  "@errorEmailAlreadyInUse": {
+    "description": "이메일 가입 시 이미 있는 이메일"
+  },
+  "errorWeakPassword": "비밀번호는 6자 이상으로 정해 주세요",
+  "@errorWeakPassword": {
+    "description": "짧은 비밀번호"
+  },
+  "errorPasswordEmpty": "비밀번호를 넣어 주세요",
+  "@errorPasswordEmpty": {
+    "description": "비밀번호를 넣지 않았을 때"
+  },
+  "errorPasswordMismatch": "비밀번호가 서로 달라요",
+  "@errorPasswordMismatch": {
+    "description": "비밀번호 확인이 다를 때"
+  },
+  "errorPasswordResetEmail": "비밀번호를 다시 정할 이메일을 넣어 주세요",
+  "@errorPasswordResetEmail": {
+    "description": "비밀번호 재설정 메일을 보낼 이메일이 없을 때"
+  },
+  "errorPasswordReset": "메일을 보내지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorPasswordReset": {
+    "description": "비밀번호 재설정 메일 기본 오류"
+  },
+  "errorTooManyRequests": "시도가 너무 많아요. 잠시 후 다시 해 주세요",
+  "@errorTooManyRequests": {
+    "description": "요청이 너무 많을 때"
+  },
+  "errorNetwork": "인터넷 연결을 확인해 주세요",
+  "@errorNetwork": {
+    "description": "네트워크 오류"
+  },
+  "errorProfileLoad": "내 정보를 불러오지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorProfileLoad": {
+    "description": "로그인 뒤 프로필 읽기 실패"
+  },
+  "errorCreateProfile": "닉네임을 정하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorCreateProfile": {
+    "description": "프로필 만들기 기본 오류"
+  },
+  "errorSignOut": "로그아웃하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorSignOut": {
+    "description": "로그아웃 실패"
   }
 }

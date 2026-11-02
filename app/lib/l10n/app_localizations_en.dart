@@ -203,4 +203,215 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewLast => 'Last';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get login => 'Sign in';
+
+  @override
+  String get signUp => 'Sign up';
+
+  @override
+  String get homeLoginGuide => 'Sign in to save your rank and record';
+
+  @override
+  String get homeDevSignOut => 'Sign out (dev)';
+
+  @override
+  String get loginSheetTitleHome => 'Sign in and\nplay online';
+
+  @override
+  String get loginSheetTitleQuickMatch =>
+      'Sign in and we\'ll\nfind you an opponent';
+
+  @override
+  String get loginSheetDescription =>
+      'Sign in to play online.\nYour rank and record will be saved.';
+
+  @override
+  String get loginWithGoogle => 'Continue with Google';
+
+  @override
+  String get loginWithApple => 'Continue with Apple';
+
+  @override
+  String get loginWithEmail => 'Continue with email';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String loginTermsNotice(String terms, String privacy) {
+    return 'By continuing, you agree to the\n$terms and $privacy.';
+  }
+
+  @override
+  String get emailLoginTitle => 'Sign in with email';
+
+  @override
+  String get emailLoginDescription =>
+      'Enter the email and password you signed up with.';
+
+  @override
+  String get emailSignUpTitle => 'Sign up with email';
+
+  @override
+  String get emailSignUpDescription =>
+      'Choose the email and password you\'ll sign in with.';
+
+  @override
+  String get emailSignUpPrompt => 'New here?';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get passwordConfirm => 'Confirm password';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
+
+  @override
+  String get forgotPassword => 'Forgot your password?';
+
+  @override
+  String get passwordResetSent =>
+      'We sent you an email to reset your password. Please check your inbox.';
+
+  @override
+  String get nicknameTitle => 'Choose the name\nyou\'ll play under';
+
+  @override
+  String get nicknameDescription =>
+      'Your opponents and spectators will see it.';
+
+  @override
+  String get nickname => 'Nickname';
+
+  @override
+  String nicknameLength(int count, int max) {
+    return '$count/$max';
+  }
+
+  @override
+  String nicknameRule(int min, int max) {
+    return '$min to $max Korean letters, English letters, or digits';
+  }
+
+  @override
+  String get nicknameChecking => 'Checking…';
+
+  @override
+  String get nicknameAvailable => 'This nickname is available';
+
+  @override
+  String get nicknameUnavailable => 'This nickname can\'t be used';
+
+  @override
+  String get nicknameCheckFailed => 'Couldn\'t check. Please try again shortly';
+
+  @override
+  String get nicknameInvalidFormat =>
+      'Use 2 to 10 Korean letters, English letters, or digits';
+
+  @override
+  String get nicknameTaken => 'Someone is already using this nickname';
+
+  @override
+  String get nicknameBannedWord =>
+      'This nickname contains words that aren\'t allowed';
+
+  @override
+  String get nicknameImpersonation =>
+      'Names that look like staff can\'t be used';
+
+  @override
+  String get nicknamePreviewLabel => 'This is how you\'ll appear in games';
+
+  @override
+  String nicknamePreviewDetail(String rank) {
+    return '$rank · First game';
+  }
+
+  @override
+  String get nicknameStart => 'Start';
+
+  @override
+  String get nicknameStartHintQuickMatch =>
+      'We\'ll find you an opponent right after';
+
+  @override
+  String rankKyu(int kyu) {
+    return '$kyu kyu';
+  }
+
+  @override
+  String rankDan(int dan) {
+    return '$dan dan';
+  }
+
+  @override
+  String get errorSignInCanceled => 'Sign-in was canceled';
+
+  @override
+  String get errorSignIn => 'Couldn\'t sign in. Please try again shortly';
+
+  @override
+  String get errorInvalidEmail => 'Please check your email address';
+
+  @override
+  String get errorWrongEmailOrPassword => 'The email or password is incorrect';
+
+  @override
+  String get errorEmailAlreadyInUse =>
+      'This email is already registered. Please sign in';
+
+  @override
+  String get errorWeakPassword => 'Use at least 6 characters for your password';
+
+  @override
+  String get errorPasswordEmpty => 'Please enter your password';
+
+  @override
+  String get errorPasswordMismatch => 'The passwords don\'t match';
+
+  @override
+  String get errorPasswordResetEmail =>
+      'Enter the email to reset your password';
+
+  @override
+  String get errorPasswordReset =>
+      'Couldn\'t send the email. Please try again shortly';
+
+  @override
+  String get errorTooManyRequests =>
+      'Too many attempts. Please try again shortly';
+
+  @override
+  String get errorNetwork => 'Please check your internet connection';
+
+  @override
+  String get errorProfileLoad =>
+      'Couldn\'t load your profile. Please try again shortly';
+
+  @override
+  String get errorCreateProfile =>
+      'Couldn\'t set your nickname. Please try again shortly';
+
+  @override
+  String get errorSignOut => 'Couldn\'t sign out. Please try again shortly';
 }

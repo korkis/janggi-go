@@ -7,6 +7,12 @@ abstract final class LightColors {
   static const text = Color(0xFF15171A);
   static const subText = Color(0xFF5A6069);
   static const accent = Color(0xFF1E6A4E);
+
+  /// 입력칸과 흰 버튼의 테두리.
+  static const outline = Color(0xFFD5D9DF);
+
+  /// 바탕보다 조금 진한 회색 면. 이메일 로그인 버튼 등.
+  static const mutedSurface = Color(0xFFF0F2F4);
 }
 
 /// 대국 화면(어두운 화면)의 색. 기준은 `docs/ui.md`의 디자인 방향이고, 표에 없는 색은 시안을 따른다.
