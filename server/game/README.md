@@ -2,7 +2,9 @@
 
 Cloud Run에서 도는 Dart 대국 서버다. 설계는 [docs/server.md](../../docs/server.md), 데이터는 [docs/database.md](../../docs/database.md), 코드 규칙은 [docs/dev_rules.md](../../docs/dev_rules.md)의 "Dart 대국 서버 규칙"을 따른다.
 
-지금은 뼈대만 있다(구현 순서 4번). 실제 대국 API는 5번부터 붙인다.
+구현 순서 5번(한 판 두기)까지 있다. 대국 API는 `setFormation`, `playMove`, `resign`, 예약 작업은 `/tasks/evaluateGame`(상차림 마감, 시간패), `/tasks/finalizeGame`(기보 저장, 대국자 풀기), `/tasks/cleanupGame`(RTDB 정리)이다. 판정은 `lib/services/game_rules.dart`(순수 함수), 쓰기와 예약은 `lib/services/game_service.dart`에 있다.
+
+매칭(빠른 대국, 방, 신청)이 생기기 전에는 에뮬레이터 전용 개발용 API `devCreateGame`(`opponentNickname`, `side`)으로 두 계정의 대국을 만든다. 앱 개발 빌드의 홈에 있는 "개발용 온라인 대국" 카드가 이것을 부른다.
 
 ## 구조
 
@@ -19,6 +21,7 @@ Cloud Run에서 도는 Dart 대국 서버다. 설계는 [docs/server.md](../../d
 | `lib/models/` | DB 문서 모델(`json_serializable`) |
 | `lib/tasks/` | `TaskScheduler`와 Cloud Tasks·에뮬레이터 구현 |
 | `lib/endpoints/` | API와 예약 작업. 파일마다 `validateParams()`를 둔다 |
+| `lib/services/` | 대국 판정(`game_rules.dart`, DB에 닿지 않는 순수 함수)과 대국 흐름(`game_service.dart`) |
 
 ### API 추가하기
 
@@ -91,7 +94,13 @@ Cloud Run(`K_SERVICE`가 있는 곳)에서 `GAME_ENV=production` 없이 켜지�
 
    3초 뒤 서버 로그에 `devPing task 실행`이 찍힌다.
 
-`devPing`과 `/tasks/devPing`은 에뮬레이터에서만 열린다. `GET /health`는 어디서나 `ok`를 돌려준다.
+`devPing`, `devCreateGame`, `/tasks/devPing`은 에뮬레이터에서만 열린다. `devCreateGame`은 `configs/app`을 읽으므로 에뮬레이터에 없으면 `server/functions`에서 먼저 만든다.
+
+   ```bash
+   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-janggi-go npm run init-app-config
+   ```
+
+ `GET /health`는 어디서나 `ok`를 돌려준다.
 
 ## 테스트
 

@@ -9,8 +9,14 @@ import 'auth/id_token_verifier.dart';
 import 'auth/public_keys.dart';
 import 'auth/task_request_verifier.dart';
 import 'clock.dart';
+import 'config.dart';
+import 'endpoints/dev_create_game.dart';
 import 'endpoints/dev_ping.dart';
 import 'endpoints/dev_ping_task.dart';
+import 'endpoints/game_tasks.dart';
+import 'endpoints/play_move.dart';
+import 'endpoints/resign.dart';
+import 'endpoints/set_formation.dart';
 import 'firebase/access_token.dart';
 import 'firebase/firestore_client.dart';
 import 'firebase/rtdb_client.dart';
@@ -19,8 +25,10 @@ import 'http/callable_handler.dart';
 import 'http/middleware.dart';
 import 'http/task_handler.dart';
 import 'logging.dart';
+import 'models/active_game.dart';
 import 'repositories/game_repositories.dart';
 import 'server_environment.dart';
+import 'services/game_service.dart';
 import 'tasks/cloud_tasks_scheduler.dart';
 import 'tasks/local_task_scheduler.dart';
 import 'tasks/task_scheduler.dart';
@@ -36,6 +44,7 @@ class GameServer {
   final FirestoreClient firestore;
   final RtdbClient rtdb;
   final GameRepositories repositories;
+  final GameService gameService;
   final TaskScheduler taskScheduler;
   final FirebaseIdTokenVerifier idTokenVerifier;
   final TaskRequestVerifier taskVerifier;
@@ -52,6 +61,7 @@ class GameServer {
     required this.firestore,
     required this.rtdb,
     required this.repositories,
+    required this.gameService,
     required this.taskScheduler,
     required this.idTokenVerifier,
     required this.taskVerifier,
@@ -59,15 +69,18 @@ class GameServer {
     required this.tasks,
   });
 
-  /// [environment]에 맞게 조립한다. 에뮬레이터에서는 개발용 API(`devPing`)를 함께 연다.
+  /// [environment]에 맞게 조립한다. 에뮬레이터에서는 개발용 API(`devPing`, `devCreateGame`)를 함께 연다.
   ///
   /// [onDevPingTask]는 테스트가 `devPing` 예약 작업이 돌았는지 확인할 때 쓴다.
+  /// [devTimeControl]과 [devMatchIntro]는 `devCreateGame`이 만드는 대국의 시간이다. 통합 테스트가 짧게 줄일 때 쓴다.
   factory GameServer.create({
     required ServerEnvironment environment,
     required GameLogger logger,
     http.Client? httpClient,
     Clock clock = utcNow,
     void Function(DevPingTaskParams params)? onDevPingTask,
+    TimeControl? devTimeControl,
+    Duration devMatchIntro = const Duration(seconds: matchIntroSeconds),
   }) {
     final baseClient = httpClient ?? http.Client();
     final production = environment.mode == ServerMode.production;
@@ -81,7 +94,7 @@ class GameServer {
       projectId: environment.projectId,
     );
     final rtdb = RtdbClient(httpClient: authorizedClient, baseUri: environment.rtdbBaseUri);
-    final repositories = GameRepositories.createDefault(firestore: firestore, clock: clock);
+    final repositories = GameRepositories.createDefault(firestore: firestore, rtdb: rtdb, clock: clock);
 
     final TaskScheduler taskScheduler;
     final TaskRequestVerifier taskVerifier;
@@ -124,6 +137,15 @@ class GameServer {
       taskVerifier = localVerifier;
     }
 
+    final gameService = GameService(
+      firestore: firestore,
+      activeGames: repositories.activeGames,
+      playerStates: repositories.playerStates,
+      archivedGames: repositories.archivedGames,
+      taskScheduler: taskScheduler,
+      logger: logger,
+    );
+
     return GameServer(
       environment: environment,
       logger: logger,
@@ -132,11 +154,33 @@ class GameServer {
       firestore: firestore,
       rtdb: rtdb,
       repositories: repositories,
+      gameService: gameService,
       taskScheduler: taskScheduler,
       idTokenVerifier: idTokenVerifier,
       taskVerifier: taskVerifier,
-      callables: [if (!production) DevPingEndpoint(taskScheduler: taskScheduler, logger: logger)],
-      tasks: [if (!production) DevPingTaskEndpoint(logger: logger, onRun: onDevPingTask)],
+      callables: [
+        SetFormationEndpoint(gameService: gameService, logger: logger),
+        PlayMoveEndpoint(gameService: gameService, logger: logger),
+        ResignEndpoint(gameService: gameService, logger: logger),
+        if (!production) ...[
+          DevPingEndpoint(taskScheduler: taskScheduler, logger: logger),
+          DevCreateGameEndpoint(
+            gameService: gameService,
+            nicknames: repositories.nicknames,
+            users: repositories.users,
+            configs: repositories.configs,
+            logger: logger,
+            timeControl: devTimeControl ?? defaultTimeControl,
+            matchIntro: devMatchIntro,
+          ),
+        ],
+      ],
+      tasks: [
+        EvaluateGameTaskEndpoint(gameService: gameService, logger: logger),
+        FinalizeGameTaskEndpoint(gameService: gameService),
+        CleanupGameTaskEndpoint(gameService: gameService),
+        if (!production) DevPingTaskEndpoint(logger: logger, onRun: onDevPingTask),
+      ],
     );
   }
 

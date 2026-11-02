@@ -32,5 +32,10 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['challengesEnabled'])
         && request.resource.data.challengesEnabled is bool;
     }
+
+    // 사용자가 지금 무엇을 하고 있는지(대기열, 방, 대국, 신청). 본인만 읽고 대국 서버만 쓴다.
+    match /player_states/{uid} {
+      allow read: if isOwner(uid);
+    }
   }
 }

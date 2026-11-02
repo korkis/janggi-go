@@ -122,10 +122,53 @@ describe("서버 전용 컬렉션", () => {
   });
 });
 
+describe("player_states", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `player_states/${ALICE}`), {gameId: "g1"});
+    });
+  });
+
+  test("본인은 읽는다", async () => {
+    await assertSucceeds(getDoc(doc(userDb(ALICE), `player_states/${ALICE}`)));
+  });
+
+  test("다른 사람과 비로그인은 읽지 못한다", async () => {
+    await assertFails(getDoc(doc(userDb(BOB), `player_states/${ALICE}`)));
+    await assertFails(getDoc(doc(guestDb(), `player_states/${ALICE}`)));
+  });
+
+  test("본인도 만들거나 고치거나 지우지 못한다", async () => {
+    await assertFails(setDoc(doc(userDb(BOB), `player_states/${BOB}`), {gameId: "g2"}));
+    await assertFails(updateDoc(doc(userDb(ALICE), `player_states/${ALICE}`), {gameId: null}));
+    await assertFails(deleteDoc(doc(userDb(ALICE), `player_states/${ALICE}`)));
+  });
+});
+
 describe("Realtime Database", () => {
-  test("규칙을 연 경로가 아직 없어 모두 막는다", async () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await set(ref(context.database(), "games_active/g1"), {state: {phase: "playing"}});
+    });
+  });
+
+  test("games_active의 대국은 로그인하지 않아도 ID로 읽는다", async () => {
+    await assertSucceeds(get(ref(testEnv.unauthenticatedContext().database(), "games_active/g1")));
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(ALICE).database(), "games_active/g1/state")));
+  });
+
+  test("games_active 전체 목록은 읽지 못한다", async () => {
+    await assertFails(get(ref(testEnv.authenticatedContext(ALICE).database(), "games_active")));
+  });
+
+  test("games_active는 아무도 쓰지 못한다", async () => {
     const db = testEnv.authenticatedContext(ALICE).database();
-    await assertFails(get(ref(db, "games_active")));
+    await assertFails(set(ref(db, "games_active/g1/state/phase"), "finished"));
+    await assertFails(set(ref(db, "games_active/g2"), {state: {phase: "setup"}}));
+  });
+
+  test("규칙을 연 경로가 아니면 막는다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
     await assertFails(set(ref(db, `connections/${ALICE}/c1`), {online: true}));
   });
 });
