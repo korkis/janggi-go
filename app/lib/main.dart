@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
@@ -29,4 +30,5 @@ Future<void> _initializeFirebase() async {
   await FirebaseAuth.instance.useAuthEmulator(host, EmulatorPorts.auth);
   FirebaseFirestore.instance.useFirestoreEmulator(host, EmulatorPorts.firestore);
   FirebaseFunctions.instanceFor(region: functionsRegion).useFunctionsEmulator(host, EmulatorPorts.functions);
+  FirebaseDatabase.instance.useDatabaseEmulator(host, EmulatorPorts.database);
 }

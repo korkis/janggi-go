@@ -3,7 +3,8 @@ import 'package:janggi_core/janggi_core.dart';
 
 /// 한 대국의 판 상태. 대국 화면이 만들고 `dispose()`한다.
 ///
-/// 지금은 서버 없이 한 기기에서 양쪽을 두는 개발용 대국만 다룬다. 규칙 판정은 모두 `janggi_core`가 한다.
+/// 한 기기에서 양쪽을 두는 개발용 대국과, 한 진영([player])만 두는 온라인 대국에 쓴다. 온라인 대국은 수를 먼저 판에 보여주고
+/// 서버 상태가 오면 [syncGame]으로 맞춘다. 규칙 판정은 모두 `janggi_core`가 한다.
 class BoardManager extends ChangeNotifier {
   Game _game;
 
@@ -12,6 +13,9 @@ class BoardManager extends ChangeNotifier {
   Square? _selected;
   Set<Square> _targets = const {};
   bool _flipped;
+
+  /// 이 기기가 두는 진영. null이면 한 기기에서 양쪽을 둔다.
+  final Side? player;
   final DateTime _startedAt;
   DateTime? _endedAt;
 
@@ -19,7 +23,7 @@ class BoardManager extends ChangeNotifier {
     : this.fromGame(Game.start(initialPosition), flipped: flipped, startedAt: startedAt);
 
   /// 이미 수를 둔 [game]에서 이어서 둔다. 복기의 놓아보기처럼 지나온 수(반복수 판정)가 필요할 때 쓴다.
-  BoardManager.fromGame(this._game, {this._flipped = false, DateTime? startedAt})
+  BoardManager.fromGame(this._game, {this._flipped = false, this.player, DateTime? startedAt})
     : _legalMoves = const [],
       _startedAt = startedAt ?? DateTime.now() {
     _legalMoves = _game.legalMoves();
@@ -55,7 +59,10 @@ class BoardManager extends ChangeNotifier {
   /// 장군을 받은 진영. 장군을 받을 수 있는 쪽은 차례인 쪽뿐이다.
   Side? get checkedSide => !isOver && position.isInCheck(turn) ? turn : null;
 
-  bool get canPass => _legalMoves.contains(Move.pass);
+  bool get canPass => isPlayerTurn && _legalMoves.contains(Move.pass);
+
+  /// 이 기기가 둘 차례인지 여부. 한 기기에서 양쪽을 두면 끝나기 전까지 늘 true다.
+  bool get isPlayerTurn => !isOver && (player == null || player == turn);
 
   /// 차례가 아니어서 기물을 살짝 어둡게 보여줄 진영. 대국이 끝나면 null이다.
   Side? get dimmedSide => isOver ? null : turn.opponent;
@@ -76,7 +83,7 @@ class BoardManager extends ChangeNotifier {
 
   /// 판의 교차점을 눌렀을 때. 차례인 쪽 기물이면 고르고, 고른 기물이 갈 수 있는 자리면 수를 둔다.
   void tapSquare(Square square) {
-    if (isOver) {
+    if (!isPlayerTurn) {
       return;
     }
     final selected = _selected;
@@ -108,6 +115,22 @@ class BoardManager extends ChangeNotifier {
     }
     _game = _game.resign(turn);
     _onGameChanged();
+  }
+
+  /// 서버가 알려 준 [game]으로 판을 바꾼다. 국면이 그대로면 고른 기물을 남긴다.
+  void syncGame(Game game) {
+    final samePosition = game.position == _game.position && game.moves.length == _game.moves.length;
+    _game = game;
+    _legalMoves = _game.legalMoves();
+    if (!samePosition || !isPlayerTurn) {
+      _select(null);
+    } else {
+      _select(_selected);
+    }
+    if (_game.isOver) {
+      _endedAt ??= DateTime.now();
+    }
+    notifyListeners();
   }
 
   void toggleFlipped() {

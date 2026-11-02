@@ -11,13 +11,22 @@ enum GameResultAction { rematch, review, home }
 
 /// 대국 결과 창. 끝난 판을 뒤에 둔 채 아래에서 올라온다.
 ///
-/// 개발용 대국이라 급수 변동과 한 판 더는 두지 않는다.
+/// 급수 변동과 한 판 더는 빠른 대국(7단계)에서 붙인다.
 class GameResultSheet extends StatelessWidget {
   final GameResult result;
   final int moveCount;
   final Duration elapsed;
 
-  const GameResultSheet({super.key, required this.result, required this.moveCount, required this.elapsed});
+  /// 다시 두기 버튼을 보여준다. 온라인 대국의 다시 두기는 7단계에서 붙이므로 지금은 개발용 대국에서만 true다.
+  final bool rematchAvailable;
+
+  const GameResultSheet({
+    super.key,
+    required this.result,
+    required this.moveCount,
+    required this.elapsed,
+    this.rematchAvailable = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -76,12 +85,14 @@ class GameResultSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(GameResultAction.rematch),
-              // 다시 두기
-              child: Text(l10n.resultRematch),
-            ),
-            const SizedBox(height: 10),
+            if (rematchAvailable) ...[
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(GameResultAction.rematch),
+                // 다시 두기
+                child: Text(l10n.resultRematch),
+              ),
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
                 Expanded(

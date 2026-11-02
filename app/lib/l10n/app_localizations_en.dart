@@ -414,4 +414,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorSignOut => 'Couldn\'t sign out. Please try again shortly';
+
+  @override
+  String get homeDevOnlineTitle => 'Dev online game';
+
+  @override
+  String get homeDevOnlineDescription =>
+      'Enter an opponent nickname to start a game between two accounts';
+
+  @override
+  String get homeDevOnlineOpponent => 'Opponent nickname';
+
+  @override
+  String get homeDevOnlineCreate => 'Create game';
+
+  @override
+  String get homeDevOnlineResume => 'Go to game';
+
+  @override
+  String sideChoiceName(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'Cho',
+      'han': 'Han',
+      'random': 'Random',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String gameOnlineTitle(int count) {
+    return 'Online game · $count moves';
+  }
+
+  @override
+  String playerNameWithRank(String nickname, String rank) {
+    return '$nickname · $rank';
+  }
+
+  @override
+  String clockPeriods(int count) {
+    return '$count × byoyomi';
+  }
+
+  @override
+  String setupSeconds(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String get setupOpponentChoosing => 'Opponent is choosing';
+
+  @override
+  String get resignConfirmOnline => 'Resign? You will lose this game.';
+
+  @override
+  String get leaveOnlineGameConfirm =>
+      'The game continues if you leave. Leave anyway?';
+
+  @override
+  String get errorCreateGame =>
+      'Could not create the game. Please try again later.';
+
+  @override
+  String get errorGameLoad => 'Could not load the game.';
+
+  @override
+  String get errorPlayMove =>
+      'Could not send the move. The board was synced with the server.';
+
+  @override
+  String get errorSetFormation => 'Could not send the setup. Please try again.';
+
+  @override
+  String get errorResign => 'Could not resign. Please try again.';
+
+  @override
+  String get errorGameNotFound => 'Could not find the opponent or the game.';
+
+  @override
+  String get errorGameBusy => 'Someone is already in a game or waiting.';
+
+  @override
+  String get errorGameNotPlayer => 'You are not a player in this game.';
+
+  @override
+  String get errorGameNotYourTurn => 'It is not your turn.';
+
+  @override
+  String get errorGameIllegalMove => 'That move is not allowed.';
+
+  @override
+  String get errorGameMoveConflict => 'The board was synced with the server.';
+
+  @override
+  String get errorGameOver => 'The game is already over.';
 }

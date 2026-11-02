@@ -23,11 +23,26 @@ String getFirebaseEmulatorHost() {
   return 'localhost';
 }
 
-/// 에뮬레이터 포트. `server/firebase.json`의 emulators와 같다.
+/// 에뮬레이터 포트. `server/firebase.json`의 emulators와 같다. [gameServer]는 개발 PC에서 띄운 대국 서버(`server/game`)다.
 abstract final class EmulatorPorts {
   static const auth = 9099;
   static const firestore = 8080;
   static const functions = 5001;
+  static const database = 9000;
+  static const gameServer = 8090;
+}
+
+/// 대국 서버(`server/game`) 주소. 개발 빌드는 개발 PC의 대국 서버, 운영은 `--dart-define=GAME_SERVER_URL=<Cloud Run 주소>`다.
+/// API는 이 주소 뒤에 `/<API 이름>`을 붙여 부른다(`docs/server.md`의 호출 방식).
+Uri getGameServerUrl() {
+  if (useFirebaseEmulator) {
+    return Uri.parse('http://${getFirebaseEmulatorHost()}:${EmulatorPorts.gameServer}');
+  }
+  const url = String.fromEnvironment('GAME_SERVER_URL');
+  if (url.isEmpty) {
+    throw StateError('GAME_SERVER_URL이 없습니다');
+  }
+  return Uri.parse(url);
 }
 
 /// 에뮬레이터용 Firebase 설정. 프로젝트는 `server/functions`의 `npm run emulators`가 띄우는 demo 프로젝트이고,
@@ -36,6 +51,8 @@ FirebaseOptions getEmulatorFirebaseOptions() {
   const projectId = 'demo-janggi-go';
   const apiKey = 'demo-api-key';
   const messagingSenderId = '000000000000';
+  // RTDB 에뮬레이터는 이 주소의 첫 이름을 인스턴스(`ns`)로 쓴다. 대국 서버가 쓰는 `server/firebase.json`의 인스턴스와 같아야 한다.
+  const databaseURL = 'https://janggi-go-default-rtdb.firebaseio.com';
   if (kIsWeb) {
     return const FirebaseOptions(
       apiKey: apiKey,
@@ -43,6 +60,7 @@ FirebaseOptions getEmulatorFirebaseOptions() {
       messagingSenderId: messagingSenderId,
       projectId: projectId,
       authDomain: '$projectId.firebaseapp.com',
+      databaseURL: databaseURL,
     );
   }
   if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
@@ -51,6 +69,7 @@ FirebaseOptions getEmulatorFirebaseOptions() {
       appId: '1:000000000000:ios:0000000000000000000000',
       messagingSenderId: messagingSenderId,
       projectId: projectId,
+      databaseURL: databaseURL,
       iosBundleId: 'com.gazuacup.janggigo',
     );
   }
@@ -59,6 +78,7 @@ FirebaseOptions getEmulatorFirebaseOptions() {
     appId: '1:000000000000:android:0000000000000000000000',
     messagingSenderId: messagingSenderId,
     projectId: projectId,
+    databaseURL: databaseURL,
   );
 }
 
@@ -83,3 +103,6 @@ abstract final class NicknameRules {
 
 /// 닉네임을 입력하다 멈춘 뒤 서버에 쓸 수 있는지 물어볼 때까지 기다리는 시간.
 const nicknameCheckDelay = Duration(milliseconds: 400);
+
+/// 대국 화면의 시계와 상차림 남은 시간을 다시 그리는 간격.
+const gameClockTickInterval = Duration(milliseconds: 200);

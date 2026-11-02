@@ -384,4 +384,95 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get errorSignOut => '로그아웃하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get homeDevOnlineTitle => '개발용 온라인 대국';
+
+  @override
+  String get homeDevOnlineDescription => '상대 닉네임을 넣으면 두 계정의 대국을 바로 만들어요';
+
+  @override
+  String get homeDevOnlineOpponent => '상대 닉네임';
+
+  @override
+  String get homeDevOnlineCreate => '대국 만들기';
+
+  @override
+  String get homeDevOnlineResume => '대국으로 가기';
+
+  @override
+  String sideChoiceName(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '초',
+      'han': '한',
+      'random': '무작위',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String gameOnlineTitle(int count) {
+    return '온라인 대국 · $count수';
+  }
+
+  @override
+  String playerNameWithRank(String nickname, String rank) {
+    return '$nickname · $rank';
+  }
+
+  @override
+  String clockPeriods(int count) {
+    return '초읽기 $count회';
+  }
+
+  @override
+  String setupSeconds(int seconds) {
+    return '$seconds초';
+  }
+
+  @override
+  String get setupOpponentChoosing => '상대가 고르고 있어요';
+
+  @override
+  String get resignConfirmOnline => '기권할까요? 이 대국은 지게 돼요';
+
+  @override
+  String get leaveOnlineGameConfirm => '화면을 나가도 대국은 계속돼요. 나갈까요?';
+
+  @override
+  String get errorCreateGame => '대국을 만들지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorGameLoad => '대국을 불러오지 못했어요';
+
+  @override
+  String get errorPlayMove => '수를 보내지 못했어요. 판을 서버와 다시 맞췄어요';
+
+  @override
+  String get errorSetFormation => '상차림을 보내지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorResign => '기권하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorGameNotFound => '상대나 대국을 찾지 못했어요';
+
+  @override
+  String get errorGameBusy => '이미 대국이나 대기 중인 사람이 있어요';
+
+  @override
+  String get errorGameNotPlayer => '이 대국의 대국자가 아니에요';
+
+  @override
+  String get errorGameNotYourTurn => '지금은 내 차례가 아니에요';
+
+  @override
+  String get errorGameIllegalMove => '둘 수 없는 수예요';
+
+  @override
+  String get errorGameMoveConflict => '판을 서버와 다시 맞췄어요';
+
+  @override
+  String get errorGameOver => '이미 끝난 대국이에요';
 }

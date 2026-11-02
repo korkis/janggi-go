@@ -1,4 +1,5 @@
 import '../l10n/app_localizations.dart';
+import '../models/game_error_code.dart';
 import '../models/nickname_reject_reason.dart';
 
 /// 사용자에게 보여줄 오류의 종류.
@@ -15,6 +16,13 @@ enum AppErrorCode {
   nicknameTaken,
   nicknameBannedWord,
   nicknameImpersonation,
+  gameNotFound,
+  gameBusy,
+  gameNotPlayer,
+  gameNotYourTurn,
+  gameIllegalMove,
+  gameMoveConflict,
+  gameOver,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -30,6 +38,21 @@ class AppException implements Exception {
     NicknameRejectReason.bannedWord => AppErrorCode.nicknameBannedWord,
     NicknameRejectReason.impersonation => AppErrorCode.nicknameImpersonation,
   });
+
+  /// 대국 서버가 거절한 이유에 맞는 오류. 앱이 따로 알릴 것이 없는 이유면 null이고, 화면은 그 작업의 기본 오류 메시지를 보여준다.
+  static AppException? fromGameErrorCode(GameErrorCode code) {
+    final appCode = switch (code) {
+      GameErrorCode.notFound => AppErrorCode.gameNotFound,
+      GameErrorCode.busy => AppErrorCode.gameBusy,
+      GameErrorCode.notPlayer => AppErrorCode.gameNotPlayer,
+      GameErrorCode.notYourTurn => AppErrorCode.gameNotYourTurn,
+      GameErrorCode.illegalMove => AppErrorCode.gameIllegalMove,
+      GameErrorCode.moveConflict => AppErrorCode.gameMoveConflict,
+      GameErrorCode.gameOver => AppErrorCode.gameOver,
+      _ => null,
+    };
+    return appCode == null ? null : AppException(appCode);
+  }
 
   String getMessage(AppLocalizations l10n) => switch (code) {
     // 로그인을 그만뒀어요
@@ -54,5 +77,19 @@ class AppException implements Exception {
     AppErrorCode.nicknameBannedWord => l10n.nicknameBannedWord,
     // 운영진으로 오해할 수 있는 이름은 쓸 수 없어요
     AppErrorCode.nicknameImpersonation => l10n.nicknameImpersonation,
+    // 상대나 대국을 찾지 못했어요
+    AppErrorCode.gameNotFound => l10n.errorGameNotFound,
+    // 이미 대국이나 대기 중인 사람이 있어요
+    AppErrorCode.gameBusy => l10n.errorGameBusy,
+    // 이 대국의 대국자가 아니에요
+    AppErrorCode.gameNotPlayer => l10n.errorGameNotPlayer,
+    // 지금은 내 차례가 아니에요
+    AppErrorCode.gameNotYourTurn => l10n.errorGameNotYourTurn,
+    // 둘 수 없는 수예요
+    AppErrorCode.gameIllegalMove => l10n.errorGameIllegalMove,
+    // 판을 서버와 다시 맞췄어요
+    AppErrorCode.gameMoveConflict => l10n.errorGameMoveConflict,
+    // 이미 끝난 대국이에요
+    AppErrorCode.gameOver => l10n.errorGameOver,
   };
 }

@@ -4,9 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:janggi_core/janggi_core.dart';
 
 import '../l10n/app_localizations.dart';
+import '../managers/app_managers.dart';
 import '../managers/board_manager.dart';
+import '../managers/online_game_manager.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
+import '../utils/game_clock.dart';
+import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
@@ -15,117 +20,170 @@ import 'game_result_sheet.dart';
 import 'review_screen.dart';
 import 'setup_screen.dart';
 
-/// 대국 화면. 지금은 서버 없이 한 기기에서 양쪽을 두는 개발용 대국이다.
+/// 대국 화면. 개발용 대국과 온라인 대국이 같은 화면을 쓰고 모드에 따라 정보 줄과 버튼만 바꾼다(`docs/screens.md`의 대국 화면).
 ///
-/// 초가 아래에 오고, 차례가 아닌 쪽의 기물을 살짝 어둡게 한다.
+/// 개발용 대국([gameId]가 null)은 한 기기에서 양쪽을 두고 초가 아래에 온다. 온라인 대국은 내 진영이 아래이고 내 차례에만 두며,
+/// 정보 줄에 닉네임, 급수, 시계를 보여준다. 어느 모드든 차례가 아닌 쪽의 기물을 살짝 어둡게 한다.
 class GameScreen extends StatefulWidget {
-  final Position initialPosition;
+  /// 개발용 대국의 처음 국면. 온라인 대국이면 null이다.
+  final Position? initialPosition;
 
-  const GameScreen({super.key, required this.initialPosition});
+  /// 온라인 대국 ID. 개발용 대국이면 null이다.
+  final String? gameId;
+
+  const GameScreen({super.key, required Position this.initialPosition}) : gameId = null;
+
+  const GameScreen.online({super.key, required String this.gameId}) : initialPosition = null;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late final BoardManager _board;
+  BoardManager? _localBoard;
+  OnlineGameManager? _online;
   var _resultShown = false;
 
   @override
   void initState() {
     super.initState();
-    _board = BoardManager(initialPosition: widget.initialPosition);
-    _board.addListener(_onBoardChanged);
+    final gameId = widget.gameId;
+    if (gameId == null) {
+      _localBoard = BoardManager(initialPosition: widget.initialPosition!)..addListener(_onBoardChanged);
+    } else {
+      _online = OnlineGameManager(gameId: gameId, uid: managers.authManager.uid!)..addListener(_onBoardChanged);
+    }
   }
 
   @override
   void dispose() {
-    _board.removeListener(_onBoardChanged);
-    _board.dispose();
+    _localBoard?.removeListener(_onBoardChanged);
+    _localBoard?.dispose();
+    _online?.removeListener(_onBoardChanged);
+    _online?.dispose();
     super.dispose();
   }
+
+  /// 지금 판. 온라인 대국은 처음 값을 받기 전이면 null이다.
+  BoardManager? get _board => _online?.board ?? _localBoard;
 
   @override
   Widget build(BuildContext context) {
     return GameScaffold(
-      body: ListenableBuilder(listenable: _board, builder: _buildBody),
+      body: ListenableBuilder(listenable: (_online ?? _localBoard)!, builder: _buildBody),
     );
   }
 
   Widget _buildBody(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
-    final bottomSide = _board.flipped ? Side.han : Side.cho;
+    final online = _online;
+    final board = _board;
+    if (online != null && online.loadError != null) {
+      // 대국을 불러오지 못했어요
+      return _buildMessage(context, l10n.errorGameLoad);
+    }
+    if (online != null && online.loaded && (online.game == null || online.mySide == null)) {
+      // 상대나 대국을 찾지 못했어요
+      return _buildMessage(context, l10n.errorGameNotFound);
+    }
+    if (board == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final bottomSide = board.flipped ? Side.han : Side.cho;
     return PopScope(
-      canPop: _board.isOver,
+      canPop: board.isOver,
       onPopInvokedWithResult: _onPopInvoked,
       child: Column(
         children: [
           GameHeader(
-            // 개발용 대국 · 4수
-            title: l10n.gameDevTitle(_board.moveCount),
+            // 온라인 대국 · 4수 / 개발용 대국 · 4수
+            title: online != null ? l10n.gameOnlineTitle(board.moveCount) : l10n.gameDevTitle(board.moveCount),
             onBack: _onBack,
           ),
-          _buildPlayerBar(context, bottomSide.opponent),
+          _buildPlayerBar(context, board, bottomSide.opponent),
           // 판과 아래 정보 줄을 붙여 두고 남는 높이는 버튼 줄 위에 둔다.
           Expanded(
             child: Column(
               children: [
                 Flexible(
                   child: BoardView(
-                    position: _board.position,
-                    flipped: _board.flipped,
-                    selected: _board.selected,
-                    targets: _board.targets,
-                    lastMove: _board.lastMove,
-                    dimmedSide: _board.dimmedSide,
-                    onSquareTap: _board.tapSquare,
+                    position: board.position,
+                    flipped: board.flipped,
+                    selected: board.selected,
+                    targets: board.targets,
+                    lastMove: board.lastMove,
+                    dimmedSide: board.dimmedSide,
+                    onSquareTap: _onSquareTap,
                   ),
                 ),
-                _buildPlayerBar(context, bottomSide),
+                _buildPlayerBar(context, board, bottomSide),
               ],
             ),
           ),
-          Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: _buildButtonBar(context)),
+          Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: _buildButtonBar(context, board)),
         ],
       ),
     );
   }
 
-  Widget _buildPlayerBar(BuildContext context, Side side) {
+  Widget _buildMessage(BuildContext context, String message) {
+    return Column(
+      children: [
+        GameHeader(title: '', onBack: _onBack),
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.subText),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayerBar(BuildContext context, BoardManager board, Side side) {
     final l10n = AppLocalizations.of(context);
+    final game = _online?.game;
     return PlayerBar(
       side: side,
-      active: !_board.isOver && _board.turn == side,
+      active: !board.isOver && board.turn == side,
+      name: game == null ? null : getPlayerName(l10n, game.meta.players.get(side)),
       // 72점
-      detail: l10n.score(formatScore(_board.position.score(side))),
+      detail: l10n.score(formatScore(board.position.score(side))),
       trailing: [
-        if (_board.checkedSide == side)
+        if (board.checkedSide == side)
           PlayerBadge(
             // 장군
             label: l10n.check,
             color: GameColors.background,
             background: GameColors.check,
           ),
-        if (_board.hasPassedLast(side))
+        if (board.hasPassedLast(side))
           PlayerBadge(
             // 한수쉼
             label: l10n.passedLast,
             color: GameColors.subText,
           ),
+        if (game != null) _PlayerClock(online: _online!, side: side),
       ],
     );
   }
 
-  Widget _buildButtonBar(BuildContext context) {
+  Widget _buildButtonBar(BuildContext context, BoardManager board) {
     final l10n = AppLocalizations.of(context);
-    final playing = !_board.isOver;
+    final playing = !board.isOver;
     return GameButtonBar(
       children: [
         GameBarButton(
           icon: Icons.pause,
           // 한수쉼
           label: l10n.pass,
-          onPressed: playing && _board.canPass ? _onPass : null,
+          onPressed: playing && board.canPass ? _onPass : null,
         ),
         GameBarButton(
           icon: Icons.more_horiz,
@@ -138,22 +196,29 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onBoardChanged() {
-    if (!_board.isOver || _resultShown) {
+    final board = _board;
+    if (board == null || !board.isOver || _resultShown) {
       return;
     }
     _resultShown = true;
-    _showResult();
+    _showResult(board);
   }
 
-  Future<void> _showResult() async {
-    final result = _board.result!;
+  Future<void> _showResult(BoardManager board) async {
+    final result = board.result!;
+    final online = _online;
+    final elapsed = online != null ? online.getElapsed() : board.getElapsed(DateTime.now());
     final action = await showModalBottomSheet<GameResultAction>(
       context: context,
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
-      builder: (context) =>
-          GameResultSheet(result: result, moveCount: _board.moveCount, elapsed: _board.getElapsed(DateTime.now())),
+      builder: (context) => GameResultSheet(
+        result: result,
+        moveCount: board.moveCount,
+        elapsed: elapsed,
+        rematchAvailable: online == null,
+      ),
     );
     if (!mounted || action == null) {
       return;
@@ -162,21 +227,54 @@ class _GameScreenState extends State<GameScreen> {
       case GameResultAction.rematch:
         Navigator.of(context).pushReplacement(createGameRoute<void>((context) => const SetupScreen()));
       case GameResultAction.review:
-        final record = _board.game;
+        final record = board.game;
         Navigator.of(context).pushReplacement(createGameRoute<void>((context) => ReviewScreen(record: record)));
       case GameResultAction.home:
         Navigator.of(context).pop();
     }
   }
 
-  void _onPass() {
-    try {
-      _board.pass();
-    } catch (error, stackTrace) {
-      developer.log('BoardManager.pass 실패', error: error, stackTrace: stackTrace);
-      // 지금은 한수쉼을 할 수 없어요
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).passFailed)));
+  Future<void> _onSquareTap(Square square) async {
+    final online = _online;
+    if (online == null) {
+      _localBoard!.tapSquare(square);
+      return;
     }
+    final l10n = AppLocalizations.of(context);
+    try {
+      await online.tapSquare(square);
+    } catch (error, stackTrace) {
+      developer.log('OnlineGameManager.tapSquare 실패', error: error, stackTrace: stackTrace);
+      // 수를 보내지 못했어요. 판을 서버와 다시 맞췄어요
+      _showSnackBar(error, l10n.errorPlayMove);
+    }
+  }
+
+  Future<void> _onPass() async {
+    try {
+      final online = _online;
+      if (online != null) {
+        await online.pass();
+      } else {
+        _localBoard!.pass();
+      }
+    } catch (error, stackTrace) {
+      developer.log('한수쉼 실패', error: error, stackTrace: stackTrace);
+      if (!mounted) {
+        return;
+      }
+      final l10n = AppLocalizations.of(context);
+      // 지금은 한수쉼을 할 수 없어요 / 수를 보내지 못했어요. 판을 서버와 다시 맞췄어요
+      _showSnackBar(error, _online != null ? l10n.errorPlayMove : l10n.passFailed);
+    }
+  }
+
+  void _showSnackBar(Object error, String defaultMessage) {
+    if (!mounted) {
+      return;
+    }
+    final message = error is AppException ? error.getMessage(AppLocalizations.of(context)) : defaultMessage;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _onMore() async {
@@ -186,7 +284,7 @@ class _GameScreenState extends State<GameScreen> {
     }
     switch (action) {
       case _MenuAction.flipBoard:
-        _board.toggleFlipped();
+        _board?.toggleFlipped();
       case _MenuAction.resign:
         await _confirmResign();
     }
@@ -220,20 +318,31 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _confirmResign() async {
     final l10n = AppLocalizations.of(context);
+    final board = _board;
+    if (board == null) {
+      return;
+    }
+    final online = _online;
     final confirmed = await DialogUtils.showConfirm(
       context,
-      // 초가 기권할까요? / 한이 기권할까요?
-      message: l10n.resignConfirm(_board.turn.name),
+      // 기권할까요? 이 대국은 지게 돼요 / 초가 기권할까요? / 한이 기권할까요?
+      message: online != null ? l10n.resignConfirmOnline : l10n.resignConfirm(board.turn.name),
       // 기권하기
       confirmLabel: l10n.resignAction,
     );
-    if (!confirmed || !mounted || _board.isOver) {
+    if (!confirmed || !mounted || board.isOver) {
       return;
     }
     try {
-      _board.resign();
+      if (online != null) {
+        await online.resign();
+      } else {
+        board.resign();
+      }
     } catch (error, stackTrace) {
-      developer.log('BoardManager.resign 실패', error: error, stackTrace: stackTrace);
+      developer.log('기권 실패', error: error, stackTrace: stackTrace);
+      // 기권하지 못했어요. 잠시 후 다시 해 주세요
+      _showSnackBar(error, l10n.errorResign);
     }
   }
 
@@ -241,7 +350,7 @@ class _GameScreenState extends State<GameScreen> {
     Navigator.of(context).maybePop();
   }
 
-  /// 대국 중 뒤로 가기는 한 번 더 확인한 뒤 나간다.
+  /// 대국 중 뒤로 가기는 한 번 더 확인한 뒤 나간다. 온라인 대국은 나가도 대국이 계속된다고 알린다.
   Future<void> _onPopInvoked(bool didPop, Object? result) async {
     if (didPop) {
       return;
@@ -249,8 +358,8 @@ class _GameScreenState extends State<GameScreen> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await DialogUtils.showConfirm(
       context,
-      // 대국을 그만두고 나갈까요?
-      message: l10n.leaveGameConfirm,
+      // 화면을 나가도 대국은 계속돼요. 나갈까요? / 대국을 그만두고 나갈까요?
+      message: _online != null ? l10n.leaveOnlineGameConfirm : l10n.leaveGameConfirm,
       // 나가기
       confirmLabel: l10n.leaveGameAction,
     );
@@ -258,6 +367,36 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     Navigator.of(context).pop();
+  }
+}
+
+/// 온라인 대국 정보 줄의 시계. 서버 시각이 바뀔 때마다 이것만 다시 그린다.
+class _PlayerClock extends StatelessWidget {
+  final OnlineGameManager online;
+  final Side side;
+
+  const _PlayerClock({required this.online, required this.side});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(valueListenable: online.serverNow, builder: _buildClock);
+  }
+
+  Widget _buildClock(BuildContext context, int nowMs, Widget? child) {
+    final l10n = AppLocalizations.of(context);
+    final game = online.game;
+    if (game == null) {
+      return const SizedBox.shrink();
+    }
+    final clock = getClockDisplay(game, side, nowMs);
+    final period = clock.period;
+    return ClockBadge(
+      time: formatClock(period ?? clock.base),
+      // 초읽기 3회
+      periods: l10n.clockPeriods(clock.periods),
+      warning: period != null,
+      running: game.state.endedAt == null && game.state.turn == side,
+    );
   }
 }
 

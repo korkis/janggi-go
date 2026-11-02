@@ -1,4 +1,5 @@
 import '../l10n/app_localizations.dart';
+import '../models/active_game.dart';
 
 // 급(18급~1급)의 가장 높은 rankLevel. 그 위는 단이다(`docs/game/rank.md`).
 const _maxKyuRankLevel = 18;
@@ -11,4 +12,10 @@ String getRankLabel(AppLocalizations l10n, int rankLevel) {
   }
   // {dan}단
   return l10n.rankDan(rankLevel - _maxKyuRankLevel);
+}
+
+/// 대국 정보 줄의 "닉네임 · 18급".
+String getPlayerName(AppLocalizations l10n, GamePlayer player) {
+  // {nickname} · {rank}
+  return l10n.playerNameWithRank(player.nickname, getRankLabel(l10n, player.rankLevel));
 }

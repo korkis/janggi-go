@@ -709,6 +709,156 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'로그아웃하지 못했어요. 잠시 후 다시 해 주세요'**
   String get errorSignOut;
+
+  /// 홈의 개발용 온라인 대국 카드 제목. 개발 빌드에만 보인다
+  ///
+  /// In ko, this message translates to:
+  /// **'개발용 온라인 대국'**
+  String get homeDevOnlineTitle;
+
+  /// 홈의 개발용 온라인 대국 카드 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'상대 닉네임을 넣으면 두 계정의 대국을 바로 만들어요'**
+  String get homeDevOnlineDescription;
+
+  /// 개발용 온라인 대국의 상대 닉네임 입력 칸
+  ///
+  /// In ko, this message translates to:
+  /// **'상대 닉네임'**
+  String get homeDevOnlineOpponent;
+
+  /// 개발용 온라인 대국을 만드는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 만들기'**
+  String get homeDevOnlineCreate;
+
+  /// 진행 중인 개발용 온라인 대국으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'대국으로 가기'**
+  String get homeDevOnlineResume;
+
+  /// 진영 고르기. 무작위는 서버가 정한다
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{초} han{한} random{무작위} other{}}'**
+  String sideChoiceName(String side);
+
+  /// 온라인 대국 화면 위쪽 제목. count는 지금까지 둔 수
+  ///
+  /// In ko, this message translates to:
+  /// **'온라인 대국 · {count}수'**
+  String gameOnlineTitle(int count);
+
+  /// 대국 정보 줄의 닉네임과 급수
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname} · {rank}'**
+  String playerNameWithRank(String nickname, String rank);
+
+  /// 대국 시계 아래의 남은 초읽기 횟수
+  ///
+  /// In ko, this message translates to:
+  /// **'초읽기 {count}회'**
+  String clockPeriods(int count);
+
+  /// 상차림 남은 시간
+  ///
+  /// In ko, this message translates to:
+  /// **'{seconds}초'**
+  String setupSeconds(int seconds);
+
+  /// 상대가 상차림을 고르는 동안 정하기 버튼 자리에 보이는 글자
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 고르고 있어요'**
+  String get setupOpponentChoosing;
+
+  /// 온라인 대국 기권 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'기권할까요? 이 대국은 지게 돼요'**
+  String get resignConfirmOnline;
+
+  /// 온라인 대국 중 뒤로 가기 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'화면을 나가도 대국은 계속돼요. 나갈까요?'**
+  String get leaveOnlineGameConfirm;
+
+  /// 개발용 온라인 대국 만들기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'대국을 만들지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorCreateGame;
+
+  /// 온라인 대국 듣기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'대국을 불러오지 못했어요'**
+  String get errorGameLoad;
+
+  /// 수 보내기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'수를 보내지 못했어요. 판을 서버와 다시 맞췄어요'**
+  String get errorPlayMove;
+
+  /// 상차림 보내기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'상차림을 보내지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorSetFormation;
+
+  /// 기권 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'기권하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorResign;
+
+  /// 대국 서버 notFound
+  ///
+  /// In ko, this message translates to:
+  /// **'상대나 대국을 찾지 못했어요'**
+  String get errorGameNotFound;
+
+  /// 대국 서버 busy
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 대국이나 대기 중인 사람이 있어요'**
+  String get errorGameBusy;
+
+  /// 대국 서버 notPlayer
+  ///
+  /// In ko, this message translates to:
+  /// **'이 대국의 대국자가 아니에요'**
+  String get errorGameNotPlayer;
+
+  /// 대국 서버 notYourTurn
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 내 차례가 아니에요'**
+  String get errorGameNotYourTurn;
+
+  /// 대국 서버 illegalMove
+  ///
+  /// In ko, this message translates to:
+  /// **'둘 수 없는 수예요'**
+  String get errorGameIllegalMove;
+
+  /// 대국 서버 moveConflict
+  ///
+  /// In ko, this message translates to:
+  /// **'판을 서버와 다시 맞췄어요'**
+  String get errorGameMoveConflict;
+
+  /// 대국 서버 gameOver
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 끝난 대국이에요'**
+  String get errorGameOver;
 }
 
 class _AppLocalizationsDelegate

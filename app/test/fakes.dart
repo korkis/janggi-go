@@ -3,13 +3,21 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/managers/app_managers.dart';
+import 'package:janggigo/models/active_game.dart';
 import 'package:janggigo/models/app_config.dart';
+import 'package:janggigo/models/game_enums.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
+import 'package:janggigo/models/player_state.dart';
 import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
 import 'package:janggigo/repositories/config_repository.dart';
+import 'package:janggigo/repositories/game_repository.dart';
+import 'package:janggigo/repositories/player_state_repository.dart';
+import 'package:janggigo/repositories/server_time_repository.dart';
 import 'package:janggigo/repositories/user_repository.dart';
 import 'package:janggigo/utils/app_exception.dart';
 
@@ -125,15 +133,118 @@ class FakeConfigRepository implements ConfigRepository {
   );
 }
 
+class FakePlayerStateRepository implements PlayerStateRepository {
+  final _controllers = <String, StreamController<PlayerState?>>{};
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  Stream<PlayerState?> watchPlayerState(String uid) => _getController(uid).stream;
+
+  /// 대국 서버가 [uid]의 상태를 바꾼 것처럼 보낸다.
+  void emit(String uid, PlayerState? state) => _getController(uid).add(state);
+
+  StreamController<PlayerState?> _getController(String uid) =>
+      _controllers.putIfAbsent(uid, StreamController<PlayerState?>.broadcast);
+}
+
+/// 대국 서버 호출을 기록하고, 테스트가 RTDB 대국 값을 직접 보내는 가짜 GameRepository.
+class FakeGameRepository implements GameRepository {
+  final _controllers = <String, StreamController<ActiveGame?>>{};
+  final _latest = <String, ActiveGame?>{};
+
+  /// 부른 API와 파라미터. 예: `playMove gameId 0 a4b4`.
+  final calls = <String>[];
+
+  /// 다음 대국 서버 호출이 이 오류로 실패한다.
+  Object? nextError;
+
+  /// `playMove`를 받으면 끝날 때까지 기다린다. null이면 바로 성공한다.
+  Completer<void>? playMoveGate;
+
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  FirebaseFunctions get functions => throw UnimplementedError();
+
+  @override
+  Uri Function() get getServerUrl => throw UnimplementedError();
+
+  @override
+  Stream<ActiveGame?> watchGame(String gameId) async* {
+    if (_latest.containsKey(gameId)) {
+      yield _latest[gameId];
+    }
+    yield* _getController(gameId).stream;
+  }
+
+  /// 대국 서버가 RTDB에 쓴 것처럼 [json]을 보낸다.
+  void emit(String gameId, Map<String, dynamic>? json) {
+    final game = json == null ? null : ActiveGame.fromJson(json);
+    _latest[gameId] = game;
+    _getController(gameId).add(game);
+  }
+
+  @override
+  Future<void> createDevGame({required String opponentNickname, required SideChoice side}) =>
+      _record('createDevGame $opponentNickname ${side.name}');
+
+  @override
+  Future<void> setFormation(String gameId, Formation formation, {required bool confirmed}) =>
+      _record('setFormation $gameId ${formation.name} $confirmed');
+
+  @override
+  Future<void> playMove(String gameId, {required int moveIndex, required Move move}) async {
+    await _record('playMove $gameId $moveIndex $move');
+    await playMoveGate?.future;
+  }
+
+  @override
+  Future<void> resign(String gameId) => _record('resign $gameId');
+
+  Future<void> _record(String call) async {
+    calls.add(call);
+    final error = nextError;
+    if (error != null) {
+      nextError = null;
+      throw error;
+    }
+  }
+
+  StreamController<ActiveGame?> _getController(String gameId) =>
+      _controllers.putIfAbsent(gameId, StreamController<ActiveGame?>.broadcast);
+}
+
+class FakeServerTimeRepository implements ServerTimeRepository {
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  Stream<Duration> watchServerTimeOffset() => Stream.value(Duration.zero);
+}
+
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
-({FakeAuthRepository auth, FakeUserRepository users}) setUpFakeApp() {
+({
+  FakeAuthRepository auth,
+  FakeUserRepository users,
+  FakePlayerStateRepository playerStates,
+  FakeGameRepository games,
+})
+setUpFakeApp() {
   final authRepository = FakeAuthRepository();
   final userRepository = FakeUserRepository(authRepository);
+  final playerStateRepository = FakePlayerStateRepository();
+  final gameRepository = FakeGameRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: FakeConfigRepository(),
     userRepository: userRepository,
+    playerStateRepository: playerStateRepository,
+    gameRepository: gameRepository,
+    serverTimeRepository: FakeServerTimeRepository(),
   );
   managers = AppManagers.createDefault();
-  return (auth: authRepository, users: userRepository);
+  return (auth: authRepository, users: userRepository, playerStates: playerStateRepository, games: gameRepository);
 }

@@ -13,13 +13,23 @@ class PlayerBar extends StatelessWidget {
   final Side side;
   final bool active;
 
+  /// 이름 자리에 보여줄 글자(온라인 대국의 닉네임과 급수). 없으면 진영 이름을 보여준다.
+  final String? name;
+
   /// 이름 아래 한 줄. 없으면 이름만 보여준다.
   final String? detail;
 
   /// 오른쪽에 붙는 표시(장군, 정했어요 등).
   final List<Widget> trailing;
 
-  const PlayerBar({super.key, required this.side, required this.active, this.detail, this.trailing = const []});
+  const PlayerBar({
+    super.key,
+    required this.side,
+    required this.active,
+    this.name,
+    this.detail,
+    this.trailing = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +48,9 @@ class PlayerBar extends StatelessWidget {
               children: [
                 Text(
                   // 한 / 초
-                  l10n.sideName(side.name),
+                  name ?? l10n.sideName(side.name),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: AppTextSizes.body,
                     fontWeight: FontWeight.w700,
@@ -89,6 +101,60 @@ class PlayerBadge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 대국 시계. 큰 글자로 남은 기본 시간(초읽기 중이면 이번 초읽기의 남은 시간), 작은 글자로 남은 초읽기 횟수를 보여준다.
+///
+/// 시계 값은 자주 바뀌므로 정보 줄과 따로 다시 그린다.
+class ClockBadge extends StatelessWidget {
+  final String time;
+  final String periods;
+
+  /// 초읽기 중이면 글자를 경고색으로 바꾼다.
+  final bool warning;
+
+  /// 시계가 흐르는 쪽(차례인 쪽)이면 바탕을 밝게 한다.
+  final bool running;
+
+  const ClockBadge({
+    super.key,
+    required this.time,
+    required this.periods,
+    required this.warning,
+    required this.running,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = warning ? GameColors.check : GameColors.text;
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: running ? GameColors.accentSurface : GameColors.surface,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: AppTextSizes.large,
+              fontWeight: FontWeight.w800,
+              color: color,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          Text(
+            periods,
+            style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.subText),
           ),
         ],
       ),

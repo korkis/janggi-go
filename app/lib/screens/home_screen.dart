@@ -5,16 +5,19 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
+import '../models/game_enums.dart';
+import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../widgets/game_scaffold.dart';
 import 'login_flow.dart';
 import 'setup_screen.dart';
 
-/// 홈 화면. 지금은 내 카드와, 개발 빌드에서만 보이는 개발용 대국 시작 카드를 보여준다.
+/// 홈 화면. 지금은 내 카드와, 개발 빌드에서만 보이는 개발용 대국 카드들을 보여준다.
 ///
-/// 개발용 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
+/// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -35,6 +38,7 @@ class HomeScreen extends StatelessWidget {
             const _MyCard(),
             const SizedBox(height: 16),
             if (!kReleaseMode) const _DevGameCard(),
+            if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
           ],
         ),
       ),
@@ -79,6 +83,160 @@ class _DevGameCard extends StatelessWidget {
 
   void _onStart(BuildContext context) {
     Navigator.of(context).push(createGameRoute<void>((context) => const SetupScreen()));
+  }
+}
+
+/// 개발용 온라인 대국 카드. 매칭이 생기기 전에 두 계정으로 한 판을 두기 위해 상대 닉네임으로 대국을 바로 만든다.
+///
+/// 대국은 대국 서버의 개발용 API(`devCreateGame`)가 만들고, 두 사람의 `player_states.gameId`가 생기면 홈에 있던 앱은
+/// 상차림으로 넘어간다. 로그인하고 닉네임을 정한 뒤에만 보인다.
+class _DevOnlineGameCard extends StatefulWidget {
+  const _DevOnlineGameCard();
+
+  @override
+  State<_DevOnlineGameCard> createState() => _DevOnlineGameCardState();
+}
+
+class _DevOnlineGameCardState extends State<_DevOnlineGameCard> {
+  final _opponentController = TextEditingController();
+  var _side = SideChoice.random;
+  var _creating = false;
+
+  // 이미 연 대국. 같은 대국을 두 번 열지 않는다.
+  String? _openedGameId;
+
+  @override
+  void initState() {
+    super.initState();
+    _openedGameId = managers.playerStateManager.gameId;
+    managers.playerStateManager.addListener(_onPlayerStateChanged);
+  }
+
+  @override
+  void dispose() {
+    managers.playerStateManager.removeListener(_onPlayerStateChanged);
+    _opponentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([managers.authManager, managers.playerStateManager]),
+      builder: _buildContent,
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Widget? child) {
+    final l10n = AppLocalizations.of(context);
+    if (managers.authManager.profile == null) {
+      return const SizedBox.shrink();
+    }
+    final gameId = managers.playerStateManager.gameId;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              // 개발용 온라인 대국
+              l10n.homeDevOnlineTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              // 상대 닉네임을 넣으면 두 계정의 대국을 바로 만들어요
+              l10n.homeDevOnlineDescription,
+              style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+            ),
+            const SizedBox(height: 16),
+            if (gameId != null)
+              FilledButton(
+                onPressed: () => _openGame(gameId),
+                // 대국으로 가기
+                child: Text(l10n.homeDevOnlineResume),
+              )
+            else ...[
+              TextField(
+                controller: _opponentController,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  // 상대 닉네임
+                  labelText: l10n.homeDevOnlineOpponent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<SideChoice>(
+                segments: [
+                  for (final side in SideChoice.values)
+                    ButtonSegment(
+                      value: side,
+                      // 초 / 한 / 무작위
+                      label: Text(l10n.sideChoiceName(side.name)),
+                    ),
+                ],
+                selected: {_side},
+                onSelectionChanged: _onSideChanged,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _creating ? null : _onCreate,
+                // 대국 만들기
+                child: Text(l10n.homeDevOnlineCreate),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onSideChanged(Set<SideChoice> selected) {
+    setState(() {
+      _side = selected.single;
+    });
+  }
+
+  Future<void> _onCreate() async {
+    final opponentNickname = _opponentController.text.trim();
+    if (opponentNickname.isEmpty) {
+      return;
+    }
+    try {
+      setState(() {
+        _creating = true;
+      });
+      await repositories.gameRepository.createDevGame(opponentNickname: opponentNickname, side: _side);
+    } catch (error, stackTrace) {
+      developer.log('GameRepository.createDevGame 실패', error: error, stackTrace: stackTrace);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        // 대국을 만들지 못했어요. 잠시 후 다시 해 주세요
+        final message = error is AppException ? error.getMessage(l10n) : l10n.errorCreateGame;
+        await DialogUtils.showMessage(context, message: message);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _creating = false;
+        });
+      }
+    }
+  }
+
+  /// 새 대국이 생기면 홈이 맨 위에 있을 때 상차림으로 간다. 다른 화면에 있으면 카드의 "대국으로 가기"로 간다.
+  void _onPlayerStateChanged() {
+    final gameId = managers.playerStateManager.gameId;
+    if (gameId == null || gameId == _openedGameId || !(ModalRoute.of(context)?.isCurrent ?? false)) {
+      return;
+    }
+    _openGame(gameId);
+  }
+
+  void _openGame(String gameId) {
+    _openedGameId = gameId;
+    Navigator.of(context).push(createGameRoute<void>((context) => SetupScreen.online(gameId: gameId)));
   }
 }
 
