@@ -93,7 +93,9 @@ void main() {
     await _pumpFor(tester);
     expect(find.text('기권승'), findsOneWidget);
     expect(find.text('한 승리'), findsOneWidget);
-    expect(find.text('다시 두기'), findsNothing);
+    // 신청 대국이라 다시 두기는 있고 한 판 더는 없다.
+    expect(find.text('다시 두기'), findsOneWidget);
+    expect(find.text('한 판 더'), findsNothing);
 
     // 화면을 닫아 시계 타이머를 멈춘다.
     await tester.pumpWidget(const SizedBox.shrink());

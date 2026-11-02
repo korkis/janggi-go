@@ -174,7 +174,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No moves were left, so points decided the game';
 
   @override
-  String get resultRematch => 'Play again';
+  String get resultRematch => 'Rematch';
 
   @override
   String get resultHome => 'Home';
@@ -518,4 +518,112 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeResumeGame => 'Back to game';
+
+  @override
+  String get homeQuickMatch => 'Quick match';
+
+  @override
+  String rankWinsToNext(String rank, int wins) {
+    String _temp0 = intl.Intl.pluralLogic(
+      wins,
+      locale: localeName,
+      other: '$wins wins',
+      one: '1 win',
+    );
+    return 'About $_temp0 to $rank';
+  }
+
+  @override
+  String get quickMatchSearching => 'Finding an opponent';
+
+  @override
+  String get quickMatchSearchingDescription =>
+      'You\'ll start right away with a player of a similar rank';
+
+  @override
+  String get quickMatchTipTitle => 'Janggi rules';
+
+  @override
+  String quickMatchTip(String index) {
+    String _temp0 = intl.Intl.selectLogic(index, {
+      '0': 'Cho moves first, and Han gets a 1.5-point bonus',
+      '1': 'Han sets up first, then Cho sets up after seeing Han\'s setup',
+      '2': 'You can\'t pass while in check',
+      '3': 'You can\'t make a move that repeats the same position a third time',
+      'other': 'If both sides pass in a row, points decide the game',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get quickMatchStop => 'Stop searching';
+
+  @override
+  String get quickMatchFound => 'Opponent found';
+
+  @override
+  String get quickMatchVersus => 'VS';
+
+  @override
+  String quickMatchMoveOrder(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'Cho · Moves first',
+      'han': 'Han · Moves second',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String quickMatchTimeRule(int minutes, int seconds, int periods) {
+    return '$minutes min · $periods×${seconds}s byoyomi';
+  }
+
+  @override
+  String get quickMatchRated => 'Ranked game';
+
+  @override
+  String get errorQuickMatch =>
+      'Couldn\'t find an opponent. Please try again shortly';
+
+  @override
+  String get errorLeaveQuickMatch =>
+      'Couldn\'t stop searching. Please try again shortly';
+
+  @override
+  String get errorSanctioned =>
+      'Your account is restricted, so you can\'t play right now';
+
+  @override
+  String get errorRematchUnavailable => 'A rematch isn\'t available right now';
+
+  @override
+  String get errorRematch =>
+      'Couldn\'t request a rematch. Please try again shortly';
+
+  @override
+  String get resultPlayAgain => 'Play again';
+
+  @override
+  String get resultRematchWaiting => 'Waiting for opponent';
+
+  @override
+  String get resultRematchRequested => 'Your opponent wants a rematch';
+
+  @override
+  String get resultRematchCancelled =>
+      'Your opponent left, so you can\'t rematch';
+
+  @override
+  String get resultRematchBlocked => 'You can\'t rematch this opponent again';
+
+  @override
+  String resultRankUp(String rank) {
+    return 'Promoted to $rank';
+  }
+
+  @override
+  String resultRankDown(String rank) {
+    return 'Dropped to $rank';
+  }
 }

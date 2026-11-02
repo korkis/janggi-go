@@ -651,5 +651,140 @@
   "homeResumeGame": "대국으로 돌아가기",
   "@homeResumeGame": {
     "description": "홈 맨 위. 진행 중인 온라인 대국이 있을 때"
+  },
+  "homeQuickMatch": "빠른 대국",
+  "@homeQuickMatch": {
+    "description": "홈 큰 버튼. 급수가 비슷한 상대와 바로 둔다"
+  },
+  "rankWinsToNext": "{rank}까지 약 {wins}승",
+  "@rankWinsToNext": {
+    "description": "내 카드와 대국 결과의 급수 진행 막대 옆. 비슷한 상대를 이길 때 다음 급수까지 필요한 어림 승수",
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "wins": {
+        "type": "int"
+      }
+    }
+  },
+  "quickMatchSearching": "상대를 찾고 있어요",
+  "@quickMatchSearching": {
+    "description": "빠른 대국 대기 화면 제목"
+  },
+  "quickMatchSearchingDescription": "급수가 비슷한 상대와 바로 시작해요",
+  "@quickMatchSearchingDescription": {
+    "description": "빠른 대국 대기 화면 제목 아래"
+  },
+  "quickMatchTipTitle": "장기 규칙",
+  "@quickMatchTipTitle": {
+    "description": "빠른 대국 대기 화면의 규칙 팁 제목"
+  },
+  "quickMatchTip": "{index, select, 0{초가 먼저 두고, 한은 덤 1.5점을 받아요} 1{한이 먼저 상차림을 정하고, 초는 한의 상차림을 본 뒤 정해요} 2{장군을 받은 상태에서는 한수쉼을 할 수 없어요} 3{같은 국면을 3번째로 만드는 수는 둘 수 없어요} other{양쪽이 연속으로 한수쉼을 하면 점수로 승부를 정해요}}",
+  "@quickMatchTip": {
+    "description": "빠른 대국 대기 화면의 규칙 팁. docs/game/rules.md의 내용만 쓴다",
+    "placeholders": {
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "quickMatchStop": "그만 찾기",
+  "@quickMatchStop": {
+    "description": "빠른 대국 대기 화면 맨 아래 버튼"
+  },
+  "quickMatchFound": "상대를 찾았어요",
+  "@quickMatchFound": {
+    "description": "빠른 대국 상대 찾음 화면 제목"
+  },
+  "quickMatchVersus": "VS",
+  "@quickMatchVersus": {
+    "description": "빠른 대국 상대 찾음 화면 가운데"
+  },
+  "quickMatchMoveOrder": "{side, select, cho{초 · 먼저 둬요} han{한 · 나중에 둬요} other{}}",
+  "@quickMatchMoveOrder": {
+    "description": "빠른 대국 상대 찾음 화면의 진영과 두는 순서",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "quickMatchTimeRule": "기본 {minutes}분 · 초읽기 {seconds}초 {periods}회",
+  "@quickMatchTimeRule": {
+    "description": "빠른 대국 상대 찾음 화면의 시간 규칙",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      },
+      "periods": {
+        "type": "int"
+      }
+    }
+  },
+  "quickMatchRated": "급수 대국",
+  "@quickMatchRated": {
+    "description": "빠른 대국 상대 찾음 화면. 급수에 반영하는 대국"
+  },
+  "errorQuickMatch": "상대를 찾지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorQuickMatch": {
+    "description": "빠른 대국 대기열 들어가기 실패"
+  },
+  "errorLeaveQuickMatch": "그만 찾지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorLeaveQuickMatch": {
+    "description": "빠른 대국 그만 찾기 실패"
+  },
+  "errorSanctioned": "이용이 제한되어 지금은 대국을 할 수 없어요",
+  "@errorSanctioned": {
+    "description": "대국 서버 sanctioned"
+  },
+  "errorRematchUnavailable": "지금은 다시 두기를 할 수 없어요",
+  "@errorRematchUnavailable": {
+    "description": "대국 서버 rematchUnavailable"
+  },
+  "errorRematch": "다시 두기를 하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorRematch": {
+    "description": "다시 두기 요청 실패"
+  },
+  "resultPlayAgain": "한 판 더",
+  "@resultPlayAgain": {
+    "description": "대국 결과 가장 큰 버튼. 새 빠른 대국"
+  },
+  "resultRematchWaiting": "상대를 기다리는 중",
+  "@resultRematchWaiting": {
+    "description": "대국 결과. 내가 다시 두기를 누르고 상대를 기다릴 때 버튼"
+  },
+  "resultRematchRequested": "상대가 다시 두기를 원해요",
+  "@resultRematchRequested": {
+    "description": "대국 결과. 상대가 먼저 다시 두기를 눌렀을 때"
+  },
+  "resultRematchCancelled": "상대가 나가서 다시 둘 수 없어요",
+  "@resultRematchCancelled": {
+    "description": "대국 결과. 상대가 결과 화면을 나갔을 때"
+  },
+  "resultRematchBlocked": "같은 상대와는 더 다시 둘 수 없어요",
+  "@resultRematchBlocked": {
+    "description": "대국 결과. 빠른 대국 다시 두기 횟수에 닿았을 때"
+  },
+  "resultRankUp": "{rank}으로 올랐어요",
+  "@resultRankUp": {
+    "description": "대국 결과. 급수가 올랐을 때",
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      }
+    }
+  },
+  "resultRankDown": "{rank}으로 내려갔어요",
+  "@resultRankDown": {
+    "description": "대국 결과. 급수가 내려갔을 때",
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      }
+    }
   }
 }

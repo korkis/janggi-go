@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../managers/board_manager.dart';
 import '../managers/online_game_manager.dart';
+import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
@@ -17,6 +19,7 @@ import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
 import 'game_result_sheet.dart';
+import 'quick_match_screen.dart';
 import 'review_screen.dart';
 import 'setup_screen.dart';
 
@@ -225,24 +228,43 @@ class _GameScreenState extends State<GameScreen> {
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
-      builder: (context) => GameResultSheet(
-        result: result,
-        moveCount: board.moveCount,
-        elapsed: elapsed,
-        rematchAvailable: online == null,
-      ),
+      builder: (context) =>
+          GameResultSheet(result: result, moveCount: board.moveCount, elapsed: elapsed, online: online),
     );
-    if (!mounted || action == null) {
+    if (!mounted) {
       return;
     }
+    // 온라인 대국은 다시 두기로 새 대국에 묶인 경우 말고는 결과 화면을 나가면서 기다리던 다시 두기를 취소한다.
+    // 창을 뒤로 가기로 닫으면 홈으로 간다.
+    if (online != null && action != GameResultAction.rematch) {
+      unawaited(_leaveResult(online.gameId));
+    }
     switch (action) {
+      case GameResultAction.playAgain:
+        Navigator.of(context).pushReplacement(createGameRoute<void>((context) => const QuickMatchScreen()));
       case GameResultAction.rematch:
-        Navigator.of(context).pushReplacement(createGameRoute<void>((context) => const SetupScreen()));
+        final rematchGameId = online?.game?.rematch?.gameId;
+        if (rematchGameId != null) {
+          Navigator.of(context)
+              .pushReplacement(createGameRoute<void>((context) => SetupScreen.online(gameId: rematchGameId)));
+        } else {
+          Navigator.of(context).pushReplacement(createGameRoute<void>((context) => const SetupScreen()));
+        }
       case GameResultAction.review:
         final record = board.game;
         Navigator.of(context).pushReplacement(createGameRoute<void>((context) => ReviewScreen(record: record)));
       case GameResultAction.home:
+      case null:
         Navigator.of(context).pop();
+    }
+  }
+
+  /// 결과 화면을 나갔다고 대국 서버에 알린다. 실패해도 화면은 넘어가고, 상대의 다시 두기는 서버가 접속 상태로 취소한다.
+  Future<void> _leaveResult(String gameId) async {
+    try {
+      await repositories.gameRepository.leaveResult(gameId);
+    } catch (error, stackTrace) {
+      developer.log('GameRepository.leaveResult 실패', error: error, stackTrace: stackTrace);
     }
   }
 

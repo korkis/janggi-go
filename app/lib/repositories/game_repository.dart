@@ -45,11 +45,37 @@ class GameRepository {
     await _call('checkGame', {'gameId': gameId});
   }
 
-  /// 대국 서버 API를 Callable 프로토콜로 부른다. 서버가 알려 준 거절 사유는 [AppException]으로 바꾼다.
-  Future<void> _call(String name, Map<String, Object?> data) async {
+  /// 빠른 대국 대기열에 들어가고 서버가 바로 한 번 상대를 찾는다. 찾았으면 새 대국 ID, 아니면 null을 돌려준다.
+  /// 이미 대기열에 있으면 기다린 시간을 그대로 두고 다시 찾기만 한다.
+  Future<String?> joinQuickQueue() async {
+    final result = await _call('joinQuickQueue', null);
+    return result['gameId'] as String?;
+  }
+
+  /// 빠른 대국 대기열에서 나온다. 그새 대국이 만들어졌으면 서버가 `busy`로 거절한다.
+  Future<void> leaveQuickQueue() async {
+    await _call('leaveQuickQueue', null);
+  }
+
+  /// 끝난 대국 [gameId]의 다시 두기를 누른다. 두 사람이 모두 눌러 새 대국이 정해졌으면 그 ID, 상대를 기다리면 null.
+  Future<String?> requestRematch(String gameId) async {
+    final result = await _call('requestRematch', {'gameId': gameId});
+    return result['gameId'] as String?;
+  }
+
+  /// 결과 화면을 나간다. 기다리던 다시 두기를 취소한다.
+  Future<void> leaveResult(String gameId) async {
+    await _call('leaveResult', {'gameId': gameId});
+  }
+
+  /// 대국 서버 API를 Callable 프로토콜로 부르고 결과 객체를 돌려준다. 결과가 없으면 빈 Map이다.
+  /// 서버가 알려 준 거절 사유는 [AppException]으로 바꾼다.
+  Future<Map<String, Object?>> _call(String name, Map<String, Object?>? data) async {
     final callable = functions.httpsCallableFromUrl(getServerUrl().resolve(name).toString());
     try {
-      await callable.call<Object?>(data);
+      final result = await callable.call<Object?>(data);
+      final value = result.data;
+      return value is Map ? {for (final entry in value.entries) entry.key.toString(): entry.value} : const {};
     } on FirebaseFunctionsException catch (error) {
       final details = error.details;
       final code = details is Map ? GameErrorCode.fromName(details['code']) : null;

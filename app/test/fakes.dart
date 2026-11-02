@@ -12,6 +12,7 @@ import 'package:janggigo/models/connection.dart';
 import 'package:janggigo/models/game_enums.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
 import 'package:janggigo/models/player_state.dart';
+import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
@@ -20,6 +21,7 @@ import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/game_repository.dart';
 import 'package:janggigo/repositories/player_state_repository.dart';
 import 'package:janggigo/repositories/server_time_repository.dart';
+import 'package:janggigo/repositories/user_private_repository.dart';
 import 'package:janggigo/repositories/user_repository.dart';
 import 'package:janggigo/utils/app_exception.dart';
 
@@ -96,6 +98,9 @@ class FakeUserRepository implements UserRepository {
 
   @override
   Future<UserProfile?> getUser(String uid) async => profiles[uid];
+
+  @override
+  Stream<UserProfile?> watchUser(String uid) => Stream.value(profiles[uid]);
 
   @override
   Future<NicknameAvailability> checkNickname(String nickname) async {
@@ -208,6 +213,27 @@ class FakeGameRepository implements GameRepository {
   @override
   Future<void> checkGame(String gameId) => _record('checkGame $gameId');
 
+  /// `joinQuickQueue`가 돌려줄 대국. null이면 상대를 기다린다.
+  String? joinQuickQueueResult;
+
+  @override
+  Future<String?> joinQuickQueue() async {
+    await _record('joinQuickQueue');
+    return joinQuickQueueResult;
+  }
+
+  @override
+  Future<void> leaveQuickQueue() => _record('leaveQuickQueue');
+
+  @override
+  Future<String?> requestRematch(String gameId) async {
+    await _record('requestRematch $gameId');
+    return null;
+  }
+
+  @override
+  Future<void> leaveResult(String gameId) => _record('leaveResult $gameId');
+
   Future<void> _record(String call) async {
     calls.add(call);
     final error = nextError;
@@ -273,6 +299,32 @@ class FakeConnectionRepository implements ConnectionRepository {
       _connectionsControllers.putIfAbsent(uid, StreamController<List<Connection>>.broadcast);
 }
 
+/// 테스트가 `users_private` 문서를 직접 보내는 가짜 UserPrivateRepository.
+class FakeUserPrivateRepository implements UserPrivateRepository {
+  final _controllers = <String, StreamController<UserPrivate?>>{};
+  final _latest = <String, UserPrivate?>{};
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  Stream<UserPrivate?> watchUserPrivate(String uid) async* {
+    if (_latest.containsKey(uid)) {
+      yield _latest[uid];
+    }
+    yield* _getController(uid).stream;
+  }
+
+  /// 대국 서버가 [uid]의 급수 진행을 바꾼 것처럼 보낸다.
+  void emit(String uid, UserPrivate? userPrivate) {
+    _latest[uid] = userPrivate;
+    _getController(uid).add(userPrivate);
+  }
+
+  StreamController<UserPrivate?> _getController(String uid) =>
+      _controllers.putIfAbsent(uid, StreamController<UserPrivate?>.broadcast);
+}
+
 class FakeServerTimeRepository implements ServerTimeRepository {
   @override
   FirebaseDatabase get database => throw UnimplementedError();
@@ -285,6 +337,7 @@ class FakeServerTimeRepository implements ServerTimeRepository {
 ({
   FakeAuthRepository auth,
   FakeUserRepository users,
+  FakeUserPrivateRepository userPrivates,
   FakePlayerStateRepository playerStates,
   FakeGameRepository games,
   FakeConnectionRepository connections,
@@ -292,6 +345,7 @@ class FakeServerTimeRepository implements ServerTimeRepository {
 setUpFakeApp() {
   final authRepository = FakeAuthRepository();
   final userRepository = FakeUserRepository(authRepository);
+  final userPrivateRepository = FakeUserPrivateRepository();
   final playerStateRepository = FakePlayerStateRepository();
   final gameRepository = FakeGameRepository();
   final connectionRepository = FakeConnectionRepository();
@@ -299,6 +353,7 @@ setUpFakeApp() {
     authRepository: authRepository,
     configRepository: FakeConfigRepository(),
     userRepository: userRepository,
+    userPrivateRepository: userPrivateRepository,
     playerStateRepository: playerStateRepository,
     gameRepository: gameRepository,
     serverTimeRepository: FakeServerTimeRepository(),
@@ -308,6 +363,7 @@ setUpFakeApp() {
   return (
     auth: authRepository,
     users: userRepository,
+    userPrivates: userPrivateRepository,
     playerStates: playerStateRepository,
     games: gameRepository,
     connections: connectionRepository,

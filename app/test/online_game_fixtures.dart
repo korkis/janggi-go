@@ -2,7 +2,7 @@ import 'package:janggi_core/janggi_core.dart';
 
 /// 대국 서버가 RTDB `games_active/{gameId}`에 쓰는 모양의 대국. [cho]와 [han]은 대국자 uid다.
 ///
-/// 시각은 [startsAt] 기준이고, 처음 국면은 양쪽 모두 마상마상이다.
+/// 시각은 [startsAt] 기준이고, 처음 국면은 양쪽 모두 마상마상이다. 기본은 급수에 반영하지 않는 신청 대국이다.
 Map<String, dynamic> buildGameJson({
   String cho = 'me',
   String han = 'opp',
@@ -18,13 +18,16 @@ Map<String, dynamic> buildGameJson({
   Map<String, dynamic>? disconnect,
   Map<String, dynamic>? result,
   int? endedAt,
+  String mode = 'challenge',
+  bool rated = false,
+  Map<String, dynamic>? rematch,
 }) {
   final playing = phase != 'setup';
   final sideClock = {'baseMs': 300000, 'periods': 3, 'extensionsUsed': 0};
   return {
     'meta': {
-      'mode': 'challenge',
-      'rated': false,
+      'mode': mode,
+      'rated': rated,
       'listed': true,
       'players': {
         'cho': {'uid': cho, 'nickname': '초$cho', 'rankLevel': 1},
@@ -69,6 +72,7 @@ Map<String, dynamic> buildGameJson({
       'result': ?result,
       'endedAt': ?endedAt,
     },
+    'rematch': ?rematch,
     if (moves.isNotEmpty)
       'moves': [
         for (final move in moves) {'m': move, 'spentMs': 1000},

@@ -871,6 +871,150 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'대국으로 돌아가기'**
   String get homeResumeGame;
+
+  /// 홈 큰 버튼. 급수가 비슷한 상대와 바로 둔다
+  ///
+  /// In ko, this message translates to:
+  /// **'빠른 대국'**
+  String get homeQuickMatch;
+
+  /// 내 카드와 대국 결과의 급수 진행 막대 옆. 비슷한 상대를 이길 때 다음 급수까지 필요한 어림 승수
+  ///
+  /// In ko, this message translates to:
+  /// **'{rank}까지 약 {wins}승'**
+  String rankWinsToNext(String rank, int wins);
+
+  /// 빠른 대국 대기 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'상대를 찾고 있어요'**
+  String get quickMatchSearching;
+
+  /// 빠른 대국 대기 화면 제목 아래
+  ///
+  /// In ko, this message translates to:
+  /// **'급수가 비슷한 상대와 바로 시작해요'**
+  String get quickMatchSearchingDescription;
+
+  /// 빠른 대국 대기 화면의 규칙 팁 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'장기 규칙'**
+  String get quickMatchTipTitle;
+
+  /// 빠른 대국 대기 화면의 규칙 팁. docs/game/rules.md의 내용만 쓴다
+  ///
+  /// In ko, this message translates to:
+  /// **'{index, select, 0{초가 먼저 두고, 한은 덤 1.5점을 받아요} 1{한이 먼저 상차림을 정하고, 초는 한의 상차림을 본 뒤 정해요} 2{장군을 받은 상태에서는 한수쉼을 할 수 없어요} 3{같은 국면을 3번째로 만드는 수는 둘 수 없어요} other{양쪽이 연속으로 한수쉼을 하면 점수로 승부를 정해요}}'**
+  String quickMatchTip(String index);
+
+  /// 빠른 대국 대기 화면 맨 아래 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'그만 찾기'**
+  String get quickMatchStop;
+
+  /// 빠른 대국 상대 찾음 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'상대를 찾았어요'**
+  String get quickMatchFound;
+
+  /// 빠른 대국 상대 찾음 화면 가운데
+  ///
+  /// In ko, this message translates to:
+  /// **'VS'**
+  String get quickMatchVersus;
+
+  /// 빠른 대국 상대 찾음 화면의 진영과 두는 순서
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{초 · 먼저 둬요} han{한 · 나중에 둬요} other{}}'**
+  String quickMatchMoveOrder(String side);
+
+  /// 빠른 대국 상대 찾음 화면의 시간 규칙
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 {minutes}분 · 초읽기 {seconds}초 {periods}회'**
+  String quickMatchTimeRule(int minutes, int seconds, int periods);
+
+  /// 빠른 대국 상대 찾음 화면. 급수에 반영하는 대국
+  ///
+  /// In ko, this message translates to:
+  /// **'급수 대국'**
+  String get quickMatchRated;
+
+  /// 빠른 대국 대기열 들어가기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'상대를 찾지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorQuickMatch;
+
+  /// 빠른 대국 그만 찾기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'그만 찾지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorLeaveQuickMatch;
+
+  /// 대국 서버 sanctioned
+  ///
+  /// In ko, this message translates to:
+  /// **'이용이 제한되어 지금은 대국을 할 수 없어요'**
+  String get errorSanctioned;
+
+  /// 대국 서버 rematchUnavailable
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 다시 두기를 할 수 없어요'**
+  String get errorRematchUnavailable;
+
+  /// 다시 두기 요청 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 두기를 하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorRematch;
+
+  /// 대국 결과 가장 큰 버튼. 새 빠른 대국
+  ///
+  /// In ko, this message translates to:
+  /// **'한 판 더'**
+  String get resultPlayAgain;
+
+  /// 대국 결과. 내가 다시 두기를 누르고 상대를 기다릴 때 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'상대를 기다리는 중'**
+  String get resultRematchWaiting;
+
+  /// 대국 결과. 상대가 먼저 다시 두기를 눌렀을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 다시 두기를 원해요'**
+  String get resultRematchRequested;
+
+  /// 대국 결과. 상대가 결과 화면을 나갔을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 나가서 다시 둘 수 없어요'**
+  String get resultRematchCancelled;
+
+  /// 대국 결과. 빠른 대국 다시 두기 횟수에 닿았을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'같은 상대와는 더 다시 둘 수 없어요'**
+  String get resultRematchBlocked;
+
+  /// 대국 결과. 급수가 올랐을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'{rank}으로 올랐어요'**
+  String resultRankUp(String rank);
+
+  /// 대국 결과. 급수가 내려갔을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'{rank}으로 내려갔어요'**
+  String resultRankDown(String rank);
 }
 
 class _AppLocalizationsDelegate

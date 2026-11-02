@@ -18,7 +18,7 @@ class ActiveGame {
   @JsonKey(defaultValue: <GameMoveRecord>[])
   final List<GameMoveRecord> moves;
 
-  /// 다시 두기 상태. 7단계(빠른 대국)부터 쓴다.
+  /// 다시 두기 상태. 아무도 누르지 않았으면 null.
   final GameRematch? rematch;
 
   const ActiveGame({required this.meta, required this.state, required this.moves, required this.rematch});
@@ -292,13 +292,22 @@ class GameMoveRecord {
   factory GameMoveRecord.fromJson(Map<String, dynamic> json) => _$GameMoveRecordFromJson(json);
 }
 
-/// 다시 두기. 7단계(빠른 대국)부터 쓴다.
+/// 다시 두기(`docs/server.md`의 다시 두기).
 @JsonSerializable(createToJson: false)
 class GameRematch {
+  /// 초가 다시 두기를 눌렀다.
   final bool? cho;
+
+  /// 한이 다시 두기를 눌렀다.
   final bool? han;
+
+  /// 한쪽이 결과 화면을 나가서 취소됐다.
   final bool? cancelled;
+
+  /// 두 쪽이 모두 눌러 만든 새 대국. 내 `player_states.gameId`가 이 값이 되면 옮겨 간다.
   final String? gameId;
+
+  /// 빠른 대국의 다시 두기 횟수에 닿아 다시 두기를 쓸 수 없다.
   final bool? blocked;
 
   const GameRematch({
@@ -310,4 +319,6 @@ class GameRematch {
   });
 
   factory GameRematch.fromJson(Map<String, dynamic> json) => _$GameRematchFromJson(json);
+
+  bool? get(Side side) => side == Side.cho ? cho : han;
 }

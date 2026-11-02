@@ -24,6 +24,14 @@ class UserRepository {
     return UserProfile.fromJson(data);
   }
 
+  /// 공개 프로필을 듣는다. 급수처럼 대국 서버가 바꾸는 값을 바로 보여줄 때 쓴다. 프로필이 없으면 null을 보낸다.
+  Stream<UserProfile?> watchUser(String uid) => _users.doc(uid).snapshots().map(_decode);
+
+  static UserProfile? _decode(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+    final data = snapshot.data();
+    return data == null ? null : UserProfile.fromJson(data);
+  }
+
   /// 닉네임 정하기 화면에서 입력하는 동안 [nickname]을 쓸 수 있는지 서버에 묻는다.
   Future<NicknameAvailability> checkNickname(String nickname) async {
     final result = await functions.httpsCallable('checkNickname').call<Map<String, dynamic>>({'nickname': nickname});

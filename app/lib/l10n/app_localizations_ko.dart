@@ -484,4 +484,100 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeResumeGame => '대국으로 돌아가기';
+
+  @override
+  String get homeQuickMatch => '빠른 대국';
+
+  @override
+  String rankWinsToNext(String rank, int wins) {
+    return '$rank까지 약 $wins승';
+  }
+
+  @override
+  String get quickMatchSearching => '상대를 찾고 있어요';
+
+  @override
+  String get quickMatchSearchingDescription => '급수가 비슷한 상대와 바로 시작해요';
+
+  @override
+  String get quickMatchTipTitle => '장기 규칙';
+
+  @override
+  String quickMatchTip(String index) {
+    String _temp0 = intl.Intl.selectLogic(index, {
+      '0': '초가 먼저 두고, 한은 덤 1.5점을 받아요',
+      '1': '한이 먼저 상차림을 정하고, 초는 한의 상차림을 본 뒤 정해요',
+      '2': '장군을 받은 상태에서는 한수쉼을 할 수 없어요',
+      '3': '같은 국면을 3번째로 만드는 수는 둘 수 없어요',
+      'other': '양쪽이 연속으로 한수쉼을 하면 점수로 승부를 정해요',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get quickMatchStop => '그만 찾기';
+
+  @override
+  String get quickMatchFound => '상대를 찾았어요';
+
+  @override
+  String get quickMatchVersus => 'VS';
+
+  @override
+  String quickMatchMoveOrder(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '초 · 먼저 둬요',
+      'han': '한 · 나중에 둬요',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String quickMatchTimeRule(int minutes, int seconds, int periods) {
+    return '기본 $minutes분 · 초읽기 $seconds초 $periods회';
+  }
+
+  @override
+  String get quickMatchRated => '급수 대국';
+
+  @override
+  String get errorQuickMatch => '상대를 찾지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorLeaveQuickMatch => '그만 찾지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorSanctioned => '이용이 제한되어 지금은 대국을 할 수 없어요';
+
+  @override
+  String get errorRematchUnavailable => '지금은 다시 두기를 할 수 없어요';
+
+  @override
+  String get errorRematch => '다시 두기를 하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get resultPlayAgain => '한 판 더';
+
+  @override
+  String get resultRematchWaiting => '상대를 기다리는 중';
+
+  @override
+  String get resultRematchRequested => '상대가 다시 두기를 원해요';
+
+  @override
+  String get resultRematchCancelled => '상대가 나가서 다시 둘 수 없어요';
+
+  @override
+  String get resultRematchBlocked => '같은 상대와는 더 다시 둘 수 없어요';
+
+  @override
+  String resultRankUp(String rank) {
+    return '$rank으로 올랐어요';
+  }
+
+  @override
+  String resultRankDown(String rank) {
+    return '$rank으로 내려갔어요';
+  }
 }

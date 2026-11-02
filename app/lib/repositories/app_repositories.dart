@@ -10,6 +10,7 @@ import 'connection_repository.dart';
 import 'game_repository.dart';
 import 'player_state_repository.dart';
 import 'server_time_repository.dart';
+import 'user_private_repository.dart';
 import 'user_repository.dart';
 
 /// 앱 수명 동안 쓰는 Repository. Firebase 초기화 뒤 `managers`보다 먼저 설정한다.
@@ -19,6 +20,7 @@ class AppRepositories {
   final AuthRepository authRepository;
   final ConfigRepository configRepository;
   final UserRepository userRepository;
+  final UserPrivateRepository userPrivateRepository;
   final PlayerStateRepository playerStateRepository;
   final GameRepository gameRepository;
   final ServerTimeRepository serverTimeRepository;
@@ -28,6 +30,7 @@ class AppRepositories {
     required this.authRepository,
     required this.configRepository,
     required this.userRepository,
+    required this.userPrivateRepository,
     required this.playerStateRepository,
     required this.gameRepository,
     required this.serverTimeRepository,
@@ -42,6 +45,7 @@ class AppRepositories {
       authRepository: AuthRepository(auth: FirebaseAuth.instance),
       configRepository: ConfigRepository(firestore: firestore),
       userRepository: UserRepository(firestore: firestore, functions: functions),
+      userPrivateRepository: UserPrivateRepository(firestore: firestore),
       playerStateRepository: PlayerStateRepository(firestore: firestore),
       gameRepository: GameRepository(database: database, functions: functions, getServerUrl: getGameServerUrl),
       serverTimeRepository: ServerTimeRepository(database: database),

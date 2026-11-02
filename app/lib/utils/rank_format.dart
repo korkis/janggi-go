@@ -1,6 +1,9 @@
 import '../l10n/app_localizations.dart';
 import '../models/active_game.dart';
 
+/// 가장 높은 급수(9단)의 rankLevel. 이보다 높은 급수가 없어 다음 급수까지의 진행을 보여주지 않는다(`docs/game/rank.md`).
+const maxRankLevel = 27;
+
 // 급(18급~1급)의 가장 높은 rankLevel. 그 위는 단이다(`docs/game/rank.md`).
 const _maxKyuRankLevel = 18;
 

@@ -12,10 +12,12 @@ import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../widgets/game_scaffold.dart';
+import '../widgets/rank_progress_bar.dart';
 import 'login_flow.dart';
+import 'quick_match_screen.dart';
 import 'setup_screen.dart';
 
-/// 홈 화면. 지금은 내 카드와, 개발 빌드에서만 보이는 개발용 대국 카드들을 보여준다.
+/// 홈 화면. 지금은 내 카드, 빠른 대국 버튼과, 개발 빌드에서만 보이는 개발용 대국 카드들을 보여준다.
 ///
 /// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
 class HomeScreen extends StatelessWidget {
@@ -37,6 +39,8 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
             const _ResumeGameButton(),
             const _MyCard(),
+            const SizedBox(height: 16),
+            const _QuickMatchButton(),
             const SizedBox(height: 16),
             if (!kReleaseMode) const _DevGameCard(),
             if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
@@ -79,6 +83,37 @@ class _ResumeGameButton extends StatelessWidget {
 
   void _onResume(BuildContext context, String gameId) {
     Navigator.of(context).push(createGameRoute<void>((context) => SetupScreen.online(gameId: gameId)));
+  }
+}
+
+/// 빠른 대국 큰 버튼(`docs/screens.md`의 홈). 로그인과 닉네임을 거친 뒤 빠른 대국 대기 화면으로 간다.
+/// 진행 중인 대국이 있으면 대기열 대신 그 대국으로 간다.
+class _QuickMatchButton extends StatelessWidget {
+  const _QuickMatchButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return FilledButton.icon(
+      onPressed: () => _onQuickMatch(context),
+      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(64)),
+      icon: const Icon(Icons.bolt),
+      // 빠른 대국
+      label: Text(l10n.homeQuickMatch, style: const TextStyle(fontSize: AppTextSizes.title)),
+    );
+  }
+
+  Future<void> _onQuickMatch(BuildContext context) async {
+    final ready = await ensureSignedInWithProfile(context, LoginPurpose.quickMatch);
+    if (!ready || !context.mounted) {
+      return;
+    }
+    final gameId = managers.playerStateManager.gameId;
+    if (gameId != null) {
+      await Navigator.of(context).push(createGameRoute<void>((context) => SetupScreen.online(gameId: gameId)));
+      return;
+    }
+    await Navigator.of(context).push(createGameRoute<void>((context) => const QuickMatchScreen()));
   }
 }
 
@@ -280,7 +315,10 @@ class _MyCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: ListenableBuilder(listenable: managers.authManager, builder: _buildContent),
+        child: ListenableBuilder(
+          listenable: Listenable.merge([managers.authManager, managers.rankManager]),
+          builder: _buildContent,
+        ),
       ),
     );
   }
@@ -310,14 +348,35 @@ class _MyCard extends StatelessWidget {
         ],
       );
     }
+    final rankManager = managers.rankManager;
+    final rankLevel = rankManager.rankLevel ?? profile.rankLevel;
+    final rankProgress = rankManager.rankProgress;
+    final winsToNextRank = rankManager.winsToNextRank;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(profile.nickname, style: Theme.of(context).textTheme.titleLarge),
         Text(
-          getRankLabel(l10n, profile.rankLevel),
+          getRankLabel(l10n, rankLevel),
           style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
         ),
+        if (rankProgress != null && rankLevel < maxRankLevel) ...[
+          const SizedBox(height: 12),
+          RankProgressBar(
+            progress: rankProgress,
+            color: LightColors.accent,
+            trackColor: LightColors.mutedSurface,
+            changeColor: LightColors.accent,
+          ),
+          if (winsToNextRank != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              // 4급까지 약 3승
+              l10n.rankWinsToNext(getRankLabel(l10n, rankLevel + 1), winsToNextRank),
+              style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+            ),
+          ],
+        ],
         if (!kReleaseMode)
           Align(
             alignment: Alignment.centerRight,

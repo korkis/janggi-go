@@ -25,7 +25,7 @@ class PlayerState {
   /// 상차림 화면에서 골라 둔 것.
   final SetupDraft? setupDraft;
 
-  /// 마지막 급수 대국의 변동. 7단계(빠른 대국)부터 쓴다.
+  /// 마지막 급수 대국의 변동. 결과 창의 급수 변동에 쓴다.
   final RankChange? lastRankChange;
 
   @TimestampConverter()

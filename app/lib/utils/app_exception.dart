@@ -23,6 +23,8 @@ enum AppErrorCode {
   gameIllegalMove,
   gameMoveConflict,
   gameOver,
+  sanctioned,
+  rematchUnavailable,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -49,6 +51,8 @@ class AppException implements Exception {
       GameErrorCode.illegalMove => AppErrorCode.gameIllegalMove,
       GameErrorCode.moveConflict => AppErrorCode.gameMoveConflict,
       GameErrorCode.gameOver => AppErrorCode.gameOver,
+      GameErrorCode.sanctioned => AppErrorCode.sanctioned,
+      GameErrorCode.rematchUnavailable => AppErrorCode.rematchUnavailable,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -91,5 +95,9 @@ class AppException implements Exception {
     AppErrorCode.gameMoveConflict => l10n.errorGameMoveConflict,
     // 이미 끝난 대국이에요
     AppErrorCode.gameOver => l10n.errorGameOver,
+    // 이용이 제한되어 지금은 대국을 할 수 없어요
+    AppErrorCode.sanctioned => l10n.errorSanctioned,
+    // 지금은 다시 두기를 할 수 없어요
+    AppErrorCode.rematchUnavailable => l10n.errorRematchUnavailable,
   };
 }
