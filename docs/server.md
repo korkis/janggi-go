@@ -255,7 +255,7 @@ flowchart LR
 - 새 대국의 `rematchCount`는 앞 대국 + 1이다. 빠른 대국은 앞 대국의 `rematchCount`가 `quickRematchLimit`에 닿았으면 받지 않는다. 그런 대국은 만들 때부터 `rematch.blocked`를 true로 두어 결과 화면이 처음부터 버튼을 끈다. 방 대국과 신청 대국은 횟수를 세기만 하고 막지 않는다.
 - `leaveResult`를 받으면 `rematch.cancelled`를 true로 둔다. 결과 화면에서 앱이 꺼진 경우는 상대가 `requestRematch`를 부를 때 서버가 `connections`로 끊긴 것을 보고 취소로 처리한다. 상대가 먼저 눌렀어도 같다.
   - 이때 연결된 것은 `online`이고 `foreground`인 연결이 있는 것이다. 대국이 끝나면 앱이 `lastSeenAt`을 갱신하지 않으므로 대국 중 판정과 달리 `presenceStaleSeconds`는 보지 않는다.
-- 결과 창의 "한 판 더", 복기하기, 홈으로는 모두 `leaveResult`를 부른 뒤 넘어간다. 결과 창을 뒤로 가기로 닫으면 홈으로 간다.
+- 대국이 끝난 화면의 나가기(방 대국은 방 대기실로)와 뒤로 가기는 `leaveResult`를 부른 뒤 넘어간다. 대국이 끝난 뒤에는 결과 창 없이 같은 화면이 복기 모드가 되므로 복기는 `leaveResult`를 부르지 않는다([screens.md](./screens.md)의 대국 결과).
 
 ## 매칭 — 초안
 
@@ -497,7 +497,7 @@ sequenceDiagram
 3. 상차림에서 누를 때마다 `setFormation(confirmed: false)`, 정하기 버튼은 `confirmed: true`. 마감이 지나면 서버가 확정한다.
 4. 대국 중에는 `playMove`, `resign`을 부른다. 상대 시계가 0이 되거나 상대 연결이 끊긴 것을 보면 `checkGame`을 부른다.
 5. `state.result`가 생기면 결과 창을 띄운다. 급수 변동은 `player_states.lastRankChange`로 보여준다.
-6. 다시 두기는 `requestRematch`, 나가기는 `leaveResult`. "한 판 더"는 `leaveResult` 뒤 `joinQuickQueue`.
+6. 재대국 신청은 `requestRematch`, 나가기는 `leaveResult`.
 
 ### 방과 초대 링크
 
