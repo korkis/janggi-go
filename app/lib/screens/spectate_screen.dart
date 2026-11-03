@@ -6,14 +6,17 @@ import 'package:janggi_core/janggi_core.dart';
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../managers/board_manager.dart';
+import '../managers/chat_manager.dart';
 import '../managers/online_game_manager.dart';
 import '../managers/spectate_manager.dart';
+import '../models/chat_message.dart';
 import '../theme/app_theme.dart';
 import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
+import '../widgets/chat_view.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
 import 'game_result_sheet.dart';
@@ -34,7 +37,8 @@ Future<void> openSpectate(BuildContext context, String gameId) async {
 /// 관전 화면. 대국 화면의 관전 모드다(`docs/screens.md`의 대국 화면).
 ///
 /// 초가 아래이고 판을 돌릴 수 있다. 남의 대국이므로 어느 쪽 기물도 어둡게 하지 않고, 차례는 시계와 정보 줄로만 보여준다.
-/// 위에 "관전 · N명 보는 중"을 둔다. 관전 채팅은 구현 순서 11번에 붙이고 지금은 자리만 둔다.
+/// 위에 "관전 · N명 보는 중"을 둔다. 관전 채팅은 넓은 화면이면 오른쪽 패널에 늘 펼쳐 두고, 아니면 버튼으로 아래에서 올린다.
+/// 로그인하지 않은 관전자에게는 채팅 대신 로그인 안내를 보여준다.
 class SpectateScreen extends StatefulWidget {
   final String gameId;
 
@@ -47,6 +51,7 @@ class SpectateScreen extends StatefulWidget {
 class _SpectateScreenState extends State<SpectateScreen> {
   late final OnlineGameManager _online;
   late final SpectateManager _spectate;
+  late final ChatManager _chat;
   var _resultShown = false;
 
   @override
@@ -58,6 +63,12 @@ class _SpectateScreenState extends State<SpectateScreen> {
       connectionManager: managers.connectionManager,
     )..addListener(_onGameChanged);
     _spectate = SpectateManager(gameId: widget.gameId);
+    _chat = ChatManager(
+      channel: ChatChannel.spectator,
+      gameId: widget.gameId,
+      authManager: managers.authManager,
+      blockManager: managers.blockManager,
+    );
   }
 
   @override
@@ -65,6 +76,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
     _online.removeListener(_onGameChanged);
     _online.dispose();
     _spectate.dispose();
+    _chat.dispose();
     super.dispose();
   }
 
@@ -109,7 +121,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
         panel: GamePanel(
           title: title,
           details: getGameDetails(l10n, game.meta),
-          body: const _ChatPlaceholder(),
+          body: ChatView(chats: [_chat], style: ChatStyle.dark),
           buttons: _buildButtonBar(context, board, wide: true),
         ),
       );
@@ -202,11 +214,10 @@ class _SpectateScreenState extends State<SpectateScreen> {
     return GameButtonBar(
       children: [
         if (!wide)
-          GameBarButton(
-            icon: Icons.chat_bubble_outline,
+          ChatBarButton(
+            chats: [_chat],
             // 관전 채팅
             label: l10n.spectateChat,
-            onPressed: null,
           ),
         GameBarButton(
           icon: Icons.sync,
@@ -243,6 +254,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
         elapsed: _online.getElapsed(),
         online: _online,
         spectating: true,
+        chats: [_chat],
       ),
     );
     if (!mounted) {
@@ -264,36 +276,5 @@ class _SpectateScreenState extends State<SpectateScreen> {
 
   void _onLeave() {
     Navigator.of(context).maybePop();
-  }
-}
-
-/// 넓은 화면 패널 가운데의 관전 채팅 자리. 관전 채팅(구현 순서 11번)이 생기면 바꾼다.
-class _ChatPlaceholder extends StatelessWidget {
-  const _ChatPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(16)),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.chat_bubble_outline, color: GameColors.inactiveText),
-              const SizedBox(height: 8),
-              Text(
-                // 관전 채팅은 곧 열려요
-                l10n.spectateChatSoon,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.subText),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

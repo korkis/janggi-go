@@ -1172,9 +1172,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get spectateChat => 'Chat';
 
   @override
-  String get spectateChatSoon => 'Spectator chat is coming soon';
-
-  @override
   String get spectateSetup => 'The players are choosing their setups';
 
   @override
@@ -1195,4 +1192,113 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lobbySpectateTitle => 'Watch a game in progress';
+
+  @override
+  String get chat => 'Chat';
+
+  @override
+  String get chatLobby => 'Lobby chat';
+
+  @override
+  String get chatGame => 'Game chat';
+
+  @override
+  String get chatLongPressHint => 'Press and hold a message to report or block';
+
+  @override
+  String get chatEmpty => 'No messages yet';
+
+  @override
+  String get chatInputHint => 'Type a message';
+
+  @override
+  String get chatSend => 'Send';
+
+  @override
+  String get chatLoginGuide => 'Sign in to chat';
+
+  @override
+  String get chatOpponentMute => 'Mute opponent';
+
+  @override
+  String get chatOpponentUnmute => 'Unmute opponent';
+
+  @override
+  String get chatReport => 'Report';
+
+  @override
+  String get chatReportDone => 'Reported. Our team will review it';
+
+  @override
+  String get errorChatReport => 'Couldn\'t report. Please try again later';
+
+  @override
+  String get errorChatSend =>
+      'Couldn\'t send the message. Please try again later';
+
+  @override
+  String get errorChatMessageBlocked =>
+      'Not sent because it contains inappropriate language';
+
+  @override
+  String get errorChatRestricted =>
+      'You can\'t chat right now because your account is restricted';
+
+  @override
+  String get chatPhraseHello => 'Hello';
+
+  @override
+  String get chatPhraseNiceToMeet => 'Nice to meet you';
+
+  @override
+  String get chatPhraseLookingForGame => 'Anyone up for a game?';
+
+  @override
+  String get chatPhraseGoodLuck => 'Have a good game';
+
+  @override
+  String get chatPhraseGoodGame => 'Good game';
+
+  @override
+  String get chatPhraseNiceMove => 'Nice move';
+
+  @override
+  String get chatPhraseCheer => 'Good luck to both';
+
+  @override
+  String get loginSheetTitleSpectateChat => 'Sign in to\nchat while watching';
+
+  @override
+  String get nicknameStartHintSpectateChat =>
+      'We\'ll take you back to the chat right after';
+
+  @override
+  String get blockListTitle => 'Blocked players';
+
+  @override
+  String get blockListGuide =>
+      'You won\'t see chat messages or challenges from blocked players';
+
+  @override
+  String get blockListEmpty => 'You haven\'t blocked anyone';
+
+  @override
+  String get blockListUnblock => 'Unblock';
+
+  @override
+  String get errorLoadBlocks => 'Couldn\'t load blocked players';
+
+  @override
+  String get errorUnblock => 'Couldn\'t unblock. Please try again later';
+
+  @override
+  String get unknownUser => 'Unknown player';
+
+  @override
+  String blockListDate(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Blocked $dateString';
+  }
 }

@@ -7,6 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../config.dart';
 import 'auth_repository.dart';
 import 'challenge_repository.dart';
+import 'chat_repository.dart';
 import 'config_repository.dart';
 import 'connection_repository.dart';
 import 'deep_link_repository.dart';
@@ -40,6 +41,7 @@ class AppRepositories {
   final UserBlockRepository userBlockRepository;
   final SpectateListRepository spectateListRepository;
   final SpectatorRepository spectatorRepository;
+  final ChatRepository chatRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -57,6 +59,7 @@ class AppRepositories {
     required this.userBlockRepository,
     required this.spectateListRepository,
     required this.spectatorRepository,
+    required this.chatRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -87,6 +90,7 @@ class AppRepositories {
       userBlockRepository: UserBlockRepository(firestore: firestore),
       spectateListRepository: SpectateListRepository(database: database),
       spectatorRepository: SpectatorRepository(database: database),
+      chatRepository: ChatRepository(database: database, functions: functions),
     );
   }
 }

@@ -7,7 +7,9 @@ import 'package:janggi_core/janggi_core.dart';
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../managers/board_manager.dart';
+import '../managers/chat_manager.dart';
 import '../managers/online_game_manager.dart';
+import '../models/chat_message.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
@@ -17,6 +19,7 @@ import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
 import '../widgets/adaptive_layout.dart';
+import '../widgets/chat_view.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
@@ -50,6 +53,12 @@ class _GameScreenState extends State<GameScreen> {
   OnlineGameManager? _online;
   var _resultShown = false;
 
+  // 온라인 대국의 대국 채팅. 개발용 대국이면 null이다.
+  ChatManager? _gameChat;
+
+  // 대국이 끝난 뒤 대국자도 보는 관전 채팅(`docs/moderation.md`의 채팅 종류). 대국 중에는 null이다.
+  ChatManager? _spectatorChat;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +71,7 @@ class _GameScreenState extends State<GameScreen> {
         uid: managers.authManager.uid!,
         connectionManager: managers.connectionManager,
       )..addListener(_onBoardChanged);
+      _gameChat = _createChat(ChatChannel.game, gameId);
     }
   }
 
@@ -71,8 +81,20 @@ class _GameScreenState extends State<GameScreen> {
     _localBoard?.dispose();
     _online?.removeListener(_onBoardChanged);
     _online?.dispose();
+    _gameChat?.dispose();
+    _spectatorChat?.dispose();
     super.dispose();
   }
+
+  ChatManager _createChat(ChatChannel channel, String gameId) => ChatManager(
+    channel: channel,
+    gameId: gameId,
+    authManager: managers.authManager,
+    blockManager: managers.blockManager,
+  );
+
+  /// 채팅 창에 보여줄 채팅. 개발용 대국이면 비어 있다.
+  List<ChatManager> get _chats => [?_gameChat, ?_spectatorChat];
 
   /// 지금 판. 온라인 대국은 처음 값을 받기 전이면 null이다.
   BoardManager? get _board => _online?.board ?? _localBoard;
@@ -119,6 +141,7 @@ class _GameScreenState extends State<GameScreen> {
           panel: GamePanel(
             title: title,
             details: game == null ? const [] : getGameDetails(l10n, game.meta),
+            body: _chats.isEmpty ? null : ChatView(chats: _chats, style: ChatStyle.dark),
             buttons: _buildButtonBar(context, board, wide: true),
           ),
         ),
@@ -217,10 +240,11 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// 한수쉼과 더보기. 넓은 화면 패널([wide])에서는 기권을 더보기 밖에 꺼내 둔다.
+  /// 한수쉼, 채팅, 더보기. 넓은 화면 패널([wide])에서는 채팅이 패널 가운데에 있어 빼고, 기권을 더보기 밖에 꺼내 둔다.
   Widget _buildButtonBar(BuildContext context, BoardManager board, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
     final playing = !board.isOver;
+    final chats = _chats;
     return GameButtonBar(
       children: [
         GameBarButton(
@@ -229,6 +253,12 @@ class _GameScreenState extends State<GameScreen> {
           label: l10n.pass,
           onPressed: playing && board.canPass ? _onPass : null,
         ),
+        if (!wide && chats.isNotEmpty)
+          ChatBarButton(
+            chats: chats,
+            // 채팅
+            label: l10n.chat,
+          ),
         if (wide)
           GameBarButton(
             icon: Icons.flag_outlined,
@@ -248,7 +278,14 @@ class _GameScreenState extends State<GameScreen> {
 
   void _onBoardChanged() {
     final board = _board;
-    if (board == null || !board.isOver || _resultShown) {
+    if (board == null || !board.isOver) {
+      return;
+    }
+    final online = _online;
+    if (online != null && _spectatorChat == null) {
+      _spectatorChat = _createChat(ChatChannel.spectator, online.gameId);
+    }
+    if (_resultShown) {
       return;
     }
     _resultShown = true;
@@ -262,8 +299,13 @@ class _GameScreenState extends State<GameScreen> {
     final action = await showGameSheet<GameResultAction>(
       context,
       dismissible: false,
-      builder: (context) =>
-          GameResultSheet(result: result, moveCount: board.moveCount, elapsed: elapsed, online: online),
+      builder: (context) => GameResultSheet(
+        result: result,
+        moveCount: board.moveCount,
+        elapsed: elapsed,
+        online: online,
+        chats: online == null ? null : _chats,
+      ),
     );
     if (!mounted) {
       return;

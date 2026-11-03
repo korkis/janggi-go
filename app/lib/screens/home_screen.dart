@@ -18,6 +18,7 @@ import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
 import '../widgets/spectate_card.dart';
+import 'block_list_screen.dart';
 import 'create_room_screen.dart';
 import 'lobby_screen.dart';
 import 'login_flow.dart';
@@ -700,17 +701,31 @@ class _MyCard extends StatelessWidget {
             ),
           ],
         ],
-        if (!kReleaseMode)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => _onSignOut(context),
-              // 로그아웃 (개발용)
-              child: Text(l10n.homeDevSignOut),
+        // 차단 목록은 내 정보 화면(구현 순서 12번)이 생기면 그 메뉴로 옮긴다.
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          children: [
+            TextButton.icon(
+              onPressed: () => _onBlockList(context),
+              icon: const Icon(Icons.block),
+              // 차단 목록
+              label: Text(l10n.blockListTitle),
             ),
-          ),
+            if (!kReleaseMode)
+              TextButton(
+                onPressed: () => _onSignOut(context),
+                // 로그아웃 (개발용)
+                child: Text(l10n.homeDevSignOut),
+              ),
+          ],
+        ),
       ],
     );
+  }
+
+  Future<void> _onBlockList(BuildContext context) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const BlockListScreen()));
   }
 
   Future<void> _onLogin(BuildContext context) async {

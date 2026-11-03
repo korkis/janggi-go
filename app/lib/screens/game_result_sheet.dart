@@ -5,6 +5,7 @@ import 'package:janggi_core/janggi_core.dart';
 
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
+import '../managers/chat_manager.dart';
 import '../managers/online_game_manager.dart';
 import '../models/game_enums.dart';
 import '../repositories/app_repositories.dart';
@@ -13,6 +14,7 @@ import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
+import '../widgets/chat_view.dart';
 import '../widgets/piece_icon.dart';
 import '../widgets/player_bar.dart';
 import '../widgets/rank_progress_bar.dart';
@@ -47,6 +49,9 @@ class GameResultSheet extends StatefulWidget {
   /// 남의 대국을 관전하다 끝났다. 나가기는 [GameResultAction.home]으로 돌려준다.
   final bool spectating;
 
+  /// 결과 창 위에 열 수 있는 채팅. 온라인 대국과 로그인한 관전자만 있다. 결과 창이 판을 덮어도 인사를 나눌 수 있게 둔다.
+  final List<ChatManager>? chats;
+
   const GameResultSheet({
     super.key,
     required this.result,
@@ -54,6 +59,7 @@ class GameResultSheet extends StatefulWidget {
     required this.elapsed,
     this.online,
     this.spectating = false,
+    this.chats,
   });
 
   @override
@@ -88,6 +94,7 @@ class _GameResultSheetState extends State<GameResultSheet> {
     final l10n = AppLocalizations.of(context);
     final detail = _getScoreDetail(l10n);
     final spectating = widget.spectating;
+    final chats = widget.chats;
     final online = spectating ? null : widget.online;
     final quick = online?.game?.meta.mode == GameMode.quick;
     final inRoom = online?.game?.meta.roomId != null;
@@ -204,6 +211,7 @@ class _GameResultSheetState extends State<GameResultSheet> {
                 ),
               ],
             ),
+            if (chats != null) ...[const SizedBox(height: 6), Center(child: ChatTextButton(chats: chats))],
           ],
         ),
       ),

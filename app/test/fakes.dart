@@ -10,6 +10,7 @@ import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/active_game.dart';
 import 'package:janggigo/models/app_config.dart';
 import 'package:janggigo/models/challenge.dart';
+import 'package:janggigo/models/chat_message.dart';
 import 'package:janggigo/models/connection.dart';
 import 'package:janggigo/models/game_enums.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
@@ -22,6 +23,7 @@ import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
 import 'package:janggigo/repositories/challenge_repository.dart';
+import 'package:janggigo/repositories/chat_repository.dart';
 import 'package:janggigo/repositories/config_repository.dart';
 import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/deep_link_repository.dart';
@@ -636,6 +638,9 @@ class FakeUserBlockRepository implements UserBlockRepository {
   final _controllers = <String, StreamController<Set<String>>>{};
   final _blocked = <String, Set<String>>{};
 
+  // 차단한 시각. `uid blockedUid`별이다.
+  final _createdAt = <String, DateTime>{};
+
   /// 쓴 차단. 예: `me opp`.
   final writes = <String>[];
 
@@ -651,7 +656,25 @@ class FakeUserBlockRepository implements UserBlockRepository {
   @override
   Future<void> createBlock(String uid, String blockedUid) async {
     writes.add('$uid $blockedUid');
+    _createdAt['$uid $blockedUid'] = DateTime.utc(2026, 11, 3).add(Duration(minutes: _createdAt.length));
     final blocked = _blocked.putIfAbsent(uid, () => <String>{})..add(blockedUid);
+    _getController(uid).add({...blocked});
+  }
+
+  @override
+  Future<List<({String blockedUid, DateTime createdAt})>> getBlocks(String uid) async {
+    final blocks = [
+      for (final blockedUid in _blocked[uid] ?? const <String>{})
+        (blockedUid: blockedUid, createdAt: _createdAt['$uid $blockedUid']!),
+    ];
+    blocks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return blocks;
+  }
+
+  @override
+  Future<void> deleteBlock(String uid, String blockedUid) async {
+    writes.add('delete $uid $blockedUid');
+    final blocked = _blocked.putIfAbsent(uid, () => <String>{})..remove(blockedUid);
     _getController(uid).add({...blocked});
   }
 
@@ -725,6 +748,73 @@ class FakeSpectatorRepository implements SpectatorRepository {
   }
 }
 
+/// 채팅을 테스트가 직접 보내고, 보낸 메시지와 신고를 기록하는 가짜 ChatRepository.
+class FakeChatRepository implements ChatRepository {
+  final _controllers = <String, StreamController<List<ChatEntry>>>{};
+  final _messages = <String, List<ChatEntry>>{};
+  var _nextId = 0;
+
+  /// 앱이 보낸 메시지와 신고. 예: `send game g1 안녕하세요`, `report lobby - m1`.
+  final calls = <String>[];
+
+  /// 다음 보내기·신고가 이 오류로 실패한다.
+  Object? nextError;
+
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  FirebaseFunctions get functions => throw UnimplementedError();
+
+  @override
+  Stream<List<ChatEntry>> watchMessages(ChatChannel channel, String? gameId) async* {
+    final key = _getKey(channel, gameId);
+    yield [...?_messages[key]];
+    yield* _getController(key).stream;
+  }
+
+  @override
+  Future<void> sendChatMessage(ChatChannel channel, String? gameId, String text) async {
+    calls.add('send ${channel.name} ${gameId ?? '-'} $text');
+    _throwNextError();
+  }
+
+  @override
+  Future<void> reportMessage(ChatChannel channel, String? gameId, String messageId) async {
+    calls.add('report ${channel.name} ${gameId ?? '-'} $messageId');
+    _throwNextError();
+  }
+
+  /// 서버가 검사를 통과한 메시지를 쓴 것처럼 보낸다. 메시지 ID를 돌려준다.
+  String addMessage(
+    ChatChannel channel,
+    String? gameId, {
+    required String uid,
+    required String nickname,
+    required String text,
+  }) {
+    final key = _getKey(channel, gameId);
+    final id = 'm${(_nextId++).toString().padLeft(4, '0')}';
+    final messages = _messages.putIfAbsent(key, () => <ChatEntry>[])
+      ..add((id: id, message: ChatMessage(uid: uid, nickname: nickname, text: text, sentAt: 1000 + _nextId)));
+    _getController(key).add([...messages]);
+    return id;
+  }
+
+  void _throwNextError() {
+    final error = nextError;
+    if (error != null) {
+      nextError = null;
+      throw error;
+    }
+  }
+
+  static String _getKey(ChatChannel channel, String? gameId) => '${channel.name} ${gameId ?? '-'}';
+
+  StreamController<List<ChatEntry>> _getController(String key) =>
+      _controllers.putIfAbsent(key, StreamController<List<ChatEntry>>.broadcast);
+}
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -741,6 +831,7 @@ typedef FakeApp = ({
   FakeUserBlockRepository blocks,
   FakeSpectateListRepository spectateList,
   FakeSpectatorRepository spectators,
+  FakeChatRepository chats,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -759,6 +850,7 @@ FakeApp setUpFakeApp() {
   final userBlockRepository = FakeUserBlockRepository();
   final spectateListRepository = FakeSpectateListRepository();
   final spectatorRepository = FakeSpectatorRepository();
+  final chatRepository = FakeChatRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -775,6 +867,7 @@ FakeApp setUpFakeApp() {
     userBlockRepository: userBlockRepository,
     spectateListRepository: spectateListRepository,
     spectatorRepository: spectatorRepository,
+    chatRepository: chatRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -792,5 +885,6 @@ FakeApp setUpFakeApp() {
     blocks: userBlockRepository,
     spectateList: spectateListRepository,
     spectators: spectatorRepository,
+    chats: chatRepository,
   );
 }

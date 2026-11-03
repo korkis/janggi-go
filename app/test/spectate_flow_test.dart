@@ -5,6 +5,7 @@ import 'package:janggigo/models/spectate_list_entry.dart';
 import 'package:janggigo/utils/spectate_order.dart';
 import 'package:janggigo/widgets/adaptive_layout.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
+import 'package:janggigo/widgets/chat_view.dart';
 import 'package:janggigo/widgets/game_scaffold.dart';
 import 'package:janggigo/widgets/spectate_card.dart';
 import 'package:janggi_core/janggi_core.dart';
@@ -126,8 +127,12 @@ void main() {
     expect(board.flipped, true);
     expect(tester.getTopLeft(find.text('초a · 18급')).dy, lessThan(tester.getTopLeft(find.text('한b · 1단')).dy));
 
-    // 관전 채팅은 11번에 붙인다. 지금은 버튼 자리만 있다.
-    expect(tester.widget<GameBarButton>(find.widgetWithText(GameBarButton, '관전 채팅')).onPressed, isNull);
+    // 로그인하지 않은 관전자는 관전 채팅을 열면 메시지 대신 로그인 안내를 본다.
+    await _tap(tester, find.widgetWithText(GameBarButton, '관전 채팅'));
+    expect(find.text('로그인하면 채팅할 수 있어요'), findsOneWidget);
+    await tester.tapAt(const Offset(20, 20));
+    await _pumpFor(tester);
+    expect(find.text('로그인하면 채팅할 수 있어요'), findsNothing);
     expect(fakes.spectators.spectators, hasLength(1));
     expect(fakes.games.calls, isEmpty);
 
@@ -191,7 +196,7 @@ void main() {
     expect(find.text('지금 볼 수 있는 대국이 없어요'), findsOneWidget);
   });
 
-  testWidgets('1024 이상은 왼쪽 메뉴에 관전을 두고, 관전 화면은 오른쪽 패널에 관전 채팅 자리와 버튼을 둔다', (tester) async {
+  testWidgets('1024 이상은 왼쪽 메뉴에 관전을 두고, 관전 화면은 오른쪽 패널에 관전 채팅과 버튼을 둔다', (tester) async {
     _useView(tester, const Size(1440, 900));
     final fakes = setUpFakeApp();
     fakes.spectateList.entries = [_entry('g1', spectatorCount: 4)];
@@ -210,7 +215,8 @@ void main() {
     await _pumpFor(tester);
     expect(find.byType(GamePanel), findsOneWidget);
     expect(find.text('관전 · 4명 보는 중'), findsOneWidget);
-    expect(find.text('관전 채팅은 곧 열려요'), findsOneWidget);
+    expect(find.descendant(of: find.byType(GamePanel), matching: find.byType(ChatView)), findsOneWidget);
+    expect(find.text('로그인하면 채팅할 수 있어요'), findsOneWidget);
     expect(find.text('판 돌리기'), findsOneWidget);
     expect(find.text('관전 채팅'), findsNothing);
     expect(tester.takeException(), isNull);

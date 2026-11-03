@@ -1095,9 +1095,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get spectateChat => '관전 채팅';
 
   @override
-  String get spectateChatSoon => '관전 채팅은 곧 열려요';
-
-  @override
   String get spectateSetup => '대국자가 상차림을 고르고 있어요';
 
   @override
@@ -1117,4 +1114,108 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get lobbySpectateTitle => '진행 중인 대국을 구경해 보세요';
+
+  @override
+  String get chat => '채팅';
+
+  @override
+  String get chatLobby => '로비 채팅';
+
+  @override
+  String get chatGame => '대국 채팅';
+
+  @override
+  String get chatLongPressHint => '메시지를 길게 누르면 신고·차단할 수 있어요';
+
+  @override
+  String get chatEmpty => '아직 메시지가 없어요';
+
+  @override
+  String get chatInputHint => '메시지를 입력하세요';
+
+  @override
+  String get chatSend => '보내기';
+
+  @override
+  String get chatLoginGuide => '로그인하면 채팅할 수 있어요';
+
+  @override
+  String get chatOpponentMute => '상대 채팅 끄기';
+
+  @override
+  String get chatOpponentUnmute => '상대 채팅 켜기';
+
+  @override
+  String get chatReport => '신고하기';
+
+  @override
+  String get chatReportDone => '신고했어요. 운영진이 확인할게요';
+
+  @override
+  String get errorChatReport => '신고하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorChatSend => '메시지를 보내지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorChatMessageBlocked => '부적절한 표현이 있어 보내지 않았어요';
+
+  @override
+  String get errorChatRestricted => '이용이 제한되어 지금은 채팅할 수 없어요';
+
+  @override
+  String get chatPhraseHello => '안녕하세요';
+
+  @override
+  String get chatPhraseNiceToMeet => '반갑습니다';
+
+  @override
+  String get chatPhraseLookingForGame => '한 판 두실 분 계세요?';
+
+  @override
+  String get chatPhraseGoodLuck => '잘 부탁드립니다';
+
+  @override
+  String get chatPhraseGoodGame => '수고하셨습니다';
+
+  @override
+  String get chatPhraseNiceMove => '좋은 수네요';
+
+  @override
+  String get chatPhraseCheer => '응원합니다';
+
+  @override
+  String get loginSheetTitleSpectateChat => '로그인하면 관전하면서\n채팅할 수 있어요';
+
+  @override
+  String get nicknameStartHintSpectateChat => '정하고 나면 관전 채팅으로 돌아가요';
+
+  @override
+  String get blockListTitle => '차단 목록';
+
+  @override
+  String get blockListGuide => '차단한 사람의 채팅 메시지와 대국 신청은 보이지 않아요';
+
+  @override
+  String get blockListEmpty => '차단한 사람이 없어요';
+
+  @override
+  String get blockListUnblock => '차단 풀기';
+
+  @override
+  String get errorLoadBlocks => '차단 목록을 불러오지 못했어요';
+
+  @override
+  String get errorUnblock => '차단을 풀지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get unknownUser => '알 수 없는 사용자';
+
+  @override
+  String blockListDate(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString 차단';
+  }
 }

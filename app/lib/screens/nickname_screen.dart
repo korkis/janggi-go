@@ -194,6 +194,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
     LoginPurpose.lobby => l10n.nicknameStartHintLobby,
     // 정하고 나면 바로 방에 들어가요
     LoginPurpose.joinRoom => l10n.nicknameStartHintJoinRoom,
+    // 정하고 나면 관전 채팅으로 돌아가요
+    LoginPurpose.spectateChat => l10n.nicknameStartHintSpectateChat,
   };
 
   Widget _buildStatus(AppLocalizations l10n) {

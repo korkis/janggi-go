@@ -103,12 +103,16 @@ class GameBarButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool emphasized;
 
+  /// 아이콘 위에 보여줄 수(채팅의 새 메시지 수). 0이면 보여주지 않는다.
+  final int badgeCount;
+
   const GameBarButton({
     super.key,
     required this.icon,
     required this.label,
     required this.onPressed,
     this.emphasized = false,
+    this.badgeCount = 0,
   });
 
   @override
@@ -131,7 +135,13 @@ class GameBarButton extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: emphasized ? 26 : 24),
+          Badge(
+            isLabelVisible: badgeCount > 0,
+            label: Text('$badgeCount'),
+            backgroundColor: GameColors.accent,
+            textColor: GameColors.onAccent,
+            child: Icon(icon, color: color, size: emphasized ? 26 : 24),
+          ),
           const SizedBox(height: 2),
           Text(
             label,

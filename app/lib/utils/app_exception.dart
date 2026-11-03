@@ -1,4 +1,5 @@
 import '../l10n/app_localizations.dart';
+import '../models/chat_message.dart';
 import '../models/game_error_code.dart';
 import '../models/nickname_reject_reason.dart';
 
@@ -32,6 +33,8 @@ enum AppErrorCode {
   notHost,
   challengeLimited,
   targetUnavailable,
+  chatMessageBlocked,
+  chatRestricted,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -67,6 +70,16 @@ class AppException implements Exception {
       GameErrorCode.notHost => AppErrorCode.notHost,
       GameErrorCode.challengeLimited => AppErrorCode.challengeLimited,
       GameErrorCode.targetUnavailable => AppErrorCode.targetUnavailable,
+      _ => null,
+    };
+    return appCode == null ? null : AppException(appCode);
+  }
+
+  /// 채팅 Callable이 거절한 이유에 맞는 오류. 앱이 따로 알릴 것이 없는 이유면 null이고, 화면은 그 작업의 기본 오류 메시지를 보여준다.
+  static AppException? fromChatErrorCode(ChatErrorCode code) {
+    final appCode = switch (code) {
+      ChatErrorCode.messageBlocked => AppErrorCode.chatMessageBlocked,
+      ChatErrorCode.chatRestricted || ChatErrorCode.sanctioned => AppErrorCode.chatRestricted,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -127,5 +140,9 @@ class AppException implements Exception {
     AppErrorCode.challengeLimited => l10n.errorChallengeLimited,
     // 상대가 지금은 신청을 받을 수 없어요
     AppErrorCode.targetUnavailable => l10n.errorTargetUnavailable,
+    // 부적절한 표현이 있어 보내지 않았어요
+    AppErrorCode.chatMessageBlocked => l10n.errorChatMessageBlocked,
+    // 이용이 제한되어 지금은 채팅할 수 없어요
+    AppErrorCode.chatRestricted => l10n.errorChatRestricted,
   };
 }

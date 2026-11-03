@@ -1790,12 +1790,6 @@ abstract class AppLocalizations {
   /// **'관전 채팅'**
   String get spectateChat;
 
-  /// 관전 채팅이 생기기 전 자리 안내
-  ///
-  /// In ko, this message translates to:
-  /// **'관전 채팅은 곧 열려요'**
-  String get spectateChatSoon;
-
   /// 관전 화면. 상차림 중
   ///
   /// In ko, this message translates to:
@@ -1837,6 +1831,204 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'진행 중인 대국을 구경해 보세요'**
   String get lobbySpectateTitle;
+
+  /// 채팅 버튼과 대국실 채팅 탭
+  ///
+  /// In ko, this message translates to:
+  /// **'채팅'**
+  String get chat;
+
+  /// 채팅 고르기 칩. 대국실 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'로비 채팅'**
+  String get chatLobby;
+
+  /// 채팅 고르기 칩. 두 대국자의 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 채팅'**
+  String get chatGame;
+
+  /// 채팅 창을 처음 열 때 한 번 보여주는 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'메시지를 길게 누르면 신고·차단할 수 있어요'**
+  String get chatLongPressHint;
+
+  /// 채팅에 메시지가 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 메시지가 없어요'**
+  String get chatEmpty;
+
+  /// 채팅 입력칸 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'메시지를 입력하세요'**
+  String get chatInputHint;
+
+  /// 채팅 보내기 버튼의 화면 읽기 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'보내기'**
+  String get chatSend;
+
+  /// 로그인하지 않은 관전자에게 채팅 대신 보여주는 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 채팅할 수 있어요'**
+  String get chatLoginGuide;
+
+  /// 대국 채팅에서 상대 메시지를 숨기는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'상대 채팅 끄기'**
+  String get chatOpponentMute;
+
+  /// 숨긴 상대 메시지를 다시 보여주는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'상대 채팅 켜기'**
+  String get chatOpponentUnmute;
+
+  /// 메시지를 길게 누른 메뉴의 신고
+  ///
+  /// In ko, this message translates to:
+  /// **'신고하기'**
+  String get chatReport;
+
+  /// 신고한 뒤 채팅에 보여주는 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'신고했어요. 운영진이 확인할게요'**
+  String get chatReportDone;
+
+  /// 신고 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'신고하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorChatReport;
+
+  /// 채팅 메시지 보내기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'메시지를 보내지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorChatSend;
+
+  /// 검사에 걸려 보내지 않은 메시지 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'부적절한 표현이 있어 보내지 않았어요'**
+  String get errorChatMessageBlocked;
+
+  /// 채팅 제한이나 이용 정지 중일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이용이 제한되어 지금은 채팅할 수 없어요'**
+  String get errorChatRestricted;
+
+  /// 자주 쓰는 말. 로비·대국 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'안녕하세요'**
+  String get chatPhraseHello;
+
+  /// 자주 쓰는 말. 로비 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'반갑습니다'**
+  String get chatPhraseNiceToMeet;
+
+  /// 자주 쓰는 말. 로비 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'한 판 두실 분 계세요?'**
+  String get chatPhraseLookingForGame;
+
+  /// 자주 쓰는 말. 대국 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'잘 부탁드립니다'**
+  String get chatPhraseGoodLuck;
+
+  /// 자주 쓰는 말. 대국 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'수고하셨습니다'**
+  String get chatPhraseGoodGame;
+
+  /// 자주 쓰는 말. 관전 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'좋은 수네요'**
+  String get chatPhraseNiceMove;
+
+  /// 자주 쓰는 말. 관전 채팅
+  ///
+  /// In ko, this message translates to:
+  /// **'응원합니다'**
+  String get chatPhraseCheer;
+
+  /// 로그인 창 제목. 관전 채팅을 열 때
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 관전하면서\n채팅할 수 있어요'**
+  String get loginSheetTitleSpectateChat;
+
+  /// 닉네임 정하기. 관전 채팅에서 가입했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 관전 채팅으로 돌아가요'**
+  String get nicknameStartHintSpectateChat;
+
+  /// 차단 목록 화면 제목과 홈 내 카드의 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 목록'**
+  String get blockListTitle;
+
+  /// 차단 목록 위 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'차단한 사람의 채팅 메시지와 대국 신청은 보이지 않아요'**
+  String get blockListGuide;
+
+  /// 차단 목록이 비었을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'차단한 사람이 없어요'**
+  String get blockListEmpty;
+
+  /// 차단 목록의 차단 풀기 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 풀기'**
+  String get blockListUnblock;
+
+  /// 차단 목록 읽기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 목록을 불러오지 못했어요'**
+  String get errorLoadBlocks;
+
+  /// 차단 풀기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'차단을 풀지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorUnblock;
+
+  /// 프로필을 찾지 못한 사용자
+  ///
+  /// In ko, this message translates to:
+  /// **'알 수 없는 사용자'**
+  String get unknownUser;
+
+  /// 차단 목록의 차단한 날짜
+  ///
+  /// In ko, this message translates to:
+  /// **'{date} 차단'**
+  String blockListDate(DateTime date);
 }
 
 class _AppLocalizationsDelegate

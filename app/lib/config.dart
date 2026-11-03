@@ -129,3 +129,6 @@ const inviteLinkPathPrefix = 'r';
 
 /// 아이폰 앱 안 브라우저의 "앱에서 열기"가 쓰는 앱 주소 scheme. `janggigo://r/<방 ID>`. `ios/Runner/Info.plist`와 같다.
 const appUrlScheme = 'janggigo';
+
+/// 채팅 메시지 최대 글자 수. Functions의 `CHAT_MAX_LENGTH`(`server/functions/src/config.ts`)와 같다.
+const chatMaxLength = 100;
