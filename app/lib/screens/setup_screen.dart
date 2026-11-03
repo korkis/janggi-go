@@ -12,7 +12,9 @@ import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/game_clock.dart';
+import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_geometry.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
@@ -84,38 +86,27 @@ class _SetupScreenState extends State<SetupScreen> {
     final chooser = setup.chooser;
     final opponent = chooser.opponent;
     final flipped = chooser == Side.han;
-    return Column(
-      children: [
-        GameHeader(
-          // 상차림을 골라 주세요
-          title: l10n.setupTitle,
-          onBack: _onBack,
+    return _buildFrame(
+      context,
+      onBack: _onBack,
+      layout: _SetupLayout(
+        opponentBar: PlayerBar(side: opponent, active: false),
+        board: BoardView(position: setup.preview, flipped: flipped, highlighted: setup.getFormationSquares(chooser)),
+        myBar: PlayerBar(side: chooser, active: true),
+        dialog: _SetupDialog(
+          opponentSide: opponent,
+          // 한 / 초
+          opponentName: l10n.sideName(opponent.name),
+          mySide: chooser,
+          timer: null,
+          decided: chooser == Side.cho
+              ? _getOrderedPieces(setup.getFormationSquares(opponent), setup.preview, flipped: flipped)
+              : null,
+          opponentChoosing: false,
+          grid: _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
+          onConfirm: _onConfirm,
         ),
-        Expanded(
-          child: _SetupLayout(
-            opponentBar: PlayerBar(side: opponent, active: false),
-            board: BoardView(
-              position: setup.preview,
-              flipped: flipped,
-              highlighted: setup.getFormationSquares(chooser),
-            ),
-            myBar: PlayerBar(side: chooser, active: true),
-            dialog: _SetupDialog(
-              opponentSide: opponent,
-              // 한 / 초
-              opponentName: l10n.sideName(opponent.name),
-              mySide: chooser,
-              timer: null,
-              decided: chooser == Side.cho
-                  ? _getOrderedPieces(setup.getFormationSquares(opponent), setup.preview, flipped: flipped)
-                  : null,
-              opponentChoosing: false,
-              grid: _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
-              onConfirm: _onConfirm,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -142,61 +133,86 @@ class _SetupScreenState extends State<SetupScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: _onPopInvoked,
-      child: Column(
-        children: [
-          GameHeader(
-            // 상차림을 골라 주세요
-            title: l10n.setupTitle,
-            onBack: _onBack,
+      child: _buildFrame(
+        context,
+        onBack: _onBack,
+        details: getGameDetails(l10n, game.meta),
+        layout: _SetupLayout(
+          opponentBar: PlayerBar(
+            side: opponentSide,
+            active: setupTurn == opponentSide,
+            name: getPlayerName(l10n, game.meta.players.get(opponentSide)),
+            notice: DisconnectNotice(online: online, side: opponentSide),
+            trailing: [if (setupTurn == opponentSide) _buildSetupTimer(online)],
           ),
-          Expanded(
-            child: _SetupLayout(
-              opponentBar: PlayerBar(
-                side: opponentSide,
-                active: setupTurn == opponentSide,
-                name: getPlayerName(l10n, game.meta.players.get(opponentSide)),
-                notice: DisconnectNotice(online: online, side: opponentSide),
-                trailing: [if (setupTurn == opponentSide) _buildSetupTimer(online)],
-              ),
-              board: BoardView(
-                position: online.setupPreview,
-                flipped: flipped,
-                highlighted: online.getFormationSquares(mySide),
-              ),
-              myBar: PlayerBar(
-                side: mySide,
-                active: setupTurn == mySide,
-                name: getPlayerName(l10n, game.meta.players.get(mySide)),
-              ),
-              // 확정한 뒤에는 창을 닫고 판 위에 안내만 둔다.
-              dialog: myConfirmed
-                  ? null
-                  : _SetupDialog(
-                      opponentSide: opponentSide,
-                      opponentName: getPlayerName(l10n, game.meta.players.get(opponentSide)),
-                      mySide: mySide,
-                      timer: _buildSetupTimer(online),
-                      decided: online.hasConfirmedFormation(opponentSide)
-                          ? _getOrderedPieces(
-                              online.getFormationSquares(opponentSide),
-                              online.setupPreview,
-                              flipped: flipped,
-                            )
-                          : null,
-                      opponentChoosing: setupTurn == opponentSide,
-                      grid: _buildFormationGrid(
-                        context,
-                        side: mySide,
-                        picked: online.picked,
-                        onPick: online.canPickFormation ? _onPickOnline : null,
-                      ),
-                      onConfirm: online.canPickFormation ? _onConfirmOnline : null,
-                    ),
-              notice: myConfirmed ? const _WaitingNotice() : null,
-            ),
+          board: BoardView(
+            position: online.setupPreview,
+            flipped: flipped,
+            highlighted: online.getFormationSquares(mySide),
           ),
-        ],
+          myBar: PlayerBar(
+            side: mySide,
+            active: setupTurn == mySide,
+            name: getPlayerName(l10n, game.meta.players.get(mySide)),
+          ),
+          // 확정한 뒤에는 창을 닫고 판 위에 안내만 둔다.
+          dialog: myConfirmed
+              ? null
+              : _SetupDialog(
+                  opponentSide: opponentSide,
+                  opponentName: getPlayerName(l10n, game.meta.players.get(opponentSide)),
+                  mySide: mySide,
+                  timer: _buildSetupTimer(online),
+                  decided: online.hasConfirmedFormation(opponentSide)
+                      ? _getOrderedPieces(
+                          online.getFormationSquares(opponentSide),
+                          online.setupPreview,
+                          flipped: flipped,
+                        )
+                      : null,
+                  opponentChoosing: setupTurn == opponentSide,
+                  grid: _buildFormationGrid(
+                    context,
+                    side: mySide,
+                    picked: online.picked,
+                    onPick: online.canPickFormation ? _onPickOnline : null,
+                  ),
+                  onConfirm: online.canPickFormation ? _onConfirmOnline : null,
+                ),
+          notice: myConfirmed ? const _WaitingNotice() : null,
+        ),
       ),
+    );
+  }
+
+  /// 제목 줄과 상차림 자리. 1024 이상은 대국 화면처럼 판 영역과 오른쪽 패널로 나누고 상차림 창은 판 위에 그대로 띄운다.
+  Widget _buildFrame(
+    BuildContext context, {
+    required VoidCallback onBack,
+    required Widget layout,
+    List<String> details = const [],
+  }) {
+    final l10n = AppLocalizations.of(context);
+    if (getLayoutSize(context) == LayoutSize.expanded) {
+      return GameWideLayout(
+        onBack: onBack,
+        boardColumn: layout,
+        panel: GamePanel(
+          // 상차림을 골라 주세요
+          title: l10n.setupTitle,
+          details: details,
+        ),
+      );
+    }
+    return Column(
+      children: [
+        GameHeader(
+          // 상차림을 골라 주세요
+          title: l10n.setupTitle,
+          onBack: onBack,
+        ),
+        Expanded(child: layout),
+      ],
     );
   }
 

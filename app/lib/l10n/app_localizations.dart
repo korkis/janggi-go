@@ -794,6 +794,24 @@ abstract class AppLocalizations {
   /// **'온라인 대국 · {count}수'**
   String gameOnlineTitle(int count);
 
+  /// 넓은 화면 대국 화면 오른쪽 패널의 대국 종류
+  ///
+  /// In ko, this message translates to:
+  /// **'{mode, select, quick{빠른 대국} room{방 대국} challenge{신청 대국} other{}}'**
+  String gameModeName(String mode);
+
+  /// 넓은 화면 대국 화면 오른쪽 패널에서 급수에 반영되는 대국 표시
+  ///
+  /// In ko, this message translates to:
+  /// **'급수 대국'**
+  String get gameRated;
+
+  /// 넓은 화면 대국 화면 오른쪽 패널의 시간 규칙
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 {minutes}분 · 초읽기 {seconds}초 {periods}회'**
+  String gameTimeRule(int minutes, int seconds, int periods);
+
   /// 대국 정보 줄의 닉네임과 급수
   ///
   /// In ko, this message translates to:

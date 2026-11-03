@@ -472,6 +472,25 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String gameModeName(String mode) {
+    String _temp0 = intl.Intl.selectLogic(mode, {
+      'quick': '빠른 대국',
+      'room': '방 대국',
+      'challenge': '신청 대국',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get gameRated => '급수 대국';
+
+  @override
+  String gameTimeRule(int minutes, int seconds, int periods) {
+    return '기본 $minutes분 · 초읽기 $seconds초 $periods회';
+  }
+
+  @override
   String playerNameWithRank(String nickname, String rank) {
     return '$nickname · $rank';
   }

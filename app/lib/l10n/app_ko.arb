@@ -597,6 +597,34 @@
       }
     }
   },
+  "gameModeName": "{mode, select, quick{빠른 대국} room{방 대국} challenge{신청 대국} other{}}",
+  "@gameModeName": {
+    "description": "넓은 화면 대국 화면 오른쪽 패널의 대국 종류",
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "gameRated": "급수 대국",
+  "@gameRated": {
+    "description": "넓은 화면 대국 화면 오른쪽 패널에서 급수에 반영되는 대국 표시"
+  },
+  "gameTimeRule": "기본 {minutes}분 · 초읽기 {seconds}초 {periods}회",
+  "@gameTimeRule": {
+    "description": "넓은 화면 대국 화면 오른쪽 패널의 시간 규칙",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      },
+      "periods": {
+        "type": "int"
+      }
+    }
+  },
   "playerNameWithRank": "{nickname} · {rank}",
   "@playerNameWithRank": {
     "description": "대국 정보 줄의 닉네임과 급수",

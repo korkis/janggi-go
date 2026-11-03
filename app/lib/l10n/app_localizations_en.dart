@@ -503,6 +503,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String gameModeName(String mode) {
+    String _temp0 = intl.Intl.selectLogic(mode, {
+      'quick': 'Quick match',
+      'room': 'Room game',
+      'challenge': 'Challenge',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get gameRated => 'Ranked game';
+
+  @override
+  String gameTimeRule(int minutes, int seconds, int periods) {
+    return '$minutes min · $periods×${seconds}s byoyomi';
+  }
+
+  @override
   String playerNameWithRank(String nickname, String rank) {
     return '$nickname · $rank';
   }

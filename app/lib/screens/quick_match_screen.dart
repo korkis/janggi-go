@@ -12,6 +12,7 @@ import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/game_clock.dart';
 import '../utils/rank_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import 'setup_screen.dart';
 
@@ -74,7 +75,17 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return GameScaffold(
-      body: PopScope(canPop: false, onPopInvokedWithResult: _onPopInvoked, child: _buildSearching(context)),
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: _onPopInvoked,
+        // 넓은 화면에서는 가운데 폭 480으로 모은다.
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: LayoutWidths.mediumContent),
+            child: _buildSearching(context),
+          ),
+        ),
+      ),
     );
   }
 

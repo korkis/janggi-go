@@ -13,8 +13,10 @@ import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/game_clock.dart';
+import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
@@ -98,45 +100,70 @@ class _GameScreenState extends State<GameScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     final bottomSide = board.flipped ? Side.han : Side.cho;
+    final game = online?.game;
+    // 온라인 대국 · 4수 / 개발용 대국 · 4수
+    final title = online != null ? l10n.gameOnlineTitle(board.moveCount) : l10n.gameDevTitle(board.moveCount);
+    if (getLayoutSize(context) == LayoutSize.expanded) {
+      return PopScope(
+        canPop: board.isOver,
+        onPopInvokedWithResult: _onPopInvoked,
+        child: GameWideLayout(
+          onBack: _onBack,
+          boardColumn: Column(
+            children: [
+              _buildPlayerBar(context, board, bottomSide.opponent),
+              Flexible(child: _buildBoard(board)),
+              _buildPlayerBar(context, board, bottomSide),
+            ],
+          ),
+          panel: GamePanel(
+            title: title,
+            details: game == null ? const [] : getGameDetails(l10n, game.meta),
+            buttons: _buildButtonBar(context, board, wide: true),
+          ),
+        ),
+      );
+    }
     return PopScope(
       canPop: board.isOver,
       onPopInvokedWithResult: _onPopInvoked,
       child: Column(
         children: [
-          GameHeader(
-            // 온라인 대국 · 4수 / 개발용 대국 · 4수
-            title: online != null ? l10n.gameOnlineTitle(board.moveCount) : l10n.gameDevTitle(board.moveCount),
-            onBack: _onBack,
-          ),
+          GameHeader(title: title, onBack: _onBack),
           _buildPlayerBar(context, board, bottomSide.opponent),
           // 판과 아래 정보 줄을 붙여 두고 남는 높이는 버튼 줄 위에 둔다.
           Expanded(
             child: Column(
               children: [
-                Flexible(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      BoardView(
-                        position: board.position,
-                        flipped: board.flipped,
-                        selected: board.selected,
-                        targets: board.targets,
-                        lastMove: board.lastMove,
-                        dimmedSide: board.dimmedSide,
-                        onSquareTap: _onSquareTap,
-                      ),
-                      if (online != null) const ReconnectingNotice(),
-                    ],
-                  ),
-                ),
+                Flexible(child: _buildBoard(board)),
                 _buildPlayerBar(context, board, bottomSide),
               ],
             ),
           ),
-          Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: _buildButtonBar(context, board)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: _buildButtonBar(context, board, wide: false),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBoard(BoardManager board) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        BoardView(
+          position: board.position,
+          flipped: board.flipped,
+          selected: board.selected,
+          targets: board.targets,
+          lastMove: board.lastMove,
+          dimmedSide: board.dimmedSide,
+          onSquareTap: _onSquareTap,
+        ),
+        if (_online != null) const ReconnectingNotice(),
+      ],
     );
   }
 
@@ -190,7 +217,8 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildButtonBar(BuildContext context, BoardManager board) {
+  /// 한수쉼과 더보기. 넓은 화면 패널([wide])에서는 기권을 더보기 밖에 꺼내 둔다.
+  Widget _buildButtonBar(BuildContext context, BoardManager board, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
     final playing = !board.isOver;
     return GameButtonBar(
@@ -201,6 +229,13 @@ class _GameScreenState extends State<GameScreen> {
           label: l10n.pass,
           onPressed: playing && board.canPass ? _onPass : null,
         ),
+        if (wide)
+          GameBarButton(
+            icon: Icons.flag_outlined,
+            // 기권
+            label: l10n.resign,
+            onPressed: playing ? _confirmResign : null,
+          ),
         GameBarButton(
           icon: Icons.more_horiz,
           // 더보기
@@ -224,11 +259,9 @@ class _GameScreenState extends State<GameScreen> {
     final result = board.result!;
     final online = _online;
     final elapsed = online != null ? online.getElapsed() : board.getElapsed(DateTime.now());
-    final action = await showModalBottomSheet<GameResultAction>(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      isScrollControlled: true,
+    final action = await showGameSheet<GameResultAction>(
+      context,
+      dismissible: false,
       builder: (context) =>
           GameResultSheet(result: result, moveCount: board.moveCount, elapsed: elapsed, online: online),
     );
@@ -319,7 +352,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _onMore() async {
-    final action = await showModalBottomSheet<_MenuAction>(context: context, builder: _buildMenu);
+    final action = await showGameSheet<_MenuAction>(context, builder: _buildMenu);
     if (!mounted || action == null) {
       return;
     }
@@ -331,8 +364,10 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// 더보기 창. 넓은 화면은 기권이 패널에 따로 있어 판 돌리기만 둔다.
   Widget _buildMenu(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final wide = getLayoutSize(context) == LayoutSize.expanded;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -345,12 +380,13 @@ class _GameScreenState extends State<GameScreen> {
               label: l10n.flipBoard,
               action: _MenuAction.flipBoard,
             ),
-            _MenuItem(
-              icon: Icons.flag_outlined,
-              // 기권
-              label: l10n.resign,
-              action: _MenuAction.resign,
-            ),
+            if (!wide)
+              _MenuItem(
+                icon: Icons.flag_outlined,
+                // 기권
+                label: l10n.resign,
+                action: _MenuAction.resign,
+              ),
           ],
         ),
       ),

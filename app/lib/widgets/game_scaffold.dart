@@ -1,8 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import 'adaptive_layout.dart';
+import 'board/board_geometry.dart';
+import 'player_bar.dart';
 
 /// 대국 화면 계열(상차림, 대국)로 가는 경로.
 ///
@@ -137,6 +142,190 @@ class GameBarButton extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 대국 화면 계열에서 띄우는 창(결과 창, 더보기 등).
+///
+/// 1024 미만은 아래에서 올리고, 1024 이상은 오른쪽 패널을 뺀 판 영역 가운데에 띄운다(`docs/ui.md`의 넓은 화면).
+Future<T?> showGameSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dismissible = true}) {
+  if (getLayoutSize(context) != LayoutSize.expanded) {
+    return showModalBottomSheet<T>(
+      context: context,
+      isDismissible: dismissible,
+      enableDrag: dismissible,
+      isScrollControlled: true,
+      builder: builder,
+    );
+  }
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: dismissible,
+    barrierColor: GameColors.scrim,
+    builder: (context) => _GameSheetDialog(builder: builder),
+  );
+}
+
+/// 1024 이상에서 판 영역 가운데에 띄우는 창의 틀.
+class _GameSheetDialog extends StatelessWidget {
+  static const _maxWidth = 440.0;
+
+  final WidgetBuilder builder;
+
+  const _GameSheetDialog({required this.builder});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: LayoutWidths.gamePanel),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: Material(
+              color: GameColors.surface,
+              borderRadius: BorderRadius.circular(26),
+              clipBehavior: Clip.antiAlias,
+              child: Builder(builder: builder),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 1024 이상 대국 화면 계열의 배치(`docs/ui.md`의 넓은 화면).
+///
+/// 왼쪽 판 영역의 왼쪽 위에 뒤로 버튼을 두고, 그 아래에 정보 줄과 판([boardColumn])을 판 폭에 맞춰 가운데 놓는다.
+/// 오른쪽에는 폭 400 패널([panel])을 둔다.
+class GameWideLayout extends StatelessWidget {
+  final VoidCallback onBack;
+
+  /// 위 정보 줄, 판, 아래 정보 줄. [BoardColumnBox]로 판과 같은 폭이 된다.
+  final Widget boardColumn;
+
+  final Widget panel;
+
+  const GameWideLayout({super.key, required this.onBack, required this.boardColumn, required this.panel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: IconButton(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_ios_new, color: GameColors.text),
+                  // 뒤로
+                  tooltip: AppLocalizations.of(context).back,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: BoardColumnBox(child: boardColumn),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: LayoutWidths.gamePanel, child: panel),
+      ],
+    );
+  }
+}
+
+/// 정보 줄 두 개와 판이 세로로 놓일 때 판이 남는 높이에 가장 크게 들어가는 폭으로 [child]를 좁혀 가운데 둔다.
+/// 정보 줄이 판과 같은 폭이 된다.
+class BoardColumnBox extends StatelessWidget {
+  final Widget child;
+
+  const BoardColumnBox({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: _buildBox);
+  }
+
+  Widget _buildBox(BuildContext context, BoxConstraints constraints) {
+    final boardHeight = max(0.0, constraints.maxHeight - PlayerBar.getEstimatedHeight(context) * 2);
+    final width = min(constraints.maxWidth, boardHeight * BoardGeometry.aspectRatio);
+    return Center(
+      child: SizedBox(width: width, child: child),
+    );
+  }
+}
+
+/// 1024 이상 대국 화면 계열의 오른쪽 패널. 위에 대국 종류와 규칙, 가운데에 화면마다 다른 내용, 아래에 버튼을 둔다.
+class GamePanel extends StatelessWidget {
+  final String title;
+
+  /// 제목 아래 칩(대국 종류, 급수 대국, 시간 규칙).
+  final List<String> details;
+
+  /// 가운데 내용. 없으면 비워 둔다.
+  final Widget? body;
+
+  /// 맨 아래 버튼 줄. 없으면 두지 않는다.
+  final Widget? buttons;
+
+  const GamePanel({super.key, required this.title, this.details = const [], this.body, this.buttons});
+
+  @override
+  Widget build(BuildContext context) {
+    final body = this.body;
+    final buttons = this.buttons;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: GameColors.panel,
+        border: Border(left: BorderSide(color: GameColors.outline)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: AppTextSizes.title, fontWeight: FontWeight.w800, color: GameColors.text),
+            ),
+            if (details.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(spacing: 8, runSpacing: 8, children: [for (final detail in details) _PanelChip(label: detail)]),
+            ],
+            const SizedBox(height: 20),
+            Expanded(child: body ?? const SizedBox.shrink()),
+            if (buttons != null) ...[const SizedBox(height: 16), buttons],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PanelChip extends StatelessWidget {
+  final String label;
+
+  const _PanelChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: GameColors.raisedButton, borderRadius: BorderRadius.circular(999)),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600, color: GameColors.buttonText),
       ),
     );
   }

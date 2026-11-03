@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../managers/review_manager.dart';
 import '../theme/app_theme.dart';
 import '../utils/score_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
@@ -45,6 +46,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildBody(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
+    if (getLayoutSize(context) == LayoutSize.expanded) {
+      return GameWideLayout(
+        onBack: _onBack,
+        boardColumn: Column(
+          children: [
+            _buildPlayerBar(context, Side.han),
+            Flexible(child: _buildBoard()),
+            _buildPlayerBar(context, Side.cho),
+          ],
+        ),
+        panel: GamePanel(
+          // 복기
+          title: l10n.reviewTitle,
+          body: Column(children: [_buildProgressRow(context)]),
+          buttons: _buildButtonBar(context),
+        ),
+      );
+    }
     return Column(
       children: [
         GameHeader(
@@ -57,15 +76,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         Expanded(
           child: Column(
             children: [
-              Flexible(
-                child: BoardView(
-                  position: _review.position,
-                  selected: _review.selected,
-                  targets: _review.targets,
-                  lastMove: _review.lastMove,
-                  onSquareTap: _review.trying ? _review.tapSquare : null,
-                ),
-              ),
+              Flexible(child: _buildBoard()),
               _buildPlayerBar(context, Side.cho),
             ],
           ),
@@ -73,6 +84,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
         Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: _buildProgressRow(context)),
         Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: _buildButtonBar(context)),
       ],
+    );
+  }
+
+  Widget _buildBoard() {
+    return BoardView(
+      position: _review.position,
+      selected: _review.selected,
+      targets: _review.targets,
+      lastMove: _review.lastMove,
+      onSquareTap: _review.trying ? _review.tapSquare : null,
     );
   }
 

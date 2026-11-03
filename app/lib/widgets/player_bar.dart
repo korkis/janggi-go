@@ -35,6 +35,15 @@ class PlayerBar extends StatelessWidget {
     this.trailing = const [],
   });
 
+  /// 정보 줄 높이의 넉넉한 어림값. 시계가 있는 줄 기준이다.
+  ///
+  /// 넓은 화면에서 정보 줄을 판과 같은 폭으로 놓을 때 판 크기를 먼저 정하는 데 쓴다. 실제보다 크게 잡으면 판이 정보 줄 폭에
+  /// 딱 맞고 위아래만 조금 남는다.
+  static double getEstimatedHeight(BuildContext context) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    return textScaler.scale(AppTextSizes.large) * 1.35 + textScaler.scale(AppTextSizes.body) * 1.5 + 16;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);

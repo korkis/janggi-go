@@ -44,6 +44,9 @@ abstract final class GameColors {
   static const outline = Color(0xFF3A3F48);
   static const raisedButton = Color(0xFF262A31);
 
+  /// 넓은 화면 대국 화면의 오른쪽 패널. 바탕과 카드 사이의 밝기다.
+  static const panel = Color(0xFF15181D);
+
   /// 결과 창 등을 띄울 때 뒤에 깔리는 판을 어둡게 하는 막.
   static const scrim = Color(0x9908090C);
 
