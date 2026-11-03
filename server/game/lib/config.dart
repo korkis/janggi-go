@@ -83,3 +83,12 @@ const roomCheckInterval = Duration(seconds: 60);
 
 /// 방장이나 상대의 연결이 이만큼 없으면 방을 닫거나 자리를 비운다. `checkRoom`이 연결 없음을 처음 본 시각부터 센다.
 const roomAbsentSeconds = 60;
+
+/// 대국 신청에 응답할 수 있는 시간(`docs/game/matching.md`의 로비와 신청). 지나면 `expireChallenge`가 신청을 `expired`로 바꾼다.
+const challengeResponseSeconds = 20;
+
+/// 같은 상대에게 이만큼 연달아 거절되거나 응답을 받지 못하면 [challengeBlockMinutes] 동안 그 상대에게 신청할 수 없다.
+const challengeFailLimit = 3;
+
+/// [challengeFailLimit]에 닿았을 때 같은 상대에게 신청할 수 없는 시간.
+const challengeBlockMinutes = 30;

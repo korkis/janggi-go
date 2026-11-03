@@ -3,13 +3,17 @@ import '../firebase/firestore_client.dart';
 import '../firebase/rtdb_client.dart';
 import 'active_games_repository.dart';
 import 'archived_games_repository.dart';
+import 'challenge_limits_repository.dart';
+import 'challenges_repository.dart';
 import 'configs_repository.dart';
 import 'connections_repository.dart';
 import 'nicknames_repository.dart';
+import 'online_users_repository.dart';
 import 'player_states_repository.dart';
 import 'quick_queue_repository.dart';
 import 'ratings_repository.dart';
 import 'rooms_repository.dart';
+import 'user_blocks_repository.dart';
 import 'users_private_repository.dart';
 import 'users_repository.dart';
 
@@ -28,6 +32,10 @@ class GameRepositories {
   final ArchivedGamesRepository archivedGames;
   final ActiveGamesRepository activeGames;
   final ConnectionsRepository connections;
+  final ChallengesRepository challenges;
+  final ChallengeLimitsRepository challengeLimits;
+  final UserBlocksRepository userBlocks;
+  final OnlineUsersRepository onlineUsers;
 
   const GameRepositories({
     required this.users,
@@ -41,6 +49,10 @@ class GameRepositories {
     required this.archivedGames,
     required this.activeGames,
     required this.connections,
+    required this.challenges,
+    required this.challengeLimits,
+    required this.userBlocks,
+    required this.onlineUsers,
   });
 
   factory GameRepositories.createDefault({
@@ -60,6 +72,10 @@ class GameRepositories {
       archivedGames: ArchivedGamesRepository(firestore: firestore),
       activeGames: ActiveGamesRepository(rtdb: rtdb),
       connections: ConnectionsRepository(rtdb: rtdb),
+      challenges: ChallengesRepository(firestore: firestore),
+      challengeLimits: ChallengeLimitsRepository(firestore: firestore),
+      userBlocks: UserBlocksRepository(firestore: firestore),
+      onlineUsers: OnlineUsersRepository(rtdb: rtdb),
     );
   }
 }

@@ -97,7 +97,7 @@ flowchart LR
 
 | API | 파라미터 | 하는 일 |
 |---|---|---|
-| `enterLobby` | 없음 | `online_users/{uid}`에 닉네임, 급수, 상태, 신청 받기를 쓴다. 앱이 로그인 상태로 RTDB에 연결될 때마다 부른다 |
+| `enterLobby` | 없음 | `online_users/{uid}`에 닉네임, 급수, 상태, 신청 받기를 쓴다. 앱이 로그인 상태로 RTDB에 연결될 때마다, 다른 앱에서 돌아올 때마다 부른다. 상태는 `player_states.gameId`가 있으면 `playing`, 신청 받기는 `users_private.challengesEnabled`(문서가 없으면 false)다. 이미 있으면 새로 쓴다 |
 
 ### 빠른 대국
 
@@ -120,9 +120,9 @@ flowchart LR
 
 | API | 파라미터 | 하는 일 |
 |---|---|---|
-| `sendChallenge` | `toUid`, `senderSide?`, `handicap?`, `roomId?` | 신청을 만들고 응답 마감 작업을 예약한다. `roomId`가 있으면 방 조건을 쓴다 |
-| `cancelChallenge` | `challengeId` | 보낸 사람이 취소한다 |
-| `respondChallenge` | `challengeId`, `accepted` | 받은 사람이 수락하거나 거절한다. 수락하면 대국을 만들거나(`roomId` 없음) 방에 앉힌다 |
+| `sendChallenge` | `toUid`, `senderSide?`, `handicap?`, `roomId?` | 신청을 만들고 응답 마감 작업을 예약한다. 결과 `challengeId`. 접장기면 `handicap`만, 아니면 `senderSide`만 준다. `roomId`가 있으면(방 초대) 방 조건을 쓰므로 둘 다 주지 않는다. 이용 정지 중이면 `sanctioned`, 대기열·방·대국·신청 중이면 `busy`(방 초대는 그 방의 방장만 보낸다. 아니면 `notHost`, 방이 찼으면 `roomFull`, 닫혔으면 `roomClosed`), 연속 거절 제한이면 `challengeLimited`, 받는 사람이 대국실에 없거나 신청 받기를 껐거나 방·대국·다른 신청 중이거나 내가 차단한 사람이면 `targetUnavailable` |
+| `cancelChallenge` | `challengeId` | 보낸 사람이 취소한다. 이미 끝난 신청이면 그대로 성공한다. 내가 보낸 신청이 아니면 `notFound`. 연속 거절 횟수는 세지 않는다 |
+| `respondChallenge` | `challengeId`, `accepted` | 받은 사람이 수락하거나 거절한다. 수락하면 대국을 만들거나(`roomId` 없음) 방에 앉힌다. 결과 `gameId`(만든 대국), `roomId`(들어간 방). 거절이면 둘 다 null. 신청이 없거나, 내가 받은 신청이 아니거나, 끝났거나, 응답 마감이 지났으면 `notFound`. 수락하는데 이용 정지 중이면 `sanctioned`, 초대한 방이 닫혔으면 `roomClosed`, 그새 다른 사람이 들어왔으면 `roomFull`이고 이때 신청은 `cancelled`가 된다 |
 
 ### 대국
 
@@ -142,7 +142,7 @@ flowchart LR
 |---|---|---|
 | `/tasks/evaluateGame` | 상차림 마감, 시간패 시각, 접속 끊김 마감 | 판정 다시 보기 |
 | `/tasks/retryQuickMatch` | 대기열에 들어간 뒤 10초마다 | 넓어진 범위로 다시 매칭. 앱 연결이 모두 끊겼으면 대기열에서 뺀다 |
-| `/tasks/expireChallenge` | 신청 응답 마감 | 응답이 없으면 `expired`로 바꾸고 제한 횟수를 센다 |
+| `/tasks/expireChallenge` | 신청 응답 마감 | 응답이 없으면 `expired`로 바꾸고 두 사람의 신청 표시를 지운 뒤 제한 횟수를 센다. 이미 끝났으면 아무것도 하지 않는다 |
 | `/tasks/finalizeGame` | 대국이 끝날 때 | 기보 저장, 레이팅·전적 반영. 실패하면 Cloud Tasks가 다시 부른다 |
 | `/tasks/cleanupGame` | 대국을 만들 때, 끝날 때 | 묶이지 않은 대국과 끝난 지 오래된 대국을 RTDB에서 지운다 |
 | `/tasks/checkRoom` | 방을 만든 시각부터 1분마다, 방이 닫힐 때까지 | 방장 연결이 `roomAbsentSeconds` 넘게 없으면 방을 닫고, 상대가 그만큼 없으면 자리를 비운다. 대국 중에는 확인하지 않고 다음을 예약한다 |
@@ -296,7 +296,13 @@ flowchart LR
 - `challenge_limits`의 `blockedUntil`이 지나지 않았으면 `challengeLimited`로 거절한다.
 - 거절되거나 응답이 없으면 `failCount`를 1 늘리고, `challengeFailLimit`에 닿으면 `blockedUntil`을 정하고 `failCount`를 0으로 돌린다. 수락되면 0으로 돌린다.
 - 받는 사람의 앱은 `player_states.incomingChallengeId`를 보고 어느 화면에서든 수락 팝업을 띄운다.
-- 받는 사람이 대기열에 있으면 수락할 때 대기열에서 뺀다.
+- 받는 사람이 대기열에 있으면 수락할 때 대기열에서 뺀다. 응답을 기다리는 신청이 있는 동안에는 빠른 대국 매칭에서 건너뛴다. 보내는 사람은 대기열에 있으면 `busy`다(2026-11-03 구현 때 정함).
+- 보내는 사람이 받는 사람을 차단했으면 `targetUnavailable`로 거절한다. 앱은 차단한 사람을 접속자 목록에 보여주지 않는다.
+- 받는 사람이 방, 대국, 다른 신청(보낸 것 포함) 중이면 `targetUnavailable`이다. 받는 사람이 차단한 경우도 이 확인은 똑같이 한다. 차단 여부가 보내는 사람에게 드러나지 않게 하기 위해서다.
+- 신청, 보내는 사람의 `outgoingChallengeId`, 받는 사람의 `incomingChallengeId`는 한 트랜잭션에서 함께 쓰고 지운다. 거절, 응답 마감, 취소는 신청을 끝내고 두 사람의 표시를 지운다. 응답 마감이 지난 뒤에 온 응답은 그 자리에서 `expired`로 끝내고 `notFound`로 거절한다.
+- 수락하면 `GameService.createGame`이 두 사람을 묶는 트랜잭션에서 신청이 아직 `pending`이고 두 사람의 표시가 그 신청인지 확인한 뒤 신청을 `accepted`, `gameId`로 바꾸고 연속 거절 횟수를 0으로 돌린다. 두 사람의 신청 표시는 `createGame`이 지운다. 대국은 `mode: challenge`, `rated: false`, `listed: true`이고 진영은 접장기면 떼는 쪽이 한, 아니면 `senderSide`(무작위면 이때 정한다)다. 받는 사람도 이용 정지를 확인한다.
+- 방 초대(`roomId`): 보내는 사람이 그 방의 방장이고 방이 상대를 기다리며 다른 일(대기열, 대국, 다른 신청)이 없어야 한다. 방장이 내보낸 사람은 방이 닫힐 때까지 다시 들어올 수 없으므로 초대하지 못한다(`targetUnavailable`). 방장이 고른 사람이므로 공개 방의 급수 범위는 보지 않는다. 신청의 `senderSide`, `handicap`에는 방 조건을 복사한다. 수락하면 같은 트랜잭션에서 받는 사람을 상대 자리에 앉히고 `player_states.roomId`를 쓴다. 그새 방이 닫혔거나 링크로 다른 사람이 들어왔으면 신청을 `cancelled`로 끝낸다.
+- 방 초대를 기다리는 동안 방장은 대국을 시작할 수 없다(`bindRoomGame`이 신청 표시를 `busy`로 본다). 앱은 응답을 기다리는 창을 닫지 못하게 해서 이 상태에 닿지 않게 한다.
 
 ### 접속자 목록
 
@@ -304,6 +310,9 @@ flowchart LR
 - 앱이 다른 앱으로 넘어가면 자기 항목을 지우고, 돌아오면 다시 `enterLobby`를 부른다.
 - 지난 연결의 `onDisconnect`가 늦게 실행돼 항목이 지워질 수 있다. 앱은 연결되어 있는 동안 자기 항목이 없어지면 `enterLobby`를 다시 부른다.
 - `configs/app.onlineUsersVisible`이 false여도 항목은 쓴다. 다른 사용자 정보 창의 상태 표시와 신청 조건에 쓰기 때문이다. 앱은 접속자 탭과 방 대기실의 접속자 초대하기만 숨긴다.
+- 앱은 `LobbyPresenceManager`가 항목을 맡는다. 닉네임을 정했고, RTDB에 연결되어 있고, 앱이 화면에 떠 있으면 `onDisconnect`로 삭제를 먼저 걸고 `enterLobby`를 부른다. 연결이 끊긴 경우는 걸어 둔 `onDisconnect`가 지우므로 앱은 지우지 않는다. 항목이 다시 사라지면 마지막 `enterLobby` 뒤에 항목을 본 적이 있을 때만 다시 부른다. 서버가 실패하는 동안 같은 호출을 되풀이하지 않기 위해서다.
+- 대국 서버는 대국을 만들어 두 사람을 묶은 뒤 두 사람의 상태를 `playing`으로, `finalizeGame`이 기보를 저장한 뒤 `waiting`으로 바꾼다. 항목이 없으면(대국실에 없다) 만들지 않는다. 파생 표시라 실패해도 대국을 막지 않고, 다음 `enterLobby`가 다시 맞춘다.
+- 신청 받기 스위치는 `users_private.challengesEnabled`와 내 `online_users/{uid}/challengesEnabled`를 함께 바꾼다. 대국 서버는 신청을 받을지 `users_private`로 판단하고, 목록의 표시는 `online_users`를 쓴다.
 
 ### 관전자 수
 
@@ -401,9 +410,10 @@ sequenceDiagram
 
 ### 신청
 
-1. 보내는 사람이 `sendChallenge`를 부르고 응답을 기다린다.
-2. 받는 사람의 앱은 `player_states.incomingChallengeId`가 생기면 `challenges/{id}`를 읽어 팝업을 띄우고 `expiresAt`까지 남은 시간 막대를 보여준다.
-3. `respondChallenge`로 수락하면 두 사람의 `player_states.gameId`가 생긴다(방 초대면 `roomId`). 거절이나 마감이면 보낸 사람의 `challenges/{id}.status`가 바뀐다.
+1. 보내는 사람이 `sendChallenge`를 부르고 같은 창에서 `challenges/{id}`를 들으며 응답을 기다린다. "신청 취소"와 뒤로 가기는 `cancelChallenge`다.
+2. 받는 사람의 앱은 `player_states.incomingChallengeId`가 생기면 `challenges/{id}`를 듣고 팝업을 띄우며 `createdAt`부터 `expiresAt`까지 남은 시간 막대를 보여준다(`ChallengeManager`, `ChallengeListener`). 서버가 표시를 지우면(마감, 취소) 팝업을 닫는다.
+3. 수락하면 받는 사람의 앱은 처음 화면까지 닫은 뒤 `respondChallenge`를 부르고, 결과의 `gameId`로 상차림(방 초대면 `roomId`의 방 대기실)을 연다. 빠른 대국 대기 화면도 이때 닫히므로, 수락이 실패하고 아직 대기열에 있으면 `leaveQuickQueue`를 부른다.
+4. 보낸 사람의 앱은 신청이 `accepted`가 되면 처음 화면 위에 그 `gameId`의 상차림을 연다. 방 초대면 창만 닫아 방 대기실에서 상대를 본다. `declined`, `expired`, `cancelled`면 그 사실을 알린다.
 
 ### 재접속
 

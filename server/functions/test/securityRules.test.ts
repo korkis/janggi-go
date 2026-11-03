@@ -13,6 +13,7 @@ import {
   limit,
   orderBy,
   query,
+  serverTimestamp as firestoreServerTimestamp,
   setDoc,
   updateDoc,
   where,
@@ -201,6 +202,115 @@ describe("rooms", () => {
   });
 });
 
+describe("users/{uid}/blocks", () => {
+  test("본인은 서버 시각으로 차단을 만들고 읽고 지운다", async () => {
+    const db = userDb(ALICE);
+    await assertSucceeds(setDoc(doc(db, `users/${ALICE}/blocks/${BOB}`), {createdAt: firestoreServerTimestamp()}));
+    await assertSucceeds(getDoc(doc(db, `users/${ALICE}/blocks/${BOB}`)));
+    await assertSucceeds(getDocs(collection(db, `users/${ALICE}/blocks`)));
+    await assertSucceeds(deleteDoc(doc(db, `users/${ALICE}/blocks/${BOB}`)));
+  });
+
+  test("서버 시각이 아니거나 다른 필드가 있거나 나를 차단하면 막는다", async () => {
+    const db = userDb(ALICE);
+    await assertFails(setDoc(doc(db, `users/${ALICE}/blocks/${BOB}`), {createdAt: new Date(2026, 0, 1)}));
+    await assertFails(
+      setDoc(doc(db, `users/${ALICE}/blocks/${BOB}`), {createdAt: firestoreServerTimestamp(), reason: "x"}),
+    );
+    await assertFails(setDoc(doc(db, `users/${ALICE}/blocks/${ALICE}`), {createdAt: firestoreServerTimestamp()}));
+  });
+
+  test("고치기는 막는다", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `users/${ALICE}/blocks/${BOB}`), {createdAt: new Date(2026, 0, 1)});
+    });
+    await assertFails(
+      setDoc(doc(userDb(ALICE), `users/${ALICE}/blocks/${BOB}`), {createdAt: firestoreServerTimestamp()}),
+    );
+  });
+
+  test("다른 사람의 차단 목록은 읽거나 쓰지 못한다", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `users/${ALICE}/blocks/${BOB}`), {createdAt: new Date(2026, 0, 1)});
+    });
+    await assertFails(getDoc(doc(userDb(BOB), `users/${ALICE}/blocks/${BOB}`)));
+    await assertFails(getDocs(collection(userDb(BOB), `users/${ALICE}/blocks`)));
+    await assertFails(deleteDoc(doc(userDb(BOB), `users/${ALICE}/blocks/${BOB}`)));
+    await assertFails(setDoc(doc(userDb(BOB), `users/${ALICE}/blocks/carol`), {createdAt: firestoreServerTimestamp()}));
+  });
+});
+
+describe("challenges", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "challenges/c1"), {fromUid: ALICE, toUid: BOB, status: "pending"});
+    });
+  });
+
+  test("보낸 사람과 받는 사람은 ID로 읽는다", async () => {
+    await assertSucceeds(getDoc(doc(userDb(ALICE), "challenges/c1")));
+    await assertSucceeds(getDoc(doc(userDb(BOB), "challenges/c1")));
+  });
+
+  test("다른 사람과 비로그인은 읽지 못하고 목록도 읽지 못한다", async () => {
+    await assertFails(getDoc(doc(userDb("carol"), "challenges/c1")));
+    await assertFails(getDoc(doc(guestDb(), "challenges/c1")));
+    await assertFails(getDocs(query(collection(userDb(ALICE), "challenges"), where("fromUid", "==", ALICE))));
+  });
+
+  test("누구도 쓰지 못한다", async () => {
+    await assertFails(updateDoc(doc(userDb(BOB), "challenges/c1"), {status: "accepted"}));
+    await assertFails(setDoc(doc(userDb(ALICE), "challenges/c2"), {fromUid: ALICE, toUid: BOB}));
+    await assertFails(deleteDoc(doc(userDb(ALICE), "challenges/c1")));
+  });
+
+  test("challenge_limits는 서버 전용이다", async () => {
+    await assertFails(getDoc(doc(userDb(ALICE), `challenge_limits/${ALICE}_${BOB}`)));
+    await assertFails(setDoc(doc(userDb(ALICE), `challenge_limits/${ALICE}_${BOB}`), {failCount: 0}));
+  });
+});
+
+describe("Realtime Database online_users", () => {
+  const entry = {nickname: "앨리스", rankLevel: 1, status: "waiting", challengesEnabled: true, since: 1000};
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await set(ref(context.database(), `online_users/${ALICE}`), entry);
+    });
+  });
+
+  test("로그인한 사용자는 접속자 목록을 읽는다", async () => {
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(BOB).database(), "online_users")));
+    await assertFails(get(ref(testEnv.unauthenticatedContext().database(), "online_users")));
+  });
+
+  test("본인은 신청 받기만 바꾸고 자기 항목을 지운다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertSucceeds(set(ref(db, `online_users/${ALICE}/challengesEnabled`), false));
+    await assertSucceeds(set(ref(db, `online_users/${ALICE}`), null));
+  });
+
+  test("본인도 닉네임, 급수, 상태는 쓰지 못한다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertFails(set(ref(db, `online_users/${ALICE}`), {...entry, rankLevel: 27}));
+    await assertFails(set(ref(db, `online_users/${ALICE}/status`), "playing"));
+    await assertFails(set(ref(db, `online_users/${ALICE}/challengesEnabled`), "no"));
+    await assertFails(set(ref(db, `online_users/${ALICE}/challengesEnabled`), null));
+  });
+
+  test("항목이 없으면 신청 받기도 쓰지 못한다", async () => {
+    const db = testEnv.authenticatedContext(BOB).database();
+    await assertFails(set(ref(db, `online_users/${BOB}/challengesEnabled`), true));
+    await assertSucceeds(set(ref(db, `online_users/${BOB}`), null));
+  });
+
+  test("다른 사람의 항목은 바꾸거나 지우지 못한다", async () => {
+    const db = testEnv.authenticatedContext(BOB).database();
+    await assertFails(set(ref(db, `online_users/${ALICE}/challengesEnabled`), false));
+    await assertFails(set(ref(db, `online_users/${ALICE}`), null));
+  });
+});
+
 describe("Realtime Database", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -225,7 +335,7 @@ describe("Realtime Database", () => {
 
   test("규칙을 연 경로가 아니면 막는다", async () => {
     const db = testEnv.authenticatedContext(ALICE).database();
-    await assertFails(set(ref(db, `online_users/${ALICE}`), {nickname: "앨리스"}));
+    await assertFails(set(ref(db, "spectate_list/g1"), {fen: "x"}));
   });
 });
 

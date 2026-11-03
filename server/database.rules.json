@@ -31,6 +31,16 @@
           }
         }
       }
+    },
+    "online_users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && !newData.exists()",
+        "challengesEnabled": {
+          ".write": "auth != null && auth.uid === $uid && data.exists() && newData.exists()",
+          ".validate": "newData.isBoolean()"
+        }
+      }
     }
   }
 }

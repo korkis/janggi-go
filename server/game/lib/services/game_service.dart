@@ -15,6 +15,7 @@ import '../models/user_private.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
 import '../repositories/connections_repository.dart';
+import '../repositories/online_users_repository.dart';
 import '../repositories/player_states_repository.dart';
 import '../repositories/ratings_repository.dart';
 import '../repositories/rooms_repository.dart';
@@ -62,6 +63,7 @@ class GameService {
   final UsersRepository users;
   final UsersPrivateRepository usersPrivate;
   final RoomsRepository rooms;
+  final OnlineUsersRepository onlineUsers;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -75,6 +77,7 @@ class GameService {
     required this.users,
     required this.usersPrivate,
     required this.rooms,
+    required this.onlineUsers,
     required this.taskScheduler,
     required this.logger,
   });
@@ -83,7 +86,9 @@ class GameService {
   ///
   /// RTDB에 먼저 쓰고 Firestore 트랜잭션으로 묶는다(`docs/server.md`의 동시에 들어온 요청). [check]가 없으면 한 사람이라도
   /// 이미 대기열, 방, 대국, 신청 중 하나에 있을 때 `busy`로 거절한다. 묶지 못하면 만든 대국을 지우고 그 예외를 다시 던진다.
-  /// 묶으면 두 대국자의 대기열 표시(`quickQueueJoinedAt`)는 지운다. [gameId]를 주면 그 ID로 만든다(다시 두기).
+  /// 묶으면 두 대국자의 대기열 표시(`quickQueueJoinedAt`)와 신청 표시(`outgoingChallengeId`, `incomingChallengeId`)는 지운다.
+  /// 신청 표시는 신청을 수락해 만드는 대국에서만 남아 있다([check]가 그 신청을 확인한다). [gameId]를 주면 그 ID로 만든다(다시 두기).
+  /// 묶은 뒤 두 사람의 `online_users` 상태를 `playing`으로 바꾼다.
   Future<String> createGame(ActiveGame game, {required DateTime now, String? gameId, GameBindingCheck? check}) async {
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
     await settlePreviousGames(uids, now);
@@ -102,7 +107,14 @@ class GameService {
           playerStates.setPlayerStateInTransaction(
             transaction,
             uid,
-            _copyPlayerState(states[uid], gameId: newGameId, setupDraft: null, quickQueueJoinedAt: null, now: now),
+            _copyPlayerState(
+              states[uid],
+              gameId: newGameId,
+              setupDraft: null,
+              quickQueueJoinedAt: null,
+              clearChallenges: true,
+              now: now,
+            ),
           );
         }
       });
@@ -119,6 +131,7 @@ class GameService {
       runAt: _fromMs(unboundCheckAt),
       taskId: 'cleanup-created-$newGameId',
     );
+    await _updateOnlineStatus(uids, OnlineStatus.playing);
     return newGameId;
   }
 
@@ -233,6 +246,9 @@ class GameService {
       }
       return true;
     });
+    if (archived) {
+      await _updateOnlineStatus(uids, OnlineStatus.waiting);
+    }
     logger.info('finalizeGame 완료', {
       'gameId': gameId,
       'archived': archived,
@@ -366,6 +382,23 @@ class GameService {
     }
   }
 
+  /// 대국실에 있는 [uids]의 `online_users` 상태를 바꾼다. 대국 상태를 쓴 뒤에 따라 쓰는 표시이므로 실패해도 대국을 막지 않는다.
+  /// 앱이 다음에 `enterLobby`를 부를 때 다시 맞춰진다.
+  Future<void> _updateOnlineStatus(List<String> uids, OnlineStatus status) async {
+    for (final uid in uids) {
+      try {
+        await onlineUsers.updateStatus(uid, status);
+      } catch (error, stackTrace) {
+        logger.error(
+          'online_users 상태를 바꾸지 못했습니다',
+          fields: {'uid': uid, 'status': status.name},
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+  }
+
   /// 상차림 마감이 지났으면 두 대국자가 골라 둔 상차림. 마감 전이면 읽지 않는다.
   Future<Map<Side, Formation>> _getDueSetupDrafts(String gameId, ActiveGame game, int nowMs) async {
     if (game.state.phase != GamePhase.setup || nowMs < game.state.setup.deadlineAt) {
@@ -483,7 +516,7 @@ class GameService {
         state.incomingChallengeId != null;
   }
 
-  /// [state]에서 대국과 대기열 필드만 바꾼 상태. 문서가 없었으면 나머지는 비운다.
+  /// [state]에서 대국과 대기열 필드만 바꾼 상태. [clearChallenges]면 신청 표시도 지운다. 문서가 없었으면 나머지는 비운다.
   static PlayerState _copyPlayerState(
     PlayerState? state, {
     required String? gameId,
@@ -491,14 +524,15 @@ class GameService {
     required SetupDraft? setupDraft,
     required DateTime? quickQueueJoinedAt,
     RankChange? lastRankChange,
+    bool clearChallenges = false,
     required DateTime now,
   }) {
     return PlayerState(
       roomId: state?.roomId,
       gameId: gameId,
       lastGameId: lastGameId ?? state?.lastGameId,
-      outgoingChallengeId: state?.outgoingChallengeId,
-      incomingChallengeId: state?.incomingChallengeId,
+      outgoingChallengeId: clearChallenges ? null : state?.outgoingChallengeId,
+      incomingChallengeId: clearChallenges ? null : state?.incomingChallengeId,
       setupDraft: setupDraft,
       lastRankChange: lastRankChange ?? state?.lastRankChange,
       quickQueueJoinedAt: quickQueueJoinedAt,

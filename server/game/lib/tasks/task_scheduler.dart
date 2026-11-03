@@ -18,7 +18,10 @@ enum TaskName {
   retryQuickMatch,
 
   /// 방이 열려 있는 동안 방장과 상대의 연결을 확인한다. 오래 없으면 방을 닫거나 자리를 비운다.
-  checkRoom;
+  checkRoom,
+
+  /// 대국 신청의 응답 마감. 응답이 없으면 `expired`로 바꾸고 연속 거절 횟수를 센다.
+  expireChallenge;
 
   String get path => '/tasks/$name';
 }

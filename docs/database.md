@@ -87,7 +87,7 @@
 |---|---|---|
 | `createdAt` | timestamp | 차단한 시각 |
 
-- 읽기·만들기·지우기: 본인만. 고치기는 막는다.
+- 읽기·만들기·지우기: 본인만. 고치기는 막는다. 만들 때 필드는 `createdAt` 하나이고 서버 시각(`request.time`)이어야 한다. 나를 차단할 수는 없다.
 - 대국 서버가 신청을 전달할 때 받는 사람의 차단 목록을 읽는다. 채팅 숨기기는 앱이 이 목록으로 거른다.
 
 ### `users_private/{uid}`
@@ -205,12 +205,17 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `roomId` | string? | 방 대기실의 접속자 초대면 그 방. 수락하면 방에 들어간다 |
 | `senderSide` | SideChoice? | 신청한 사람의 진영. 접장기면 쓰지 않는다 |
 | `handicap` | map? | `remover`(HandicapRemover, 신청한 사람 기준), `pieces` |
+| `timeControl` | map | 수락하면 둘 대국의 시간 규칙. RTDB `meta/timeControl`과 같다. 팝업의 조건 칩에 쓴다 |
 | `status` | ChallengeStatus | |
 | `expiresAt` | timestamp | 응답 마감. 팝업의 남은 시간 막대에 쓴다 |
 | `gameId` | string? | 수락해서 만든 대국 |
 | `createdAt` | timestamp | |
+| `updatedAt` | timestamp | |
 
-- 읽기: `fromUid` 또는 `toUid` 본인. 쓰기: 대국 서버.
+- 읽기: `fromUid` 또는 `toUid` 본인이 ID로 읽는다(`get`). 목록은 막는다. 쓰기: 대국 서버.
+- 신청 ID는 20자 임의 문자열(영문, 숫자)이다.
+- 방 초대면 `senderSide`와 `handicap`에 방 조건을 복사한다.
+- 받는 사람이 보내는 사람을 차단해 전달하지 않은 신청도 문서 모양은 같다. 보내는 사람이 읽을 수 있으므로 전달 여부를 적지 않는다.
 
 ### `challenge_limits/{fromUid}_{toUid}` — 서버 전용
 
@@ -218,7 +223,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `failCount` | number | 거절되거나 응답을 받지 못한 연속 횟수. 수락되면 0 |
+| `failCount` | number | 거절되거나 응답을 받지 못한 연속 횟수. 수락되거나 `challengeFailLimit`에 닿아 `blockedUntil`을 정하면 0 |
 | `blockedUntil` | timestamp? | 이 시각까지 신청할 수 없다 |
 | `updatedAt` | timestamp | |
 
@@ -417,7 +422,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `challengesEnabled` | boolean | 대국 서버, 앱(본인) | 신청 받기. false면 "신청 받지 않음"으로 보여준다 |
 | `since` | ms | 대국 서버 | 들어온 시각 |
 
-- 읽기: 로그인한 사용자. 쓰기: 대국 서버. 본인은 자기 항목을 지우거나(`onDisconnect`) `challengesEnabled`만 바꿀 수 있다.
+- 읽기: 로그인한 사용자. 쓰기: 대국 서버. 본인은 자기 항목을 지우거나(`onDisconnect`) `challengesEnabled`만 바꿀 수 있다. `challengesEnabled`는 항목이 있을 때만 boolean으로 바꾸고 지우지 못한다.
 - 닉네임과 급수를 앱이 쓰면 속일 수 있으므로 대국 서버가 쓴다.
 
 ### `chats_lobby/{messageId}`, `chats_game/{gameId}/{messageId}`, `chats_spectator/{gameId}/{messageId}`

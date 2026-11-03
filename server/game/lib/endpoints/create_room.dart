@@ -1,5 +1,3 @@
-import 'package:janggi_core/janggi_core.dart';
-
 import '../config.dart';
 import '../http/callable.dart';
 import '../models/game_enums.dart';
@@ -18,7 +16,7 @@ RoomOptions validateParams(Object? requestParams) {
   }
   final handicap = switch (params['handicap']) {
     null => null,
-    final Map<String, Object?> value => _validateHandicap(value),
+    final Map<String, Object?> value => requireHandicap(value),
     _ => throw const CallableException.invalidArgument('handicap은 객체여야 합니다'),
   };
   final rankRange = switch (params['rankRange']) {
@@ -30,23 +28,6 @@ RoomOptions validateParams(Object? requestParams) {
     throw const CallableException.invalidArgument('rankRange는 공개 방에서만 정합니다');
   }
   return RoomOptions(hostSide: hostSide, handicap: handicap, listed: listed, rankRange: rankRange);
-}
-
-RoomHandicap _validateHandicap(Map<String, Object?> params) {
-  final remover = requireEnum(params, 'remover', HandicapRemover.values);
-  final names = params['pieces'];
-  if (names is! List<Object?> || names.isEmpty) {
-    throw const CallableException.invalidArgument('handicap.pieces는 기물 이름 목록이어야 합니다');
-  }
-  final pieces = <HandicapPiece>[];
-  for (final name in names) {
-    final piece = name is String ? HandicapPiece.values.asNameMap()[name] : null;
-    if (piece == null || pieces.contains(piece)) {
-      throw const CallableException.invalidArgument('handicap.pieces는 서로 다른 HandicapPiece여야 합니다');
-    }
-    pieces.add(piece);
-  }
-  return RoomHandicap(remover: remover, pieces: pieces);
 }
 
 RankRange _validateRankRange(Map<String, Object?> params) {

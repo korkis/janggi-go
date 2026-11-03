@@ -15,3 +15,9 @@ enum RoomStatus { waiting, playing, closed }
 
 /// 접장기에서 기물을 떼는 쪽. 방장(신청이면 신청한 사람) 기준이다. 떼는 쪽이 한을 잡는다(`docs/game/handicap.md`).
 enum HandicapRemover { creator, opponent }
+
+/// 대국 신청 상태. 응답을 기다리면 `pending`이고, 나머지는 끝난 신청이다.
+enum ChallengeStatus { pending, accepted, declined, expired, cancelled }
+
+/// 대국실 접속자의 상태(`online_users.status`). 대국(상차림 포함) 중이면 `playing`이다.
+enum OnlineStatus { waiting, playing }
