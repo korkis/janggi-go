@@ -101,9 +101,9 @@
 | `winsToNextRank` | number? | 대국 서버 | "4급까지 약 3승"의 어림 승수. 9단이거나 아직 급수 대국을 두지 않았으면 null(Functions가 null로 만든다) |
 | `nicknameChangeCount` | number | Functions | 닉네임을 바꾼 횟수. 첫 변경 무료 판단에 쓴다. 엽전이 생기기 전까지는 1이면 더 바꿀 수 없다 |
 | `nicknameChangedAt` | timestamp? | Functions | 마지막으로 바꾼 시각. 7일 제한에 쓴다 |
-| `sanction` | map? | Functions | 지금 걸린 제재. `type`(SanctionType), `endsAt`(timestamp?, 영구면 null), `reason`(string) |
+| `sanction` | map? | Functions, 앱(본인, 경고 지우기) | 지금 걸린 제재. `type`(SanctionType), `endsAt`(timestamp?, 영구 정지와 경고는 null), `reason`(string). 끝난 제재는 `expireSanctions`가 지운다 |
 
-- 읽기: 본인. 쓰기: 본인은 `challengesEnabled`만 바꿀 수 있다.
+- 읽기: 본인. 쓰기: 본인은 `challengesEnabled`를 바꾸고, 지금 제재가 경고이면 `sanction`을 null로 지울 수 있다(제재 팝업을 확인한 뒤, 2026-11-03 구현). 다른 제재는 지우거나 바꾸지 못한다.
 
 ### `ratings/{uid}` — 서버 전용
 
@@ -136,6 +136,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `before` | string |
 | `after` | string |
 | `changedAt` | timestamp |
+
+- 색인: `uid` + `changedAt` 내림차순(Admin 웹의 사용자 기록).
 
 ### `player_states/{uid}`
 
@@ -276,6 +278,9 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `resolvedAt` | timestamp? | |
 | `expiresAt` | timestamp? | 처리가 끝나면 1년 뒤로 정한다. TTL 정책으로 지운다 |
 
+- `resolution.action`이 SanctionType이면 `sanctionId`가 그 제재다. 같은 메시지의 다른 처리 전 신고도 같은 `resolution`으로 함께 닫는다([server.md](./server.md)의 신고 처리와 제재).
+- 색인: `status` + `createdAt` 오름차순(처리 전 대기열), `status` + `resolvedAt` 내림차순(처리한 신고), `targetUid` + `createdAt` 내림차순(피신고자의 신고된 기록). 같은 메시지의 신고는 `message.messageId`와 `status` 같음 조건이라 복합 색인이 없어도 된다.
+
 ### `moderation_logs/{logId}` — 서버 전용
 
 검사에 걸린 메시지 기록이다. 1년 보관한다.
@@ -291,6 +296,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `bannedWordMatched` | boolean | 자체 금칙어 일치 |
 | `createdAt` | timestamp | |
 | `expiresAt` | timestamp | 1년 뒤. TTL 정책으로 지운다 |
+
+- 색인: `uid` + `createdAt` 내림차순(Admin 웹의 사람별 검사 기록). 전체 목록은 `createdAt` 단일 필드 색인을 쓴다.
 
 ### `chat_checks/{messageId}` — 서버 전용
 
@@ -316,6 +323,9 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `reportId` | string? | |
 | `adminUid` | string? | 자동 제재면 null |
 | `createdAt` | timestamp | |
+
+- 채팅 제한과 이용 정지는 `endsAt`이 `startsAt`에서 1·7·30일 뒤다. 경고는 아직 막고 있는 제재가 있으면 이력에만 남고 `users_private.sanction`을 바꾸지 않는다([server.md](./server.md)의 신고 처리와 제재).
+- 색인: `uid` + `createdAt` 내림차순(Admin 웹의 제재 이력).
 
 ## Realtime Database
 
@@ -461,7 +471,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `configs/app` | 읽기 | 읽기 | | Functions 쓰기 |
 | `users` | | 읽기 | | Functions, 대국 서버 쓰기 |
 | `users/{uid}/blocks` | | | 읽기, 만들기, 지우기 | 대국 서버 읽기 |
-| `users_private` | | | 읽기, `challengesEnabled` 쓰기 | Functions, 대국 서버 쓰기 |
+| `users_private` | | | 읽기, `challengesEnabled` 쓰기, 경고 지우기 | Functions, 대국 서버 쓰기 |
 | `player_states` | | | 읽기 | 대국 서버 쓰기 |
 | `rooms` | | ID 읽기, 공개 대기 방 목록 | | 대국 서버 쓰기 |
 | `challenges` | | | 보낸 사람·받는 사람 읽기 | 대국 서버 쓰기 |
@@ -473,7 +483,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | RTDB `online_users` | | 읽기 | 지우기, `challengesEnabled` 쓰기 | 대국 서버 쓰기 |
 | RTDB `chats_*` | | 경로별 읽기 | | Functions 쓰기 |
 
-- Admin 웹은 어느 컬렉션도 직접 읽지 않고 Callable로만 다룬다([dev_rules.md](./dev_rules.md)의 Admin 웹 규칙).
+- Admin 웹은 어느 컬렉션도 직접 읽지 않고 Callable로만 다룬다([dev_rules.md](./dev_rules.md)의 Admin 웹 규칙). `admin: true` claim이 있는 관리자도 보안 규칙에서는 일반 사용자와 같다. 관리자 확인은 Admin Callable이 한다(2026-11-03 구현, 에뮬레이터 테스트로 확인).
 - 허용과 거부를 함께 에뮬레이터 테스트로 확인한다.
 
 ## 보관과 삭제

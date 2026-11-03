@@ -1,5 +1,5 @@
 import {Timestamp, Transaction, getFirestore} from "firebase-admin/firestore";
-import {UserPrivate} from "../models/userPrivate";
+import {ActiveSanction, UserPrivate} from "../models/userPrivate";
 import {modelConverter} from "./firestore";
 
 const COLLECTION = "users_private";
@@ -30,4 +30,21 @@ export function updateNicknameChangeInTransaction(
 
 export function createUserPrivateInTransaction(transaction: Transaction, uid: string, userPrivate: UserPrivate): void {
   transaction.create(userPrivateRef(uid), userPrivate);
+}
+
+/** 지금 걸린 제재를 바꾼다. null이면 지운다. */
+export function updateSanctionInTransaction(
+  transaction: Transaction,
+  uid: string,
+  sanction: ActiveSanction | null,
+): void {
+  transaction.update(userPrivateRef(uid), {sanction});
+}
+
+/**
+ * 제재가 [now] 전에 끝난 사용자. 경고와 영구 정지는 `endsAt`이 null이라 들어오지 않는다. `sanction.endsAt` 단일 필드 색인을 쓴다.
+ */
+export async function getUidsWithEndedSanction(now: Timestamp, limit: number): Promise<string[]> {
+  const snapshot = await getFirestore().collection(COLLECTION).where("sanction.endsAt", "<=", now).limit(limit).get();
+  return snapshot.docs.map((doc) => doc.id);
 }

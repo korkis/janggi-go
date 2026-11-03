@@ -115,3 +115,26 @@ export const CHAT_CLEANUP_BATCH_SIZE = 500;
 // Realtime Database 인스턴스 주소. 에뮬레이터에서는 Admin SDK가 FIREBASE_DATABASE_EMULATOR_HOST로 보내고 이 주소의
 // 인스턴스 이름(ns)만 쓴다. 대국 서버의 RTDB 인스턴스(server/game/lib/server_environment.dart)와 같다.
 export const DATABASE_URL = "https://janggi-go-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// Admin 웹 목록(신고, 검사 기록)을 한 번에 읽는 개수.
+export const ADMIN_PAGE_SIZE = 20;
+
+// 신고 상세와 사용자 조회에 함께 보여주는 최근 기록(제재, 신고, 검사 기록, 닉네임 변경) 개수. 종류마다 따로 센다.
+export const ADMIN_HISTORY_LIMIT = 20;
+
+// 채팅 제한과 이용 정지에 고를 수 있는 기간(일). 제재 단계 경고 → 1일 → 7일 → 30일 → 영구의 기간 단계다(docs/moderation.md).
+export const SANCTION_DURATION_DAYS = [1, 7, 30];
+
+// 조치 사유의 최대 글자 수. 사유는 제재 팝업으로 사용자에게 보인다.
+export const ADMIN_REASON_MAX_LENGTH = 200;
+
+// 끝난 제재를 지우는 예약 작업이 한 번에 읽어 지우는 사용자 수.
+export const SANCTION_EXPIRE_BATCH_SIZE = 500;
+
+// Admin 웹에서 configs/app에 넣을 수 있는 값의 범위. 앱과 대국 서버가 멈추지 않는 범위로 막는다.
+export const APP_CONFIG_LIMITS = {
+  disconnectLimitSeconds: {min: 10, max: 300},
+  quickRematchLimit: {min: 0, max: 100},
+  // 대국 서버는 lastSeenAt이 presenceStaleSeconds(15초)보다 오래되면 끊긴 것으로 본다. 그 안에 세 번 갱신하도록 5초까지만 둔다.
+  heartbeatSeconds: {min: 1, max: 5},
+};

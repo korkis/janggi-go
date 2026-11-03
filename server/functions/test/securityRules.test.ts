@@ -126,6 +126,38 @@ describe("users_private", () => {
     );
   });
 
+  test("본인은 확인한 경고를 지운다", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), `users_private/${ALICE}`), {
+        sanction: {type: "warning", endsAt: null, reason: "욕설"},
+      });
+    });
+    await assertFails(updateDoc(doc(userDb(BOB), `users_private/${ALICE}`), {sanction: null}));
+    await assertFails(
+      updateDoc(doc(userDb(ALICE), `users_private/${ALICE}`), {sanction: {type: "warning", endsAt: null, reason: "x"}}),
+    );
+    await assertSucceeds(updateDoc(doc(userDb(ALICE), `users_private/${ALICE}`), {sanction: null}));
+  });
+
+  test("본인도 경고가 아닌 제재는 지우거나 바꾸지 못하고, 제재를 만들지 못한다", async () => {
+    await assertFails(
+      updateDoc(doc(userDb(ALICE), `users_private/${ALICE}`), {sanction: {type: "warning", endsAt: null, reason: "x"}}),
+    );
+    for (const type of ["chatRestriction", "suspension", "permanentBan"]) {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await updateDoc(doc(context.firestore(), `users_private/${ALICE}`), {
+          sanction: {type, endsAt: null, reason: "욕설"},
+        });
+      });
+      await assertFails(updateDoc(doc(userDb(ALICE), `users_private/${ALICE}`), {sanction: null}));
+      await assertFails(
+        updateDoc(doc(userDb(ALICE), `users_private/${ALICE}`), {
+          sanction: {type: "warning", endsAt: null, reason: "x"},
+        }),
+      );
+    }
+  });
+
   test("다른 사람은 바꾸지 못하고, 본인도 만들거나 지우지 못한다", async () => {
     await assertFails(updateDoc(doc(userDb(BOB), `users_private/${ALICE}`), {challengesEnabled: false}));
     await assertFails(setDoc(doc(userDb(BOB), `users_private/${BOB}`), {challengesEnabled: true}));
@@ -161,6 +193,26 @@ describe("서버 전용 컬렉션", () => {
     await assertFails(getDoc(doc(userDb(ALICE), "nickname_changes/c1")));
     await assertFails(getDocs(query(collection(userDb(ALICE), "nickname_changes"), where("uid", "==", ALICE))));
     await assertFails(setDoc(doc(userDb(ALICE), "nickname_changes/c2"), {uid: ALICE}));
+  });
+
+  test("관리자(admin claim)도 신고, 제재, 검사 기록, 다른 사람의 비공개 정보를 직접 읽거나 쓰지 못한다", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, `reports/m1_${ALICE}`), {reporterUid: ALICE, targetUid: BOB, status: "pending"});
+      await setDoc(doc(db, "sanctions/s1"), {uid: BOB, type: "warning"});
+      await setDoc(doc(db, "moderation_logs/l1"), {uid: BOB});
+    });
+    const adminDb = testEnv.authenticatedContext("admin1", {admin: true}).firestore();
+    await assertFails(getDoc(doc(adminDb, `reports/m1_${ALICE}`)));
+    await assertFails(getDocs(query(collection(adminDb, "reports"), where("status", "==", "pending"))));
+    await assertFails(updateDoc(doc(adminDb, `reports/m1_${ALICE}`), {status: "resolved"}));
+    await assertFails(getDoc(doc(adminDb, "sanctions/s1")));
+    await assertFails(setDoc(doc(adminDb, "sanctions/s2"), {uid: BOB, type: "permanentBan"}));
+    await assertFails(getDoc(doc(adminDb, "moderation_logs/l1")));
+    await assertFails(getDoc(doc(adminDb, `users_private/${ALICE}`)));
+    await assertFails(updateDoc(doc(adminDb, `users_private/${ALICE}`), {sanction: null}));
+    // 설정도 Callable(adminUpdateAppConfig)로만 바꾼다.
+    await assertFails(updateDoc(doc(adminDb, "configs/app"), {onlineUsersVisible: true}));
   });
 
   test("규칙에 없는 컬렉션은 막는다", async () => {

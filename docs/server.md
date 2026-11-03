@@ -335,7 +335,7 @@ flowchart LR
 | `sendChatMessage` | `channel`, `gameId?`, `text`를 받아 권한과 채팅 제한을 확인하고 검사한다. 통과하면 `chats_*`와 `chat_checks`에 쓰고, 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 거절 사유를 돌려준다. 아래 "채팅 Callable" |
 | `reportMessage` | `channel`, `gameId?`, `messageId`를 받아 신고된 메시지와 앞뒤 메시지, 검사 결과 사본으로 `reports`를 만든다. 아래 "채팅 Callable" |
 | `deleteAccount` | 회원 탈퇴. 지울 범위는 [database.md](./database.md)의 미정 |
-| Admin Callable | 신고 대기열·상세, 검사 기록, 사용자 조회, 제재 걸기, `configs/app` 바꾸기. 모두 `admin: true` claim을 다시 확인한다 |
+| Admin Callable | 신고 대기열·상세, 검사 기록, 사용자 조회, 제재 걸기, `configs/app` 바꾸기. 모두 `admin: true` claim을 다시 확인한다. 아래 "Admin Callable" |
 
 ### 닉네임 바꾸기 — 확정 (2026-11-03 구현)
 
@@ -380,14 +380,81 @@ flowchart LR
 - 운영에는 배포 전에 한 번 넣는다. `server`에서 `firebase functions:secrets:set OPENAI_API_KEY`를 실행하고 키를 붙여 넣는다. 키를 바꾸면 같은 명령을 다시 실행하고 Functions를 다시 배포한다.
 - 키는 Restricted 권한으로 Moderations만 Write로 연다. 권한이 모자라면 모든 채팅이 `moderationUnavailable`로 거절되고 Functions 로그에 권한 오류가 남는다.
 
+### Admin Callable — 확정 (2026-11-03 구현)
+
+Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 로그인과 ID token의 `admin: true` claim(boolean true만)을 확인하고, 없으면 `unauthenticated`나 `permission-denied`로 거절한다. Admin 웹이 화면에서 claim을 확인해도 서버가 다시 확인한다. 응답의 시각은 모두 epoch ms다.
+
+| 이름 | 받는 것 | 하는 일 |
+|---|---|---|
+| `adminGetReports` | `status`(ReportStatus), `cursor?` | 신고 목록 20개씩. 처리 전은 `createdAt` 오래된 것부터(대기열), 처리한 신고는 `resolvedAt` 최근 것부터. 신고한 사람과 신고된 사람의 지금 닉네임을 붙인다 |
+| `adminGetReport` | `reportId` | 신고 상세(메시지, 앞뒤 대화, 검사 결과, 처리 결과)와 피신고자 기록(아래 사용자 기록) |
+| `adminResolveReport` | `reportId`, `action`(`dismissed` 또는 SanctionType), `durationDays?`, `reason` | 신고를 처리한다. 아래 "신고 처리". 결과는 바뀐 신고 상세 |
+| `adminGetModerationLogs` | `uid?`, `cursor?` | 검사 기록 20개씩 최근 것부터. `uid`가 있으면 그 사람만 |
+| `adminGetUser` | `uid` 또는 `nickname` 하나 | 사용자 기록. 닉네임은 지금 닉네임으로 찾고 영문 대소문자를 가리지 않는다(`nicknames`) |
+| `adminSanctionUser` | `uid`, `type`, `durationDays?`, `reason` | 신고 없이 제재를 건다. 결과는 바뀐 사용자 기록 |
+| `adminGetAppConfig` | 없음 | `configs/app`을 캐시 없이 읽는다 |
+| `adminUpdateAppConfig` | `config`(다섯 필드 모두) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록) |
+
+- 사용자 기록: 프로필(`users`, 없으면 null), 지금 제재(`users_private.sanction`, 끝났지만 예약 작업이 아직 지우지 않은 것도 그대로), 최근 제재 이력·신고된 기록·검사 기록·닉네임 변경 각각 20개.
+- 목록의 `cursor`는 앞 쪽 마지막 항목의 정렬 시각과 문서 ID(`afterMs`, `afterId`)다. 다음 쪽이 없으면 `nextCursor`가 null이다.
+- 오류의 `details.code`는 AdminErrorCode(`notFound`: 신고나 사용자가 없다, `alreadyResolved`: 이미 처리한 신고). 입력이 틀리면 `invalid-argument`다.
+- 사유(`reason`)는 앞뒤 공백을 지우고 1~200자다. 제재 사유는 제재 팝업으로 사용자에게 보인다.
+
+#### 신고 처리와 제재
+
+- 채팅 제한과 이용 정지는 기간 1·7·30일(`SANCTION_DURATION_DAYS`) 중 하나가 있어야 하고, 경고·영구 정지·무혐의는 기간이 없어야 한다.
+- 한 트랜잭션에서 신고가 처리 전인지 확인하고, 제재면 `sanctions`를 만들고 `users_private.sanction`을 바꾸고, 신고를 `resolved`로 바꾼다(`resolution`, `resolvedAt`, `expiresAt` 1년 뒤). 이미 처리한 신고면 `alreadyResolved`로 거절해 제재가 두 번 걸리지 않는다.
+- 같은 메시지(`message.messageId`)에 대한 다른 처리 전 신고도 같은 결과로 함께 닫는다. 여러 사람이 같은 메시지를 신고해도 제재는 한 번이다.
+- 새 제재는 지금 걸린 제재를 대신한다. 다만 경고는 아직 막고 있는 제재(끝나지 않은 채팅 제한·이용 정지, 영구 정지)를 풀지 않도록 `sanctions`에만 남기고 `users_private.sanction`은 그대로 둔다.
+- 경고는 `users_private.sanction`에 `endsAt` null로 쓴다. 앱이 제재 팝업을 보여준 뒤 본인이 지운다(보안 규칙이 경고일 때만 허용).
+- 제재 단계(경고 → 1일 → 7일 → 30일 → 영구)는 Admin 웹이 지난 제재 수로 다음 단계를 제안할 뿐이고 서버는 강제하지 않는다. 관리자는 단계를 건너뛸 수 있다.
+
 ### 예약 작업
 
 | 이름 | 주기 | 하는 일 |
 |---|---|---|
 | `cleanupChats` | 하루 한 번 (04:00 서울) | 90일 지난 RTDB 채팅을 지운다. 로비 채팅은 `sentAt`(색인)으로 지난 메시지를 지운다. 대국·관전 채팅은 대국 ID를 얕게(`shallow`) 읽고 마지막 메시지가 90일 지난 대국의 채팅을 통째로 지운다 |
-| `expireSanctions` | 한 시간마다 | 끝난 제재를 `users_private.sanction`에서 지운다 |
+| `expireSanctions` | 한 시간마다 | 끝난 제재(`sanction.endsAt`이 지난 채팅 제한·이용 정지)를 `users_private.sanction`에서 지운다. 한 번에 500명까지 읽고 트랜잭션에서 다시 확인한다. 이력(`sanctions`)은 남긴다(2026-11-03 구현) |
 
 Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
+
+## Admin 웹 — 확정 (2026-11-03 구현)
+
+신고 처리, 검사 기록, 사용자 조회와 제재, `configs/app` 바꾸기를 하는 운영 웹이다. 규칙은 [dev_rules.md](./dev_rules.md)의 "Admin 웹 규칙"을 따른다.
+
+- 위치: `server/admin`. Vite, React, TypeScript(strict), React Router, Zustand, Tailwind CSS. Firebase는 Auth와 Functions(Callable)만 쓰고 Firestore를 직접 읽지 않는다.
+- 로그인: Google 로그인(팝업). ID token의 `admin: true` custom claim이 있어야 화면을 연다. 없으면 "관리자 권한이 없어요"와 "권한 다시 확인"(새 ID token을 받아 claim 다시 확인)을 보여준다.
+- 화면: 신고(처리 전, 처리함), 신고 상세(대화, 검사 결과, 피신고자 기록, 처리 입력), 검사 기록, 사용자 찾기와 사용자 기록(신고 없이 제재 걸기), 설정. 조치는 사유를 적고 "검토하기"를 누르면 대상, 종류, 기간, 연결된 신고를 다시 보여주는 확인 창을 거친다.
+- 보안 규칙: 관리자도 `reports`, `sanctions`, `moderation_logs`, 다른 사람의 `users_private`를 직접 읽거나 쓰지 못한다. 모두 Admin Callable로만 다룬다.
+
+### 관리자 지정
+
+처음 관리자는 Firebase Auth에 로그인한 적이 있는 계정(Google)에 custom claim을 준다. `server/functions`에서 실행한다.
+
+```text
+npm run build
+npm run set-admin -- <이메일>
+npm run set-admin -- <이메일> --remove
+```
+
+- 에뮬레이터: `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`, `GCLOUD_PROJECT=demo-janggi-go`를 정하고 실행한다.
+- 운영: 프로젝트 소유자가 `gcloud auth application-default login`으로 로그인한 PC에서 `GCLOUD_PROJECT=janggi-go`를 정하고 실행한다. 관리자로 쓸 계정으로 Admin 웹에 한 번 로그인해 Auth 계정을 먼저 만든다.
+- 다른 claim은 그대로 둔다. 바뀐 claim은 다시 로그인하거나 Admin 웹의 "권한 다시 확인"을 누르면 바로, 아니면 ID token이 새로 발급될 때(1시간 안) 적용된다.
+
+### 개발 실행
+
+- `server/functions`에서 `npm run emulators`로 에뮬레이터를 띄우고, `server`에서 `npm --prefix admin run dev`로 Admin 웹을 띄운다(`http://localhost:5173`). 개발 서버는 에뮬레이터(demo-janggi-go)에 붙고 화면 위에 "에뮬레이터"를 표시한다.
+- 에뮬레이터의 Google 로그인 창에서 계정을 만들고 위의 `set-admin`으로 claim을 준다.
+
+### 배포 — 할 일
+
+사용자 계정이 필요해 아직 하지 않았다.
+
+- Firebase 콘솔에서 Admin 웹용 웹 앱을 등록하고 그 설정을 `server/admin/.env.production.local`(커밋하지 않음)에 넣는다: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`. 값이 없으면 운영 빌드가 켜지면서 오류를 낸다.
+- Hosting 사이트를 새로 만든다(예: `firebase hosting:sites:create janggi-go-admin`). `server/firebase.json`의 `hosting`을 배열로 바꿔 앱 사이트(`"site": "janggi-go"`, 지금 설정)와 Admin 사이트(`"site": "janggi-go-admin"`, `"public": "admin/dist"`, 모든 경로를 `/index.html`로 보내는 rewrite)를 둔다.
+- Authentication의 승인된 도메인에 Admin 사이트 주소가 있는지 확인한다.
+- `server`에서 `npm --prefix admin run build` 뒤 `firebase deploy --only hosting:janggi-go-admin`. Functions, Firestore 규칙과 색인(`--only functions,firestore`)을 먼저 배포한다.
+- 위의 "관리자 지정"으로 운영 관리자를 정한다.
 
 ## 앱과 서버의 흐름 — 초안
 
@@ -518,6 +585,10 @@ sequenceDiagram
 | 자체 금칙어 | `BANNED_WORDS`, `BANNED_WORD_EXCEPTIONS`. 닉네임과 채팅이 같이 쓴다 | [moderation.md](./moderation.md) |
 | 채팅 메시지 길이 | 100자 | 이 문서 |
 | 신고에 저장하는 앞뒤 메시지 | 앞뒤 각각 5개 | 이 문서 |
+| Admin 목록 한 쪽, 사용자 기록 종류별 개수 | 20개 (`ADMIN_PAGE_SIZE`, `ADMIN_HISTORY_LIMIT`) | 이 문서 |
+| 제재 기간 | 1·7·30일 (`SANCTION_DURATION_DAYS`) | [moderation.md](./moderation.md) |
+| 조치 사유 길이 | 200자 (`ADMIN_REASON_MAX_LENGTH`) | 이 문서 |
+| `configs/app`에 넣을 수 있는 범위 | `APP_CONFIG_LIMITS` | 이 문서의 Admin Callable |
 | 채팅 보관 | 90일 | [moderation.md](./moderation.md) |
 | 검사 기록 보관 | 1년 | [moderation.md](./moderation.md) |
 | 닉네임 길이와 글자 | 한글·영문·숫자 2~10자 | [screens.md](./screens.md) |

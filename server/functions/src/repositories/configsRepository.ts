@@ -29,6 +29,18 @@ export async function getAppConfig(): Promise<AppConfig> {
   return config;
 }
 
+/** configs/app을 캐시 없이 읽는다. Admin 웹이 지금 값을 보여줄 때 쓴다. 문서가 없으면 null. */
+export async function getAppConfigUncached(): Promise<AppConfig | null> {
+  const snapshot = await appConfigRef().get();
+  return snapshot.data() ?? null;
+}
+
+/** configs/app을 [config]로 바꾼다. 이 인스턴스의 캐시는 비운다. 다른 인스턴스와 대국 서버는 캐시 시간이 지나면 새 값을 읽는다. */
+export async function setAppConfig(config: AppConfig): Promise<void> {
+  await appConfigRef().set(config);
+  cachedAppConfig = null;
+}
+
 /** configs/app이 없을 때만 [config]로 만든다. 만들었으면 true. */
 export async function createAppConfigIfAbsent(config: AppConfig): Promise<boolean> {
   try {

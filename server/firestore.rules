@@ -3,7 +3,7 @@ rules_version = '2';
 // 기본 거부에서 시작하고 필요한 경로만 연다(docs/database.md의 보안 규칙 방향).
 // 여기에 없는 컬렉션은 클라이언트가 읽지도 쓰지도 못한다. 서버(Admin SDK)는 규칙을 거치지 않는다.
 // 서버 전용: nicknames, ratings, nickname_changes, quick_queue, challenge_limits, reports,
-// moderation_logs, chat_checks, sanctions.
+// moderation_logs, chat_checks, sanctions. 관리자(admin claim)도 직접 읽지 않고 Admin Callable로만 다룬다.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -34,12 +34,18 @@ service cloud.firestore {
       }
     }
 
-    // 본인만 보는 정보. 본인은 challengesEnabled만 바꿀 수 있다.
+    // 본인만 보는 정보. 본인은 challengesEnabled를 바꾸고, 경고 팝업을 확인하면 경고(sanction)를 지울 수 있다.
+    // 채팅 제한과 이용 정지는 지우지 못한다. 제재는 Admin 웹의 Callable(Functions)만 건다.
     match /users_private/{uid} {
       allow read: if isOwner(uid);
-      allow update: if isOwner(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['challengesEnabled'])
-        && request.resource.data.challengesEnabled is bool;
+      allow update: if isOwner(uid) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['challengesEnabled'])
+          && request.resource.data.challengesEnabled is bool)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sanction'])
+          && resource.data.get('sanction', null) != null
+          && resource.data.sanction.type == 'warning'
+          && request.resource.data.sanction == null)
+      );
     }
 
     // 사용자가 지금 무엇을 하고 있는지(대기열, 방, 대국, 신청). 본인만 읽고 대국 서버만 쓴다.
