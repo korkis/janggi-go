@@ -75,14 +75,24 @@ FirebaseOptions getEmulatorFirebaseOptions() {
       iosBundleId: 'com.gazuacup.janggigo',
     );
   }
-  return const FirebaseOptions(
+  return FirebaseOptions(
     apiKey: apiKey,
     appId: '1:000000000000:android:0000000000000000000000',
     messagingSenderId: messagingSenderId,
     projectId: projectId,
-    databaseURL: databaseURL,
+    databaseURL: getAndroidEmulatorDatabaseUrl(),
   );
 }
+
+/// 안드로이드 개발 빌드의 RTDB 주소. 에뮬레이터 주소를 직접 넣는다(`http://<개발 PC>:9000?ns=<인스턴스>`).
+///
+/// 안드로이드에서 `useDatabaseEmulator`를 쓰면 firebase_database 플러그인이 호출마다 다른 RTDB 연결을 만들어,
+/// `.info/connected`를 보는 연결이 듣는 경로 없이 60초 뒤 닫히고 다시 열리지 않는다. 주소를 직접 넣으면 연결이 하나다.
+String getAndroidEmulatorDatabaseUrl() =>
+    'http://${getFirebaseEmulatorHost()}:${EmulatorPorts.database}?ns=$emulatorDatabaseNamespace';
+
+/// RTDB 에뮬레이터의 인스턴스 이름. 대국 서버가 쓰는 `server/firebase.json`의 인스턴스와 같아야 한다.
+const emulatorDatabaseNamespace = 'janggi-go-default-rtdb';
 
 /// Google 로그인의 웹 클라이언트 ID. 안드로이드에서 ID 토큰을 받으려면 필요하다.
 /// Firebase 콘솔에서 Google 로그인을 켠 뒤 "웹 SDK 구성"의 웹 클라이언트 ID를

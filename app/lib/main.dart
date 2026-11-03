@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
@@ -32,5 +33,8 @@ Future<void> _initializeFirebase() async {
   await FirebaseAuth.instance.useAuthEmulator(host, EmulatorPorts.auth);
   FirebaseFirestore.instance.useFirestoreEmulator(host, EmulatorPorts.firestore);
   FirebaseFunctions.instanceFor(region: functionsRegion).useFunctionsEmulator(host, EmulatorPorts.functions);
-  FirebaseDatabase.instance.useDatabaseEmulator(host, EmulatorPorts.database);
+  // 안드로이드는 에뮬레이터 주소를 databaseURL에 직접 넣었다(getAndroidEmulatorDatabaseUrl).
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    FirebaseDatabase.instance.useDatabaseEmulator(host, EmulatorPorts.database);
+  }
 }

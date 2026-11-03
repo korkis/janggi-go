@@ -473,6 +473,7 @@ OpenAI API 키는 Secret Manager에 둔다.
 - Cloud Tasks는 에뮬레이터가 없다. 예약 작업은 `TaskScheduler` 인터페이스 뒤에 두고, 개발에서는 같은 프로세스의 타이머가 대국 서버의 `/tasks/...`를 부르는 구현을 쓴다.
 - Firestore와 RTDB는 REST API로 다룬다. Dart용 Firebase Admin SDK가 공식으로 없기 때문이다. 쓸 패키지는 구현 첫 단계에서 고른다.
 - 앱의 개발 빌드는 대국 서버 주소도 개발 PC를 가리킨다(`app/lib/config.dart`).
+- 안드로이드 개발 빌드는 RTDB 에뮬레이터 주소를 `databaseURL`에 직접 넣는다(`http://10.0.2.2:9000?ns=janggi-go-default-rtdb`). `useDatabaseEmulator`를 쓰면 firebase_database 플러그인이 같은 데이터베이스에 연결을 여러 개 만들어, `.info/connected`를 보는 연결이 듣는 경로 없이 60초 뒤 닫히고 다시 열리지 않기 때문이다.
 - 안드로이드 에뮬레이터에서 앱을 돌릴 때는 `adb reverse tcp:9000 tcp:9000`을 먼저 실행한다. RTDB 에뮬레이터는 연결할 때 다시 붙을 주소로 `127.0.0.1:9000`을 알려 주는데, 기기 안의 `127.0.0.1`은 기기 자신이라 한 번 끊긴 뒤 다시 붙지 못하기 때문이다. 에뮬레이터를 다시 켤 때마다 다시 실행한다.
 - 테스트에서 서로 다른 계정 두 개로 한 판을 끝까지 두는 통합 테스트를 만든다.
 
