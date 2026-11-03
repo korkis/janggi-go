@@ -29,35 +29,67 @@
       ]
     }
   ],
-  "hosting": {
-    "public": "../app/build/web",
-    "ignore": [
-      "firebase.json",
-      "**/node_modules/**",
-      ".last_build_id"
-    ],
-    "rewrites": [
-      {
-        "source": "/r/**",
-        "destination": "/invite.html"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "/.well-known/apple-app-site-association",
-        "headers": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ]
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "site": "janggi-go",
+      "public": "../app/build/web",
+      "ignore": [
+        "firebase.json",
+        "**/node_modules/**",
+        ".last_build_id"
+      ],
+      "rewrites": [
+        {
+          "source": "/r/**",
+          "destination": "/invite.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "/.well-known/apple-app-site-association",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "site": "janggi-go-admin",
+      "public": "admin/dist",
+      "ignore": [
+        "firebase.json",
+        "**/node_modules/**"
+      ],
+      "predeploy": [
+        "npm --prefix \"$PROJECT_DIR/admin\" run lint",
+        "npm --prefix \"$PROJECT_DIR/admin\" run build"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex"
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099

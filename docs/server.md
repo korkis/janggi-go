@@ -452,9 +452,9 @@ npm run set-admin -- <이메일> --remove
 
 - (2026-11-03 완료) Firebase 콘솔에 Admin 웹용 웹 앱 "장기고 Admin"을 등록했다. 그 설정은 비밀값이 아니라(브라우저 번들에 그대로 들어간다) `server/admin/src/config.ts`의 `PRODUCTION_FIREBASE_OPTIONS`에 커밋해 둔다. 접근은 admin claim과 Admin Callable이 막는다.
 - (2026-11-03 완료) Hosting 사이트 `janggi-go-admin`을 만들었다.
-- `server/firebase.json`의 `hosting`을 배열로 바꿔 앱 사이트(`"site": "janggi-go"`, 지금 설정)와 Admin 사이트(`"site": "janggi-go-admin"`, `"public": "admin/dist"`, 모든 경로를 `/index.html`로 보내는 rewrite)를 둔다.
+- (2026-11-03 완료) `server/firebase.json`의 `hosting`을 두 사이트로 나눴다. 앱 사이트 `janggi-go`(`../app/build/web`)와 Admin 사이트 `janggi-go-admin`(`admin/dist`, 모든 경로를 `/index.html`로, `X-Robots-Tag: noindex`). Admin 사이트는 배포 전에 `predeploy`로 lint와 빌드를 한다. Hosting 에뮬레이터는 앱 사이트를 설정한 포트(5000)에, Admin 사이트를 그 포트 + 5(5005)에 띄운다.
 - Authentication의 승인된 도메인에 Admin 사이트 주소가 있는지 확인한다.
-- `server`에서 `npm --prefix admin run build` 뒤 `firebase deploy --only hosting:janggi-go-admin`. Functions, Firestore 규칙과 색인(`--only functions,firestore`)을 먼저 배포한다.
+- `server`에서 `firebase deploy --only hosting:janggi-go-admin`(빌드는 `predeploy`가 한다). 앱 사이트는 `--only hosting:janggi-go`다. Functions, Firestore 규칙과 색인(`--only functions,firestore`)을 먼저 배포한다.
 - 위의 "관리자 지정"으로 운영 관리자를 정한다.
 
 ## 앱과 서버의 흐름 — 초안
@@ -515,7 +515,7 @@ sequenceDiagram
 
 코드는 들어가 있고, 다음은 사용자 계정이 필요해 배포 때 한다.
 
-- Hosting 배포: `app`에서 `flutter build web --dart-define=GAME_SERVER_URL=<Cloud Run 주소>`, `server`에서 `firebase deploy --only hosting`. `server/firebase.json`이 `../app/build/web`을 올리고 `/r/**`를 입장 페이지로 보낸다.
+- Hosting 배포: `app`에서 `flutter build web --dart-define=GAME_SERVER_URL=<Cloud Run 주소>`, `server`에서 `firebase deploy --only hosting:janggi-go`. `server/firebase.json`의 `janggi-go` 사이트가 `../app/build/web`을 올리고 `/r/**`를 입장 페이지로 보낸다.
 - 안드로이드 App Links: `app/web/.well-known/assetlinks.json`에는 지금 개발 PC의 디버그 키 지문만 있다. 플레이 콘솔의 앱 서명 키(Play App Signing) SHA-256 지문을 더한다.
 - iOS Universal Links: `app/web/.well-known/apple-app-site-association`의 `APPLE_TEAM_ID`를 애플 개발자 팀 ID로 바꾸고, App ID에 Associated Domains를 켠다(`ios/Runner/Runner.entitlements`는 들어가 있다). 배포 뒤 `curl -I https://janggi-go.web.app/.well-known/apple-app-site-association`로 `Content-Type: application/json`인지 확인한다. Hosting 에뮬레이터는 `headers` 설정을 적용하지 않아 로컬에서 확인하지 못했다.
 - App Store 주소: 앱을 등록하면 `app/web/invite.html`의 `APP_STORE_URL`에 넣는다. 그 전에는 아이폰 입장 페이지에 "앱 설치"가 보이지 않는다.
