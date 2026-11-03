@@ -163,7 +163,7 @@ flowchart LR
 ### 대국 만들기와 상차림
 
 - 대국을 만들 때 `meta`에 대국자, 시간 규칙, `disconnectLimitMs`, 접장기를 고정한다.
-- 상차림은 상대 찾음 화면 뒤에 시작한다. `setup.startsAt` = 만든 시각 + 상대 찾음 표시 시간이다. 방 대국과 신청 대국에도 같은 값을 쓴다.
+- 상차림은 대국을 만들자마자 시작한다. 상대 찾음 화면은 없앴다(2026-11-03, [screens.md](./screens.md)의 빠른 대국 대기). `setup.startsAt` = 만든 시각이다. 방 대국과 신청 대국도 같다.
 - 한이 먼저 고르고 초는 한의 상차림이 확정된 뒤 고른다([rules.md](./game/rules.md), [time.md](./game/time.md)). 확정된 한의 상차림만 `state.setup.han`에 쓴다. 골라 두기만 한 것은 `player_states.setupDraft`에 둬서 상대에게 보이지 않게 한다.
 - 양쪽이 확정되면 `janggi_core`의 `createInitialPosition`으로 `initialFen`을 만들고 초의 차례를 시작한다.
 
@@ -357,7 +357,7 @@ sequenceDiagram
     FS-->>B: player_states 변경
     A->>RT: games_active/{id} 듣기
     B->>RT: games_active/{id} 듣기
-    Note over A,B: 상대 찾음 화면, 상차림
+    Note over A,B: 상차림
     A->>G: setFormation (한)
     B->>G: setFormation (초)
     loop 수
@@ -371,7 +371,7 @@ sequenceDiagram
 ```
 
 1. 앱 A가 `joinQuickQueue`를 부르고 빠른 대국 대기 화면에서 `player_states/{uid}`를 듣는다. "그만 찾기"와 뒤로 가기는 `leaveQuickQueue`. 그새 매칭돼 `busy`면 화면에 남아 대국으로 간다. 홈의 빠른 대국은 진행 중인 대국이 있으면 대기열 대신 그 대국의 상차림 화면을 연다.
-2. 매칭되면 `player_states.gameId`가 생긴다(또는 `joinQuickQueue` 결과). 앱은 `games_active/{gameId}`를 듣고 상대 찾음 화면을 `setup.startsAt`까지 보여준 뒤 상차림으로 간다. 대국이 아직 RTDB에 없으면 생길 때까지 기다린다.
+2. 매칭되면 `player_states.gameId`가 생긴다(또는 `joinQuickQueue` 결과). 앱은 `games_active/{gameId}`를 듣고 바로 상차림으로 간다. 대국이 아직 RTDB에 없으면 생길 때까지 기다린다.
 3. 상차림에서 누를 때마다 `setFormation(confirmed: false)`, 정하기 버튼은 `confirmed: true`. 마감이 지나면 서버가 확정한다.
 4. 대국 중에는 `playMove`, `resign`을 부른다. 상대 시계가 0이 되거나 상대 연결이 끊긴 것을 보면 `checkGame`을 부른다.
 5. `state.result`가 생기면 결과 창을 띄운다. 급수 변동은 `player_states.lastRankChange`로 보여준다.
@@ -385,7 +385,7 @@ sequenceDiagram
    - 앱이 받는 주소: `https://janggi-go.web.app/r/{roomId}`(App Links·Universal Links), `janggigo://r/{roomId}`(아이폰 앱 안 브라우저의 "앱에서 열기"), 웹은 `/?room={roomId}`(입장 페이지가 PC와 "웹에서 바로 두기"를 보내는 주소).
    - Firebase Hosting은 `/r/**`를 입장 페이지(`app/web/invite.html`)로 보낸다. App Links와 Universal Links의 확인 파일은 `/.well-known/assetlinks.json`, `/.well-known/apple-app-site-association`이고 Flutter 웹 빌드가 `app/web/`에서 함께 복사한다.
 3. `joinRoom`이 실패하면 사유를 보여준다. 자리가 찬 방이 대국 중이면(`status == playing`) "지금 대국 중인 방이에요"를 알린다. 그 대국의 관전 권하기는 관전(구현 순서 10번)을 만들 때 붙인다.
-4. 두 사람은 `rooms/{roomId}`를 듣는다. 방장이 `startRoomGame`을 부르면 두 사람의 `player_states.gameId`가 생기고 상차림으로 간다. 방 대국은 상대 찾음 화면 없이 바로 상차림 화면을 열고, 상차림 시간은 빠른 대국처럼 `setup.startsAt`부터 센다. 이후는 빠른 대국과 같다.
+4. 두 사람은 `rooms/{roomId}`를 듣는다. 방장이 `startRoomGame`을 부르면 두 사람의 `player_states.gameId`가 생기고 상차림으로 간다. 빠른 대국처럼 바로 상차림 화면을 열고, 상차림 시간은 `setup.startsAt`부터 센다. 이후는 빠른 대국과 같다.
 5. 결과 화면을 나가면(`leaveResult`) 방 대기실로 돌아온다. 상대가 `leaveRoom`하면 빈자리에 같은 링크로 다음 사람이 들어온다.
 6. 방 대기실에서 방이 닫히거나(방장이 나감), 내보내지거나, 연결이 오래 끊겨 자리가 비워지면 그 사실을 알리고 나온다.
 
@@ -447,7 +447,6 @@ sequenceDiagram
 | `challengeResponseSeconds` | 20초 | [matching.md](./game/matching.md) |
 | `challengeFailLimit` | 3회 | [matching.md](./game/matching.md) |
 | `challengeBlockMinutes` | 30분 | [matching.md](./game/matching.md) |
-| `matchIntroSeconds` | 3초 (제안) | 상대 찾음 화면 표시 시간. 이 문서 |
 | `presenceStaleSeconds` | 15초 | `lastSeenAt`이 이보다 오래되면 끊긴 것으로 본다. `heartbeatSeconds`(5초)로 세 번 갱신하지 못한 때다. 이 문서 |
 | `roomAbsentSeconds` | 60초 | 방장이나 상대의 연결이 이만큼 없으면 방을 닫거나 자리를 비운다. `checkRoom`이 연결 없음을 처음 본 시각부터 센다. 이 문서 |
 | `roomCheckInterval` | 60초 | 방이 열려 있는 동안 `checkRoom`을 부르는 간격. 이 문서 |

@@ -339,7 +339,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 |---|---|---|
 | `version` | number | 쓸 때마다 1씩 는다 |
 | `phase` | GamePhase | |
-| `setup` | map | `turn`(Side, 지금 고르는 쪽), `startsAt`(ms, 상대 찾음 화면이 끝나는 시각), `deadlineAt`(ms), `han`(Formation?), `cho`(Formation?) |
+| `setup` | map | `turn`(Side, 지금 고르는 쪽), `startsAt`(ms, 상차림을 시작한 시각. 대국을 만든 시각과 같다), `deadlineAt`(ms), `han`(Formation?), `cho`(Formation?) |
 | `initialFen` | string? | 양쪽 상차림이 끝나면 쓴다 |
 | `turn` | Side? | 둘 차례 |
 | `turnStartedAt` | ms? | 지금 차례가 시작된 서버 시각 |
