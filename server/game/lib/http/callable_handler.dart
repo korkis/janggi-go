@@ -69,8 +69,33 @@ Future<Object?> _readData(Request httpRequest) async {
   if (body is! Map<String, Object?> || !body.containsKey('data')) {
     throw const CallableException.invalidArgument('본문에 data가 없습니다');
   }
-  return body['data'];
+  return decodeCallableValue(body['data']);
 }
+
+/// Callable 규약이 감싸 보내는 값을 푼다. 안드로이드 Functions SDK는 Java `Long`인 정수를
+/// `{"@type": "type.googleapis.com/google.protobuf.Int64Value", "value": "1"}`처럼 문자열로 감싸 보내고, Firebase Functions
+/// 서버는 이것을 숫자로 바꿔 넘긴다. 대국 서버도 같은 프로토콜을 받으므로 `validateParams()` 전에 같은 일을 한다.
+Object? decodeCallableValue(Object? value) {
+  if (value is List<Object?>) {
+    return [for (final item in value) decodeCallableValue(item)];
+  }
+  if (value is! Map<String, Object?>) {
+    return value;
+  }
+  final type = value['@type'];
+  final wrapped = value['value'];
+  if (value.length == 2 && (type == _int64ValueType || type == _uint64ValueType) && wrapped is String) {
+    final number = int.tryParse(wrapped);
+    if (number == null) {
+      throw const CallableException.invalidArgument('정수 값을 읽지 못했습니다');
+    }
+    return number;
+  }
+  return {for (final MapEntry(:key, :value) in value.entries) key: decodeCallableValue(value)};
+}
+
+const _int64ValueType = 'type.googleapis.com/google.protobuf.Int64Value';
+const _uint64ValueType = 'type.googleapis.com/google.protobuf.UInt64Value';
 
 /// 호출자의 uid. ID token이 없거나 검사를 통과하지 못하면 `UNAUTHENTICATED`.
 Future<String> _verifyCaller(Request httpRequest, FirebaseIdTokenVerifier idTokenVerifier) async {

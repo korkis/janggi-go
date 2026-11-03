@@ -87,6 +87,24 @@ void main() {
       expect(scheduler.scheduled.single.runAt, now.add(const Duration(seconds: 5)));
     });
 
+    test('안드로이드 Functions SDK가 감싸 보낸 정수를 풀어서 넘긴다', () async {
+      final scheduler = _RecordingTaskScheduler();
+      final handler = createHandler(
+        DevPingEndpoint(taskScheduler: scheduler, logger: logger),
+        users: {'user-1': user},
+      );
+      final (status, body) = await call(
+        handler,
+        callRequest({
+          'data': {
+            'taskDelaySeconds': {'@type': 'type.googleapis.com/google.protobuf.Int64Value', 'value': '5'},
+          },
+        }, token: tokenFor('user-1')),
+      );
+      expect(status, 200, reason: '$body');
+      expect(scheduler.scheduled.single.runAt, now.add(const Duration(seconds: 5)));
+    });
+
     test('data가 null인 호출을 받는다', () async {
       final handler = createHandler(
         DevPingEndpoint(taskScheduler: _RecordingTaskScheduler(), logger: logger),
@@ -176,6 +194,28 @@ void main() {
       expect(status, 500);
       expect(body['error'], {'status': 'INTERNAL', 'message': 'INTERNAL'});
     });
+  });
+
+  test('decodeCallableValue는 중첩된 감싼 정수도 풀고 나머지는 그대로 둔다', () {
+    const int64 = 'type.googleapis.com/google.protobuf.Int64Value';
+    expect(
+      decodeCallableValue({
+        'a': {'@type': int64, 'value': '-3'},
+        'b': [
+          {'@type': 'type.googleapis.com/google.protobuf.UInt64Value', 'value': '7'},
+          'x',
+        ],
+        'c': {'@type': 'other', 'value': '1'},
+        'd': 1.5,
+      }),
+      {
+        'a': -3,
+        'b': [7, 'x'],
+        'c': {'@type': 'other', 'value': '1'},
+        'd': 1.5,
+      },
+    );
+    expect(() => decodeCallableValue({'@type': int64, 'value': 'abc'}), throwsA(isA<CallableException>()));
   });
 
   test('getBearerToken', () {
