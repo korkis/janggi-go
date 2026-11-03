@@ -7,6 +7,17 @@
         ".read": true
       }
     },
+    "spectate_list": {
+      ".read": true
+    },
+    "spectators": {
+      "$gameId": {
+        "$viewerId": {
+          ".write": "!newData.exists() || (!data.exists() && $viewerId.length === 20 && root.child('games_active').child($gameId).exists())",
+          ".validate": "newData.isNumber() && newData.val() === now"
+        }
+      }
+    },
     "connections": {
       "$uid": {
         ".read": "auth != null",

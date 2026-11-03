@@ -282,7 +282,7 @@ flowchart LR
 - 방장이 나가면 방은 `closed`가 되고 문서는 남는다. 상대의 `roomId`도 지운다. 닫힌 방에는 들어올 수 없다(`roomClosed`).
 - 진영: 접장기면 떼는 쪽이 한이다(`remover`가 `creator`면 방장이 한). 아니면 `hostSide`이고, `random`이면 판마다 무작위로 정한다. 다시 두기로 둔 대국은 다시 두기 규칙대로 바꾼다.
 - 급수 범위(`rankRange`)는 공개 방에만 있고, 방 목록과 링크 모두에 적용한다.
-- 공개 방(`listed`)의 대국은 관전 목록에 보이고, 비공개 방의 대국은 보이지 않는다. 비공개 방의 대국은 그 방의 링크로 관전한다(구현 순서 10번).
+- 공개 방(`listed`)의 대국은 관전 목록에 보이고, 비공개 방의 대국은 보이지 않는다. 비공개 방의 대국은 그 방의 링크로 관전한다. 링크로 들어가려던 방이 대국 중이면 앱이 방의 `gameId`로 관전을 권한다.
 - `checkRoom` 예약 작업이 방장과 상대의 연결을 확인한다. `online`인 연결이 하나라도 있으면 있는 것으로 본다. 링크를 공유하러 카카오톡에 간 방장을 내보내지 않도록 `foreground`는 보지 않는다.
   - 연결이 없는 것을 처음 본 시각을 `rooms.hostAbsentSince`·`guestAbsentSince`에 적고, 그 뒤 `roomAbsentSeconds`가 지나도 없으면 방을 닫거나(방장) 자리를 비운다(상대). 그 사이 돌아오면 지운다. 연결이 끊긴 뒤 1~2분 안에 처리된다.
   - 대국 중에는 대국의 접속 끊김 판정에 맡기고 확인하지 않는다.
@@ -318,6 +318,8 @@ flowchart LR
 
 - 관전 화면을 연 앱은 `spectators/{gameId}/{viewerId}`를 쓰고 `onDisconnect`로 지운다. 로그인하지 않아도 쓴다.
 - 대국 서버가 수를 받을 때마다 그 경로의 자식 수를 얕게 읽어(`shallow`) `spectate_list/{gameId}.spectatorCount`에 쓴다. 관전 화면의 "N명 보는 중"도 이 값을 쓴다.
+- 갱신은 공개 대국(`meta.listed`)의 상태를 RTDB에 쓴 뒤마다 한다(수, 한수쉼, 접속 끊김 기록 등). 진행 중(`playing`)이면 국면, 수, 관전자 수를 쓰고, 끝나면 카드를 지운다. 상차림 중에는 쓰지 않는다. 대국 상태를 쓴 뒤에 따라 쓰는 표시라 실패해도 대국을 막지 않고 다음 쓰기에서 다시 맞춘다.
+- 정리 작업(`cleanupGame`)이 대국을 지울 때 `spectators/{gameId}`와 `spectate_list/{gameId}`도 지운다.
 
 ## Functions — 초안
 
@@ -393,7 +395,7 @@ sequenceDiagram
    - 앱은 링크를 `app_links` 패키지로 받는다(`InviteLinkManager`). 앱을 연 링크, 켜져 있는 동안 누른 링크, 안드로이드의 플레이 스토어 설치 정보(`referrer=room=<방 ID>`, 설치 뒤 처음 한 번)가 모두 들어갈 방이 되고, 홈 화면이 로그인을 거쳐 방에 들어간다.
    - 앱이 받는 주소: `https://janggi-go.web.app/r/{roomId}`(App Links·Universal Links), `janggigo://r/{roomId}`(아이폰 앱 안 브라우저의 "앱에서 열기"), 웹은 `/?room={roomId}`(입장 페이지가 PC와 "웹에서 바로 두기"를 보내는 주소).
    - Firebase Hosting은 `/r/**`를 입장 페이지(`app/web/invite.html`)로 보낸다. App Links와 Universal Links의 확인 파일은 `/.well-known/assetlinks.json`, `/.well-known/apple-app-site-association`이고 Flutter 웹 빌드가 `app/web/`에서 함께 복사한다.
-3. `joinRoom`이 실패하면 사유를 보여준다. 자리가 찬 방이 대국 중이면(`status == playing`) "지금 대국 중인 방이에요"를 알린다. 그 대국의 관전 권하기는 관전(구현 순서 10번)을 만들 때 붙인다.
+3. `joinRoom`이 실패하면 사유를 보여준다. 자리가 찬 방이 대국 중이면(`status == playing`) "지금 대국 중인 방이에요. 관전할까요?"를 묻고 그 방의 `gameId`를 관전한다.
 4. 두 사람은 `rooms/{roomId}`를 듣는다. 방장이 `startRoomGame`을 부르면 두 사람의 `player_states.gameId`가 생기고 상차림으로 간다. 빠른 대국처럼 바로 상차림 화면을 열고, 상차림 시간은 `setup.startsAt`부터 센다. 이후는 빠른 대국과 같다.
 5. 결과 화면을 나가면(`leaveResult`) 방 대기실로 돌아온다. 상대가 `leaveRoom`하면 빈자리에 같은 링크로 다음 사람이 들어온다.
 6. 방 대기실에서 방이 닫히거나(방장이 나감), 내보내지거나, 연결이 오래 끊겨 자리가 비워지면 그 사실을 알리고 나온다.

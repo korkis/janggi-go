@@ -13,6 +13,8 @@ import 'player_states_repository.dart';
 import 'quick_queue_repository.dart';
 import 'ratings_repository.dart';
 import 'rooms_repository.dart';
+import 'spectate_list_repository.dart';
+import 'spectators_repository.dart';
 import 'user_blocks_repository.dart';
 import 'users_private_repository.dart';
 import 'users_repository.dart';
@@ -36,6 +38,8 @@ class GameRepositories {
   final ChallengeLimitsRepository challengeLimits;
   final UserBlocksRepository userBlocks;
   final OnlineUsersRepository onlineUsers;
+  final SpectateListRepository spectateList;
+  final SpectatorsRepository spectators;
 
   const GameRepositories({
     required this.users,
@@ -53,6 +57,8 @@ class GameRepositories {
     required this.challengeLimits,
     required this.userBlocks,
     required this.onlineUsers,
+    required this.spectateList,
+    required this.spectators,
   });
 
   factory GameRepositories.createDefault({
@@ -76,6 +82,8 @@ class GameRepositories {
       challengeLimits: ChallengeLimitsRepository(firestore: firestore),
       userBlocks: UserBlocksRepository(firestore: firestore),
       onlineUsers: OnlineUsersRepository(rtdb: rtdb),
+      spectateList: SpectateListRepository(rtdb: rtdb),
+      spectators: SpectatorsRepository(rtdb: rtdb),
     );
   }
 }

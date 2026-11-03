@@ -335,7 +335,53 @@ describe("Realtime Database", () => {
 
   test("규칙을 연 경로가 아니면 막는다", async () => {
     const db = testEnv.authenticatedContext(ALICE).database();
-    await assertFails(set(ref(db, "spectate_list/g1"), {fen: "x"}));
+    await assertFails(set(ref(db, "unknown_path/g1"), {fen: "x"}));
+    await assertFails(get(ref(db, "unknown_path")));
+  });
+});
+
+describe("Realtime Database 관전", () => {
+  const VIEWER = "v".repeat(20);
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.database();
+      await set(ref(db, "games_active/g1"), {state: {phase: "playing"}});
+      await set(ref(db, "spectate_list/g1"), {fen: "x", moveCount: 3, spectatorCount: 1});
+      await set(ref(db, `spectators/g1/${"o".repeat(20)}`), 1000);
+    });
+  });
+
+  test("spectate_list는 로그인하지 않아도 목록을 읽는다", async () => {
+    await assertSucceeds(get(ref(testEnv.unauthenticatedContext().database(), "spectate_list")));
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(ALICE).database(), "spectate_list/g1")));
+  });
+
+  test("spectate_list는 아무도 쓰지 못한다", async () => {
+    await assertFails(set(ref(testEnv.unauthenticatedContext().database(), "spectate_list/g1/spectatorCount"), 99));
+    await assertFails(set(ref(testEnv.authenticatedContext(ALICE).database(), "spectate_list/g2"), {fen: "x"}));
+  });
+
+  test("로그인하지 않아도 진행 중 대국에 관전자 표시를 서버 시각으로 만들고 지운다", async () => {
+    for (const db of [testEnv.unauthenticatedContext().database(), testEnv.authenticatedContext(ALICE).database()]) {
+      await assertSucceeds(set(ref(db, `spectators/g1/${VIEWER}`), serverTimestamp()));
+      await assertSucceeds(set(ref(db, `spectators/g1/${VIEWER}`), null));
+    }
+  });
+
+  test("서버 시각이 아니거나 고치거나 없는 대국이거나 ID가 20자가 아니면 막는다", async () => {
+    const db = testEnv.unauthenticatedContext().database();
+    await assertFails(set(ref(db, `spectators/g1/${VIEWER}`), 1234));
+    await assertFails(set(ref(db, `spectators/g1/${VIEWER}`), {at: serverTimestamp()}));
+    await assertFails(set(ref(db, `spectators/g1/${"o".repeat(20)}`), serverTimestamp()));
+    await assertFails(set(ref(db, `spectators/g2/${VIEWER}`), serverTimestamp()));
+    await assertFails(set(ref(db, "spectators/g1/short"), serverTimestamp()));
+    await assertFails(set(ref(db, "spectators/g1"), {[VIEWER]: serverTimestamp()}));
+  });
+
+  test("관전자 표시는 읽지 못한다", async () => {
+    await assertFails(get(ref(testEnv.unauthenticatedContext().database(), "spectators/g1")));
+    await assertFails(get(ref(testEnv.authenticatedContext(ALICE).database(), `spectators/g1/${"o".repeat(20)}`)));
   });
 });
 

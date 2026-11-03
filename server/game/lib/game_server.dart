@@ -175,6 +175,8 @@ class GameServer {
       usersPrivate: repositories.usersPrivate,
       rooms: repositories.rooms,
       onlineUsers: repositories.onlineUsers,
+      spectateList: repositories.spectateList,
+      spectators: repositories.spectators,
       taskScheduler: taskScheduler,
       logger: logger,
     );

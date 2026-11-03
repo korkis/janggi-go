@@ -11,6 +11,7 @@ import '../models/connection.dart';
 import '../models/game_enums.dart';
 import '../models/player_state.dart';
 import '../models/rating.dart';
+import '../models/spectate_list_entry.dart';
 import '../models/user_private.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
@@ -19,6 +20,8 @@ import '../repositories/online_users_repository.dart';
 import '../repositories/player_states_repository.dart';
 import '../repositories/ratings_repository.dart';
 import '../repositories/rooms_repository.dart';
+import '../repositories/spectate_list_repository.dart';
+import '../repositories/spectators_repository.dart';
 import '../repositories/users_private_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
@@ -64,6 +67,8 @@ class GameService {
   final UsersPrivateRepository usersPrivate;
   final RoomsRepository rooms;
   final OnlineUsersRepository onlineUsers;
+  final SpectateListRepository spectateList;
+  final SpectatorsRepository spectators;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -78,6 +83,8 @@ class GameService {
     required this.usersPrivate,
     required this.rooms,
     required this.onlineUsers,
+    required this.spectateList,
+    required this.spectators,
     required this.taskScheduler,
     required this.logger,
   });
@@ -329,6 +336,7 @@ class GameService {
         throw StateError('기보를 저장하기 전이라 지우지 않습니다: $gameId');
       }
       await activeGames.deleteGame(gameId);
+      await _deleteSpectateData(gameId);
       logger.info('cleanupGame 끝난 대국 지움', {'gameId': gameId});
       return;
     }
@@ -341,6 +349,7 @@ class GameService {
       return;
     }
     await activeGames.deleteGame(gameId);
+    await _deleteSpectateData(gameId);
     logger.info('cleanupGame 묶이지 않은 대국 지움', {'gameId': gameId});
   }
 
@@ -431,6 +440,7 @@ class GameService {
 
   /// RTDB에 쓴 뒤의 일. 끝났으면 기보 저장과 정리를 예약하고 바로 한 번 저장한다. 아니면 다음 판정을 예약한다.
   Future<void> _onGameWritten(String gameId, ActiveGame before, ActiveGame after, DateTime now) async {
+    await _updateSpectateList(gameId, before, after);
     final endedAt = after.state.endedAt;
     if (before.state.phase == GamePhase.finished || after.state.phase != GamePhase.finished || endedAt == null) {
       await _scheduleEvaluation(gameId, after);
@@ -460,6 +470,53 @@ class GameService {
     } catch (error, stackTrace) {
       // 예약한 finalizeGame이 다시 실행한다.
       logger.error('finalizeGame 바로 실행 실패', fields: {'gameId': gameId}, error: error, stackTrace: stackTrace);
+    }
+  }
+
+  /// 관전 목록 카드를 대국에 맞춘다(`docs/server.md`의 수, 관전자 수). 공개 대국(`meta.listed`)이 상차림을 마쳐 진행 중이면
+  /// 지금 국면, 수, 관전자 수로 쓰고, 끝나면 지운다. 상차림 중에는 국면이 없어 올리지 않는다. 대국 상태를 쓴 뒤에 따라 쓰는
+  /// 표시이므로 실패해도 대국을 막지 않고 다음 쓰기에서 다시 맞춘다.
+  Future<void> _updateSpectateList(String gameId, ActiveGame before, ActiveGame after) async {
+    if (!after.meta.listed) {
+      return;
+    }
+    try {
+      if (after.state.phase == GamePhase.finished) {
+        if (before.state.phase != GamePhase.finished) {
+          await spectateList.deleteEntry(gameId);
+        }
+        return;
+      }
+      if (after.state.phase != GamePhase.playing) {
+        return;
+      }
+      final players = after.meta.players;
+      final spectatorCount = await spectators.countSpectators(gameId);
+      await spectateList.setEntry(
+        gameId,
+        SpectateListEntry(
+          players: SpectatePlayers(
+            cho: SpectatePlayer(nickname: players.cho.nickname, rankLevel: players.cho.rankLevel),
+            han: SpectatePlayer(nickname: players.han.nickname, rankLevel: players.han.rankLevel),
+          ),
+          fen: replayGame(after).position.fen,
+          moveCount: after.moves.length,
+          handicapped: after.meta.handicap?.isNotEmpty ?? false,
+          spectatorCount: spectatorCount,
+          startedAt: after.state.setup.startsAt,
+        ),
+      );
+    } catch (error, stackTrace) {
+      logger.error('spectate_list를 쓰지 못했습니다', fields: {'gameId': gameId}, error: error, stackTrace: stackTrace);
+    }
+  }
+
+  /// RTDB에서 지운 대국의 관전 목록 카드와 관전자 표시를 지운다. 실패해도 대국 정리는 막지 않는다.
+  Future<void> _deleteSpectateData(String gameId) async {
+    try {
+      await (spectateList.deleteEntry(gameId), spectators.deleteSpectators(gameId)).wait;
+    } catch (error, stackTrace) {
+      logger.error('관전 데이터를 지우지 못했습니다', fields: {'gameId': gameId}, error: error, stackTrace: stackTrace);
     }
   }
 
