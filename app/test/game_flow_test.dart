@@ -136,7 +136,8 @@ void main() {
     expect(bigStamp, findsOneWidget);
     expect(scrim, findsNothing);
     expect(checkers(), [Square.parse('d1')]);
-    expect(find.widgetWithText(PlayerBadge, '장군'), findsOneWidget);
+    // 정보 줄에는 장군 표시를 두지 않는다.
+    expect(find.widgetWithText(PlayerBadge, '장군'), findsNothing);
     await tester.pumpAndSettle();
     expect(bigStamp, findsNothing);
     // 도장이 사라져도 장군이 풀릴 때까지 장군을 건 기물의 테두리는 남는다.

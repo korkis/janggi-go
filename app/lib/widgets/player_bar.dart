@@ -3,7 +3,6 @@ import 'package:janggi_core/janggi_core.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
-import 'board/check_effect.dart';
 
 /// 대국 화면 위·아래의 정보 줄. 진영 표시, 이름, 그 아래 한 줄, 오른쪽 표시를 둔다.
 ///
@@ -20,11 +19,8 @@ class PlayerBar extends StatelessWidget {
   /// 이름 아래 한 줄. 없으면 이름만 보여준다.
   final String? detail;
 
-  /// 오른쪽에 붙는 표시(장군, 정했어요 등).
+  /// 오른쪽에 붙는 표시(한수쉼, 시계 등).
   final List<Widget> trailing;
-
-  /// 장군을 받은 쪽이면 정보 줄 테두리를 빨갛게 두른다(`docs/ui.md`의 연출).
-  final bool checked;
 
   const PlayerBar({
     super.key,
@@ -33,7 +29,6 @@ class PlayerBar extends StatelessWidget {
     this.name,
     this.detail,
     this.trailing = const [],
-    this.checked = false,
   });
 
   /// 정보 줄 높이의 넉넉한 어림값. 시계가 있는 줄 기준이다.
@@ -49,14 +44,8 @@ class PlayerBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final detail = this.detail;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: checked ? CheckColors.stamp : Colors.transparent, width: 2),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           SideAvatar(side: side, size: _avatarSize, active: active),

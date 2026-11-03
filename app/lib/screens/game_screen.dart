@@ -22,7 +22,6 @@ import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
-import '../widgets/board/check_effect.dart';
 import '../widgets/chat_view.dart';
 import '../widgets/game_result.dart';
 import '../widgets/game_scaffold.dart';
@@ -290,22 +289,13 @@ class _GameScreenState extends State<GameScreen> {
         trailing: [if (online != null && side == online.mySide) ResultRankChange(gameId: online.gameId)],
       );
     }
-    final checked = board.checkedSide == side;
     return PlayerBar(
       side: side,
       active: !board.isOver && board.turn == side,
-      checked: checked,
       name: game == null ? null : getPlayerName(l10n, game.meta.players.get(side)),
       // 72점
       detail: l10n.score(formatScore(board.position.score(side))),
       trailing: [
-        if (checked)
-          PlayerBadge(
-            // 장군
-            label: l10n.check,
-            color: CheckColors.paper,
-            background: CheckColors.stamp,
-          ),
         if (board.hasPassedLast(side))
           PlayerBadge(
             // 한수쉼
