@@ -450,8 +450,9 @@ npm run set-admin -- <이메일> --remove
 
 사용자 계정이 필요해 아직 하지 않았다.
 
-- Firebase 콘솔에서 Admin 웹용 웹 앱을 등록하고 그 설정을 `server/admin/.env.production.local`(커밋하지 않음)에 넣는다: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`. 값이 없으면 운영 빌드가 켜지면서 오류를 낸다.
-- Hosting 사이트를 새로 만든다(예: `firebase hosting:sites:create janggi-go-admin`). `server/firebase.json`의 `hosting`을 배열로 바꿔 앱 사이트(`"site": "janggi-go"`, 지금 설정)와 Admin 사이트(`"site": "janggi-go-admin"`, `"public": "admin/dist"`, 모든 경로를 `/index.html`로 보내는 rewrite)를 둔다.
+- (2026-11-03 완료) Firebase 콘솔에 Admin 웹용 웹 앱 "장기고 Admin"을 등록했다. 그 설정은 비밀값이 아니라(브라우저 번들에 그대로 들어간다) `server/admin/src/config.ts`의 `PRODUCTION_FIREBASE_OPTIONS`에 커밋해 둔다. 접근은 admin claim과 Admin Callable이 막는다.
+- (2026-11-03 완료) Hosting 사이트 `janggi-go-admin`을 만들었다.
+- `server/firebase.json`의 `hosting`을 배열로 바꿔 앱 사이트(`"site": "janggi-go"`, 지금 설정)와 Admin 사이트(`"site": "janggi-go-admin"`, `"public": "admin/dist"`, 모든 경로를 `/index.html`로 보내는 rewrite)를 둔다.
 - Authentication의 승인된 도메인에 Admin 사이트 주소가 있는지 확인한다.
 - `server`에서 `npm --prefix admin run build` 뒤 `firebase deploy --only hosting:janggi-go-admin`. Functions, Firestore 규칙과 색인(`--only functions,firestore`)을 먼저 배포한다.
 - 위의 "관리자 지정"으로 운영 관리자를 정한다.
