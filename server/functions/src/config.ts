@@ -27,5 +27,70 @@ export const NICKNAME_IMPERSONATION_WORDS = [
   "staff",
 ];
 
-// 자체 금칙어. 채팅 검사(11단계)의 목록을 둘 곳이 정해지면 그쪽으로 옮긴다(docs/database.md의 미정).
-export const BANNED_WORDS = ["씨발", "시발", "씨바", "병신", "븅신", "개새끼", "개새", "좆", "존나", "fuck", "shit"];
+// 자체 금칙어. 닉네임과 채팅이 같이 쓴다. OpenAI Moderation이 놓치는 한국어 은어와 초성 욕설을 거른다(docs/moderation.md).
+// 숫자와 기호를 지우고 한 글자씩 띄어 쓴 것을 붙인 글에서 찾는다(services/bannedWordService.ts). 영문은 소문자로 적는다.
+// 띄어 쓴 낱말끼리 붙여 보지는 않으므로 두 글자 금칙어도 "아저씨 발"처럼 낱말 경계에 걸리지 않는다.
+export const BANNED_WORDS = [
+  "씨발",
+  "시발",
+  "씨바",
+  "씨빨",
+  "ㅅㅂ",
+  "ㅆㅂ",
+  "ㅅㅃ",
+  "병신",
+  "븅신",
+  "빙신",
+  "ㅂㅅ",
+  "ㅄ",
+  "개새끼",
+  "개새",
+  "개색기",
+  "개세끼",
+  "ㄱㅅㄲ",
+  "좆",
+  "존나",
+  "졸라",
+  "ㅈㄴ",
+  "지랄",
+  "ㅈㄹ",
+  "미친놈",
+  "미친년",
+  "니애미",
+  "느금마",
+  "엠창",
+  "fuck",
+  "shit",
+  "bitch",
+];
+
+// 금칙어를 품고 있지만 평범한 낱말. 금칙어를 찾기 전에 지운다.
+export const BANNED_WORD_EXCEPTIONS = ["시발점", "시발역", "시발택시"];
+
+// OpenAI Moderation 모델 이름(docs/moderation.md).
+export const MODERATION_MODEL = "omni-moderation-latest";
+
+// OpenAI Moderation API 주소.
+export const MODERATION_API_URL = "https://api.openai.com/v1/moderations";
+
+// OpenAI Moderation 응답을 기다리는 최대 시간(밀리초). 넘으면 메시지를 보내지 못한 것으로 본다.
+export const MODERATION_TIMEOUT_MS = 5000;
+
+// 채팅 메시지 최대 글자 수. 앞뒤 공백을 지우고 센다(docs/server.md의 sendChatMessage).
+export const CHAT_MAX_LENGTH = 100;
+
+// 채팅과 통과한 메시지의 검사 결과(chat_checks)를 남겨 두는 날 수(docs/moderation.md의 보관 기간).
+export const CHAT_RETENTION_DAYS = 90;
+
+// 검사에 걸린 메시지 기록(moderation_logs)과 처리가 끝난 신고를 남겨 두는 날 수.
+export const MODERATION_LOG_RETENTION_DAYS = 365;
+
+// 신고할 때 함께 저장하는 앞뒤 메시지 수. 앞과 뒤 각각이다.
+export const REPORT_CONTEXT_MESSAGES = 5;
+
+// 채팅을 지우는 예약 작업이 로비 채팅에서 한 번에 읽어 지우는 메시지 수.
+export const CHAT_CLEANUP_BATCH_SIZE = 500;
+
+// Realtime Database 인스턴스 주소. 에뮬레이터에서는 Admin SDK가 FIREBASE_DATABASE_EMULATOR_HOST로 보내고 이 주소의
+// 인스턴스 이름(ns)만 쓴다. 대국 서버의 RTDB 인스턴스(server/game/lib/server_environment.dart)와 같다.
+export const DATABASE_URL = "https://janggi-go-default-rtdb.asia-southeast1.firebasedatabase.app";

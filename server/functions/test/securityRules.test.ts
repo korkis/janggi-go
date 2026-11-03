@@ -18,7 +18,16 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import {ref, get, set, update, serverTimestamp} from "firebase/database";
+import {
+  ref,
+  get,
+  set,
+  update,
+  serverTimestamp,
+  query as databaseQuery,
+  orderByKey,
+  limitToLast,
+} from "firebase/database";
 import {readFileSync} from "fs";
 import {resolve} from "path";
 import {TEST_PROJECT_ID} from "./testEnv";
@@ -127,6 +136,21 @@ describe("서버 전용 컬렉션", () => {
   test("nicknames는 읽지도 쓰지도 못한다", async () => {
     await assertFails(getDoc(doc(userDb(ALICE), "nicknames/앨리스")));
     await assertFails(setDoc(doc(userDb(BOB), "nicknames/밥"), {uid: BOB}));
+  });
+
+  test("신고, 검사 기록, 통과한 메시지의 검사 결과는 본인도 읽거나 쓰지 못한다", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, `reports/m1_${ALICE}`), {reporterUid: ALICE, targetUid: BOB});
+      await setDoc(doc(db, "moderation_logs/l1"), {uid: ALICE});
+      await setDoc(doc(db, "chat_checks/m1"), {bannedWordMatched: false});
+    });
+    await assertFails(getDoc(doc(userDb(ALICE), `reports/m1_${ALICE}`)));
+    await assertFails(setDoc(doc(userDb(ALICE), "reports/m2"), {reporterUid: ALICE, targetUid: BOB}));
+    await assertFails(getDoc(doc(userDb(ALICE), "moderation_logs/l1")));
+    await assertFails(getDocs(query(collection(userDb(ALICE), "moderation_logs"), where("uid", "==", ALICE))));
+    await assertFails(getDoc(doc(userDb(ALICE), "chat_checks/m1")));
+    await assertFails(setDoc(doc(userDb(ALICE), "chat_checks/m2"), {bannedWordMatched: false}));
   });
 
   test("규칙에 없는 컬렉션은 막는다", async () => {
@@ -442,5 +466,57 @@ describe("Realtime Database connections", () => {
     await assertFails(
       set(ref(testEnv.unauthenticatedContext().database(), `connections/${ALICE}/c1`), connection(true)),
     );
+  });
+});
+
+describe("Realtime Database 채팅", () => {
+  const CAROL = "carol";
+  const message = {uid: BOB, nickname: "밥", text: "안녕하세요", sentAt: 1000};
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.database();
+      await set(ref(db, "games_active"), {
+        playing: {meta: {players: {cho: {uid: ALICE}, han: {uid: BOB}}}, state: {phase: "playing"}},
+        finished: {meta: {players: {cho: {uid: ALICE}, han: {uid: BOB}}}, state: {phase: "finished"}},
+      });
+      await set(ref(db, "chats_lobby/m1"), message);
+      await set(ref(db, "chats_game/playing/m1"), message);
+      await set(ref(db, "chats_spectator/playing/m1"), message);
+      await set(ref(db, "chats_spectator/finished/m1"), message);
+    });
+  });
+
+  test("로비 채팅은 로그인한 사용자가 목록과 정렬 쿼리로 읽는다", async () => {
+    const db = testEnv.authenticatedContext(CAROL).database();
+    await assertSucceeds(get(ref(db, "chats_lobby")));
+    await assertSucceeds(get(databaseQuery(ref(db, "chats_lobby"), orderByKey(), limitToLast(50))));
+    await assertFails(get(ref(testEnv.unauthenticatedContext().database(), "chats_lobby")));
+  });
+
+  test("대국 채팅은 두 대국자만 읽는다", async () => {
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(ALICE).database(), "chats_game/playing")));
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(BOB).database(), "chats_game/playing")));
+    await assertFails(get(ref(testEnv.authenticatedContext(CAROL).database(), "chats_game/playing")));
+    await assertFails(get(ref(testEnv.unauthenticatedContext().database(), "chats_game/playing")));
+    await assertFails(get(ref(testEnv.authenticatedContext(ALICE).database(), "chats_game")));
+    // 대국이 지워지면 대국자도 읽지 못한다.
+    await assertFails(get(ref(testEnv.authenticatedContext(ALICE).database(), "chats_game/gone")));
+  });
+
+  test("관전 채팅은 로그인한 사용자가 읽고, 대국자는 대국이 끝난 뒤에만 읽는다", async () => {
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(CAROL).database(), "chats_spectator/playing")));
+    await assertFails(get(ref(testEnv.authenticatedContext(ALICE).database(), "chats_spectator/playing")));
+    await assertFails(get(ref(testEnv.authenticatedContext(BOB).database(), "chats_spectator/playing")));
+    await assertSucceeds(get(ref(testEnv.authenticatedContext(ALICE).database(), "chats_spectator/finished")));
+    await assertFails(get(ref(testEnv.unauthenticatedContext().database(), "chats_spectator/finished")));
+  });
+
+  test("누구도 채팅에 직접 쓰지 못한다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertFails(set(ref(db, "chats_lobby/m2"), {...message, uid: ALICE}));
+    await assertFails(set(ref(db, "chats_game/playing/m2"), {...message, uid: ALICE}));
+    await assertFails(set(ref(testEnv.authenticatedContext(CAROL).database(), "chats_spectator/playing/m2"), message));
+    await assertFails(set(ref(db, "chats_lobby/m1"), null));
   });
 });

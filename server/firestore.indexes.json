@@ -10,5 +10,9 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {"collectionGroup": "chat_checks", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
+    {"collectionGroup": "moderation_logs", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
+    {"collectionGroup": "reports", "fieldPath": "expiresAt", "ttl": true, "indexes": []}
+  ]
 }

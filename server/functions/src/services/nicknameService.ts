@@ -1,11 +1,6 @@
-import {
-  BANNED_WORDS,
-  NICKNAME_IMPERSONATION_WORDS,
-  NICKNAME_MAX_LENGTH,
-  NICKNAME_MIN_LENGTH,
-  NICKNAME_PATTERN,
-} from "../config";
+import {NICKNAME_IMPERSONATION_WORDS, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, NICKNAME_PATTERN} from "../config";
 import {NicknameRejectReason} from "../models/nickname";
+import {hasBannedWord} from "./bannedWordService";
 
 /** `nicknames` 문서 ID. 영문 대소문자만 다른 닉네임은 같은 것으로 본다(docs/database.md). */
 export function getNicknameKey(nickname: string): string {
@@ -25,7 +20,7 @@ export function findNicknameProblem(nickname: string): NicknameRejectReason | nu
   if (NICKNAME_IMPERSONATION_WORDS.some((word) => lowerNickname.includes(word))) {
     return NicknameRejectReason.impersonation;
   }
-  if (BANNED_WORDS.some((word) => lowerNickname.includes(word))) {
+  if (hasBannedWord(nickname)) {
     return NicknameRejectReason.bannedWord;
   }
   return null;

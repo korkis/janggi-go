@@ -255,7 +255,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 
 ### `reports/{reportId}` — 서버 전용
 
-채팅 메시지 신고다([moderation.md](./moderation.md)). Functions가 만들고 Admin 웹은 Callable로만 읽고 바꾼다.
+채팅 메시지 신고다([moderation.md](./moderation.md)). Functions가 만들고 Admin 웹은 Callable로만 읽고 바꾼다. `reportId`는 `{messageId}_{reporterUid}`라 한 사람이 한 메시지를 한 번만 신고한다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
@@ -282,8 +282,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `channel` | ChatChannel | |
 | `gameId` | string? | |
 | `text` | string | 원문 |
-| `categories` | array | 걸린 분류 |
-| `scores` | map | 분류별 점수 |
+| `categories` | array | 걸린 분류. 금칙어에 걸려 OpenAI에 보내지 않았으면 빈 배열 |
+| `scores` | map | 분류별 점수. 금칙어에 걸렸으면 빈 map |
 | `bannedWordMatched` | boolean | 자체 금칙어 일치 |
 | `createdAt` | timestamp | |
 | `expiresAt` | timestamp | 1년 뒤. TTL 정책으로 지운다 |
@@ -444,6 +444,8 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `chats_spectator/{gameId}` | 로그인한 사용자. 대국자는 대국이 끝난 뒤에만 |
 
 - 쓰기: Functions만. 90일 지난 메시지는 Functions 예약 작업이 지운다.
+- 대국자 확인은 `games_active/{gameId}`로 하므로 대국이 RTDB에서 지워지면 대국자도 대국 채팅을 읽지 못한다. 관전 채팅은 대국이 지워지면 로그인한 사용자 누구나 읽는다(2026-11-03 구현).
+- `chats_lobby`는 `sentAt` 색인을 둔다(지난 메시지 지우기). 앱은 키 순서로 최근 100개를 듣는다.
 - 차단한 사람의 메시지는 앱이 `users/{uid}/blocks`로 걸러 숨긴다.
 
 ## 보안 규칙 방향
@@ -486,4 +488,4 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 - `users.stats`에 어느 대국(빠른 대국만 또는 온라인 대국 전체)을 셀지.
 - 닫힌 방(`rooms`의 `status == closed`)을 지우는 때와 방법(TTL 또는 정리 작업).
 - 회원 탈퇴 때 지울 데이터와 남길 데이터. 기보(`games_archived`)는 uid만 남기고 앱이 "탈퇴한 사용자"로 보여주는 안을 검토한다.
-- 자체 금칙어 목록을 둘 곳(`config.ts` 또는 서버 전용 Firestore 문서)과 Admin 웹에서 고칠 수 있게 할지.
+- 자체 금칙어 목록을 둘 곳(`config.ts` 또는 서버 전용 Firestore 문서)과 Admin 웹에서 고칠 수 있게 할지. 지금은 `config.ts`의 `BANNED_WORDS`다.

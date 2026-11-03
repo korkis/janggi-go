@@ -8,6 +8,11 @@ function userRef(uid: string) {
   return getFirestore().collection(COLLECTION).doc(uid).withConverter(modelConverter<User>());
 }
 
+export async function getUser(uid: string): Promise<User | null> {
+  const snapshot = await userRef(uid).get();
+  return snapshot.data() ?? null;
+}
+
 export async function getUserInTransaction(transaction: Transaction, uid: string): Promise<User | null> {
   const snapshot = await transaction.get(userRef(uid));
   return snapshot.data() ?? null;

@@ -43,6 +43,20 @@
         }
       }
     },
+    "chats_lobby": {
+      ".read": "auth != null",
+      ".indexOn": ["sentAt"]
+    },
+    "chats_game": {
+      "$gameId": {
+        ".read": "auth != null && (root.child('games_active').child($gameId).child('meta/players/cho/uid').val() === auth.uid || root.child('games_active').child($gameId).child('meta/players/han/uid').val() === auth.uid)"
+      }
+    },
+    "chats_spectator": {
+      "$gameId": {
+        ".read": "auth != null && (root.child('games_active').child($gameId).child('state/phase').val() === 'finished' || (root.child('games_active').child($gameId).child('meta/players/cho/uid').val() !== auth.uid && root.child('games_active').child($gameId).child('meta/players/han/uid').val() !== auth.uid))"
+      }
+    },
     "online_users": {
       ".read": "auth != null",
       "$uid": {

@@ -332,19 +332,52 @@ flowchart LR
 | `checkNickname` | 닉네임 정하기 화면에서 입력하는 동안 쓸 수 있는지 확인한다. 형식, 중복, 금칙어, 운영진 사칭 단어 |
 | `createProfile` | 첫 가입 때 닉네임을 정한다. `nicknames`, `users`(`rankLevel` 1), `users_private`를 한 트랜잭션으로 만든다 |
 | `changeNickname` | 닉네임을 바꾼다. 7일 제한, 첫 변경 무료. 엽전을 쓰는 두 번째 변경부터는 3단계에서 붙인다 |
-| `sendChatMessage` | `channel`, `gameId?`, `text`를 받아 권한과 채팅 제한을 확인하고 검사한다. 통과하면 `chats_*`와 `chat_checks`에 쓰고, 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 거절 사유를 돌려준다 |
-| `reportMessage` | `channel`, `gameId?`, `messageId`를 받아 신고된 메시지와 앞뒤 메시지, 검사 결과 사본으로 `reports`를 만든다 |
+| `sendChatMessage` | `channel`, `gameId?`, `text`를 받아 권한과 채팅 제한을 확인하고 검사한다. 통과하면 `chats_*`와 `chat_checks`에 쓰고, 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 거절 사유를 돌려준다. 아래 "채팅 Callable" |
+| `reportMessage` | `channel`, `gameId?`, `messageId`를 받아 신고된 메시지와 앞뒤 메시지, 검사 결과 사본으로 `reports`를 만든다. 아래 "채팅 Callable" |
 | `deleteAccount` | 회원 탈퇴. 지울 범위는 [database.md](./database.md)의 미정 |
 | Admin Callable | 신고 대기열·상세, 검사 기록, 사용자 조회, 제재 걸기, `configs/app` 바꾸기. 모두 `admin: true` claim을 다시 확인한다 |
+
+### 채팅 Callable — 확정 (2026-11-03 구현)
+
+- `sendChatMessage`
+  - `text`는 앞뒤 공백을 지우고 줄바꿈과 이어진 공백을 한 칸으로 줄인 뒤 1~100자여야 한다(`CHAT_MAX_LENGTH`). 앱 입력칸도 100자로 막는다.
+  - 로비 채팅은 `gameId`가 없어야 하고, 대국·관전 채팅은 있어야 한다. 대국·관전 채팅은 `games_active/{gameId}`가 있어야 한다.
+  - 확인 순서: 프로필(`users/{uid}`) → 제재(`users_private.sanction`) → 읽기 권한(보안 규칙의 `chats_*` 읽기 조건과 같다) → 검사.
+  - 제재: 채팅 제한은 `chatRestricted`, 이용 정지와 영구 정지는 `sanctioned`로 거절한다. 경고와 `endsAt`이 지난 제재는 막지 않는다.
+  - 검사는 자체 금칙어를 먼저 보고, 걸리면 OpenAI에 보내지 않는다. 통과하면 OpenAI Moderation(`omni-moderation-latest`)의 `flagged`를 따른다.
+  - OpenAI를 부르지 못하면(시간 초과 5초, 오류 응답) 메시지를 저장하지 않고 `moderationUnavailable`로 거절한다. 검사하지 않은 메시지를 내보내지 않기 위해서다. 401·403이면 키 권한 오류로 `logger.error`를 남긴다.
+  - 통과하면 `chat_checks/{messageId}`를 먼저 쓰고 메시지를 쓴다. `messageId`는 RTDB push 키다. 결과는 `{messageId}`.
+  - 걸리면 `moderation_logs`에 남기고 `messageBlocked`로 거절한다. 앱은 채팅 가운데 회색 안내로 알린다.
+- `reportMessage`
+  - 신고하는 사람도 그 채팅을 읽을 수 있어야 한다. 내 메시지는 신고할 수 없다(`notAllowed`).
+  - 앞뒤 메시지는 각각 5개까지 저장한다(`REPORT_CONTEXT_MESSAGES`).
+  - 신고 ID는 `{messageId}_{신고한 uid}`다. 같은 사람이 같은 메시지를 다시 신고하면 그대로 성공으로 본다.
+
+| 오류 코드 (`details.code`) | 뜻 |
+|---|---|
+| `profileRequired` | 닉네임을 아직 정하지 않았다 |
+| `sanctioned` | 이용 정지 또는 영구 정지 중이다 |
+| `chatRestricted` | 채팅 제한 중이다 |
+| `notFound` | 대국이나 메시지가 없다 |
+| `notAllowed` | 이 채팅을 쓸 수 없다(대국자가 아닌 대국 채팅, 대국 중인 대국자의 관전 채팅, 내 메시지 신고) |
+| `messageBlocked` | 검사에 걸려 저장하지 않았다 |
+| `moderationUnavailable` | 검사하지 못해 저장하지 않았다 |
+
+#### OpenAI API 키
+
+- 코드는 `defineSecret('OPENAI_API_KEY')`로 읽고 `sendChatMessage`에만 붙인다.
+- 에뮬레이터는 `server/functions/.secret.local`의 `OPENAI_API_KEY`를 읽는다. 이 파일은 `*.local`로 커밋하지 않는다.
+- 운영에는 배포 전에 한 번 넣는다. `server`에서 `firebase functions:secrets:set OPENAI_API_KEY`를 실행하고 키를 붙여 넣는다. 키를 바꾸면 같은 명령을 다시 실행하고 Functions를 다시 배포한다.
+- 키는 Restricted 권한으로 Moderations만 Write로 연다. 권한이 모자라면 모든 채팅이 `moderationUnavailable`로 거절되고 Functions 로그에 권한 오류가 남는다.
 
 ### 예약 작업
 
 | 이름 | 주기 | 하는 일 |
 |---|---|---|
-| `cleanupChats` | 하루 한 번 | 90일 지난 RTDB 채팅을 지운다 |
+| `cleanupChats` | 하루 한 번 (04:00 서울) | 90일 지난 RTDB 채팅을 지운다. 로비 채팅은 `sentAt`(색인)으로 지난 메시지를 지운다. 대국·관전 채팅은 대국 ID를 얕게(`shallow`) 읽고 마지막 메시지가 90일 지난 대국의 채팅을 통째로 지운다 |
 | `expireSanctions` | 한 시간마다 | 끝난 제재를 `users_private.sanction`에서 지운다 |
 
-Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제).
+Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
 
 ## 앱과 서버의 흐름 — 초안
 
@@ -470,7 +503,11 @@ sequenceDiagram
 
 | 설정 | 값 | 정한 문서 |
 |---|---|---|
-| Moderation 모델 이름 | 구현 때 정한다 | [moderation.md](./moderation.md) |
+| Moderation 모델 이름 | `omni-moderation-latest` | [moderation.md](./moderation.md) |
+| Moderation 응답 기다리는 시간 | 5초 | 이 문서 |
+| 자체 금칙어 | `BANNED_WORDS`, `BANNED_WORD_EXCEPTIONS`. 닉네임과 채팅이 같이 쓴다 | [moderation.md](./moderation.md) |
+| 채팅 메시지 길이 | 100자 | 이 문서 |
+| 신고에 저장하는 앞뒤 메시지 | 앞뒤 각각 5개 | 이 문서 |
 | 채팅 보관 | 90일 | [moderation.md](./moderation.md) |
 | 검사 기록 보관 | 1년 | [moderation.md](./moderation.md) |
 | 닉네임 길이와 글자 | 한글·영문·숫자 2~10자 | [screens.md](./screens.md) |
@@ -511,5 +548,5 @@ OpenAI API 키는 Secret Manager에 둔다.
 - 빠른 대국에서 내가 차단한 사람과 매칭되지 않게 할지.
 - 시간 연장권을 상대 차례에도 쓸 수 있는지(3단계).
 - 프로필 화면의 사용자 신고(채팅 메시지가 아닌 신고)에 무엇을 저장할지([screens.md](./screens.md)의 다른 사용자 정보에 버튼만 있다).
-- 채팅 메시지 길이 제한과 연속 전송 제한.
+- 채팅 연속 전송 제한. 길이는 100자로 정했다(2026-11-03).
 - App Check 사용 여부.
