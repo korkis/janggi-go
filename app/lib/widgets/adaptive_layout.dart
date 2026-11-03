@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../screens/lobby_screen.dart';
+import '../screens/profile_screen.dart';
+import '../screens/records_screen.dart';
 import '../screens/spectate_list_screen.dart';
 import '../theme/app_theme.dart';
 
@@ -62,7 +64,7 @@ enum PageLayout {
 }
 
 /// 왼쪽 메뉴의 항목. 화면이 생긴 메뉴만 둔다.
-enum AppMenu { home, lobby, spectate }
+enum AppMenu { home, lobby, spectate, records, profile }
 
 /// 일반 화면(밝은 화면)의 폭별 틀. 화면의 [Scaffold]를 [child]로 받는다.
 ///
@@ -236,6 +238,22 @@ class SideMenu extends StatelessWidget {
                 selected: selected == AppMenu.spectate,
                 onTap: () => _onSelect(context, AppMenu.spectate),
               ),
+              _SideMenuItem(
+                icon: Icons.menu_book_outlined,
+                selectedIcon: Icons.menu_book,
+                // 기보
+                label: l10n.menuRecords,
+                selected: selected == AppMenu.records,
+                onTap: () => _onSelect(context, AppMenu.records),
+              ),
+              _SideMenuItem(
+                icon: Icons.person_outline,
+                selectedIcon: Icons.person,
+                // 내 정보
+                label: l10n.menuProfile,
+                selected: selected == AppMenu.profile,
+                onTap: () => _onSelect(context, AppMenu.profile),
+              ),
             ],
           ),
         ),
@@ -255,6 +273,10 @@ class SideMenu extends StatelessWidget {
         await LobbyScreen.open(context);
       case AppMenu.spectate:
         await SpectateListScreen.open(context);
+      case AppMenu.records:
+        await RecordsScreen.open(context);
+      case AppMenu.profile:
+        await ProfileScreen.open(context);
     }
   }
 

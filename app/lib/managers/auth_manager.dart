@@ -66,6 +66,17 @@ class AuthManager extends ChangeNotifier {
     await _profileLoad;
   }
 
+  /// 닉네임을 바꾸고 바뀐 프로필을 다시 읽는다.
+  Future<void> changeNickname(String nickname) async {
+    await repositories.userRepository.changeNickname(nickname);
+    final uid = _uid;
+    if (uid == null) {
+      throw StateError('로그인하지 않은 상태에서 changeNickname을 불렀습니다');
+    }
+    _profileLoad = _loadProfile(uid);
+    await _profileLoad;
+  }
+
   Future<void> signOut() async {
     await repositories.authRepository.signOut();
     await _syncUid(null);

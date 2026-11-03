@@ -55,4 +55,25 @@ class UserRepository {
       throw AppException.fromNicknameRejectReason(reason);
     }
   }
+
+  /// 닉네임을 바꾼다(`docs/screens.md`의 내 정보). 서버가 거절하면 그 이유의 AppException을 던진다.
+  Future<void> changeNickname(String nickname) async {
+    try {
+      await functions.httpsCallable('changeNickname').call<Object?>({'nickname': nickname});
+    } on FirebaseFunctionsException catch (error) {
+      final details = error.details;
+      final code = details is Map ? details['code'] : null;
+      final reason = NicknameRejectReason.fromName(code);
+      if (reason != null) {
+        throw AppException.fromNicknameRejectReason(reason);
+      }
+      switch (code) {
+        case 'nicknameChangeCooldown':
+          throw const AppException(AppErrorCode.nicknameChangeCooldown);
+        case 'nicknameChangeNotFree':
+          throw const AppException(AppErrorCode.nicknameChangeNotFree);
+      }
+      rethrow;
+    }
+  }
 }

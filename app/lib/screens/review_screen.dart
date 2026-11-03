@@ -13,10 +13,32 @@ import '../widgets/player_bar.dart';
 /// 복기 화면. 대국 화면과 같은 판을 쓰고 버튼 줄만 바꾼다(`docs/screens.md`의 복기 모드).
 ///
 /// 시계 대신 양쪽 남은 점수를 보여주고, 차례 표시와 기물 어두워짐은 쓰지 않는다. 글자로 된 수 목록은 두지 않는다.
+///
+/// 내 기보 목록에서 열면 내 진영을 아래에 두고 정보 줄에 대국자 이름을 보여준다. 새 판에서 놓아보기도 이 화면을 쓰며 놓아보기를
+/// 켠 채로 연다([trying]).
 class ReviewScreen extends StatefulWidget {
   final Game record;
 
-  const ReviewScreen({super.key, required this.record});
+  /// 아래에 둘 진영.
+  final Side bottomSide;
+
+  /// 정보 줄에 보여줄 대국자 이름("닉네임 · 4급"). 없으면 진영 이름을 보여준다.
+  final ({String cho, String han})? names;
+
+  /// 화면 제목. 없으면 "복기"다.
+  final String? title;
+
+  /// 놓아보기를 켠 채로 연다.
+  final bool trying;
+
+  const ReviewScreen({
+    super.key,
+    required this.record,
+    this.bottomSide = Side.cho,
+    this.names,
+    this.title,
+    this.trying = false,
+  });
 
   @override
   State<ReviewScreen> createState() => _ReviewScreenState();
@@ -28,7 +50,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _review = ReviewManager(record: widget.record);
+    _review = ReviewManager(record: widget.record, trying: widget.trying);
   }
 
   @override
@@ -46,19 +68,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildBody(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
+    final bottomSide = widget.bottomSide;
+    // 복기
+    final title = widget.title ?? l10n.reviewTitle;
     if (getLayoutSize(context) == LayoutSize.expanded) {
       return GameWideLayout(
         onBack: _onBack,
         boardColumn: Column(
           children: [
-            _buildPlayerBar(context, Side.han),
+            _buildPlayerBar(context, bottomSide.opponent),
             Flexible(child: _buildBoard()),
-            _buildPlayerBar(context, Side.cho),
+            _buildPlayerBar(context, bottomSide),
           ],
         ),
         panel: GamePanel(
-          // 복기
-          title: l10n.reviewTitle,
+          title: title,
           body: Column(children: [_buildProgressRow(context)]),
           buttons: _buildButtonBar(context),
         ),
@@ -66,18 +90,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
     return Column(
       children: [
-        GameHeader(
-          // 복기
-          title: l10n.reviewTitle,
-          onBack: _onBack,
-        ),
-        _buildPlayerBar(context, Side.han),
+        GameHeader(title: title, onBack: _onBack),
+        _buildPlayerBar(context, bottomSide.opponent),
         // 판과 아래 정보 줄을 붙여 두고 남는 높이는 버튼 줄 위에 둔다.
         Expanded(
           child: Column(
             children: [
               Flexible(child: _buildBoard()),
-              _buildPlayerBar(context, Side.cho),
+              _buildPlayerBar(context, bottomSide),
             ],
           ),
         ),
@@ -93,15 +113,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
       selected: _review.selected,
       targets: _review.targets,
       lastMove: _review.lastMove,
+      flipped: widget.bottomSide == Side.han,
       onSquareTap: _review.trying ? _review.tapSquare : null,
     );
   }
 
   Widget _buildPlayerBar(BuildContext context, Side side) {
     final l10n = AppLocalizations.of(context);
+    final names = widget.names;
     return PlayerBar(
       side: side,
       active: false,
+      name: names == null ? null : (side == Side.cho ? names.cho : names.han),
       // 72점
       detail: l10n.score(formatScore(_review.position.score(side))),
     );

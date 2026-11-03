@@ -1218,4 +1218,158 @@ class AppLocalizationsKo extends AppLocalizations {
 
     return '$dateString 차단';
   }
+
+  @override
+  String get menuRecords => '기보';
+
+  @override
+  String get menuProfile => '내 정보';
+
+  @override
+  String get loginSheetTitleRecords => '로그인하면\n내 기보를 볼 수 있어요';
+
+  @override
+  String get loginSheetTitleProfile => '로그인하면\n급수와 전적을 볼 수 있어요';
+
+  @override
+  String get nicknameStartHintRecords => '정하고 나면 내 기보로 가요';
+
+  @override
+  String get nicknameStartHintProfile => '정하고 나면 내 정보로 가요';
+
+  @override
+  String get recordsTitle => '내 기보';
+
+  @override
+  String get recordsFreePlay => '새 판에서 놓아보기';
+
+  @override
+  String get recordsEmpty => '아직 끝난 대국이 없어요';
+
+  @override
+  String get recordsToday => '오늘';
+
+  @override
+  String get recordsYesterday => '어제';
+
+  @override
+  String recordsDate(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String recordsMoveCount(int count) {
+    return '$count수';
+  }
+
+  @override
+  String get recordsWin => '승';
+
+  @override
+  String get recordsLoss => '패';
+
+  @override
+  String get recordsLoadMore => '더 보기';
+
+  @override
+  String get errorLoadRecords => '기보를 불러오지 못했어요';
+
+  @override
+  String get freePlayHandicapGuide => '접장기로 두려면 한에서 뗄 기물을 골라 주세요';
+
+  @override
+  String get freePlayStart => '상차림 고르기';
+
+  @override
+  String get profileEditNickname => '닉네임 바꾸기';
+
+  @override
+  String profileToday(int wins, int losses) {
+    return '오늘 $wins승 $losses패';
+  }
+
+  @override
+  String get profileStatsTitle => '전적';
+
+  @override
+  String get profileGames => '대국 수';
+
+  @override
+  String get profileWins => '승';
+
+  @override
+  String get profileLosses => '패';
+
+  @override
+  String get profileWinRate => '승률';
+
+  @override
+  String winRateValue(int rate) {
+    return '$rate%';
+  }
+
+  @override
+  String get profileRecent => '최근 10판';
+
+  @override
+  String get profileRecentEmpty => '아직 둔 대국이 없어요';
+
+  @override
+  String get profileAllRecords => '기보 전체 보기';
+
+  @override
+  String get errorLoadStats => '전적을 불러오지 못했어요';
+
+  @override
+  String get nicknameChangeSubmit => '바꾸기';
+
+  @override
+  String nicknameChangeHint(int days) {
+    return '바꾸면 $days일 동안 다시 바꿀 수 없어요';
+  }
+
+  @override
+  String get nicknameSame => '지금 쓰는 닉네임이에요';
+
+  @override
+  String nicknameChangeAvailableAt(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString부터 다시 바꿀 수 있어요';
+  }
+
+  @override
+  String get errorNicknameChangeCooldown => '닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요';
+
+  @override
+  String get errorNicknameChangeNotFree =>
+      '무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요';
+
+  @override
+  String get errorChangeNickname => '닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get nicknameChanged => '닉네임을 바꿨어요';
+
+  @override
+  String userInfoStats(int games, int rate) {
+    return '$games판 · 승률 $rate%';
+  }
+
+  @override
+  String userInfoHeadToHead(int wins, int losses) {
+    return '나와의 전적 $wins승 $losses패';
+  }
+
+  @override
+  String get userInfoHeadToHeadEmpty => '나와 둔 대국이 없어요';
+
+  @override
+  String recordsDetail(String reason, int count) {
+    return '$reason · $count수';
+  }
 }

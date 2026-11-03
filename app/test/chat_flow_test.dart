@@ -198,6 +198,8 @@ void main() {
     await tester.pumpWidget(const JanggigoApp());
     await _pumpFor(tester);
 
+    // 차단 목록은 내 정보의 메뉴에 있다.
+    await _tap(tester, find.text('내 정보'));
     await _tap(tester, find.text('차단 목록'));
     expect(find.text('차단한 사람의 채팅 메시지와 대국 신청은 보이지 않아요'), findsOneWidget);
     expect(find.text('악당'), findsOneWidget);

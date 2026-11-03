@@ -1607,5 +1607,236 @@
         "format": "yMMMd"
       }
     }
+  },
+  "menuRecords": "기보",
+  "@menuRecords": {
+    "description": "왼쪽 메뉴와 홈 버튼의 기보(내 기보 목록)"
+  },
+  "menuProfile": "내 정보",
+  "@menuProfile": {
+    "description": "왼쪽 메뉴와 홈 버튼의 내 정보"
+  },
+  "loginSheetTitleRecords": "로그인하면\n내 기보를 볼 수 있어요",
+  "@loginSheetTitleRecords": {
+    "description": "로그인 창 제목. 기보를 눌렀을 때"
+  },
+  "loginSheetTitleProfile": "로그인하면\n급수와 전적을 볼 수 있어요",
+  "@loginSheetTitleProfile": {
+    "description": "로그인 창 제목. 내 정보를 눌렀을 때"
+  },
+  "nicknameStartHintRecords": "정하고 나면 내 기보로 가요",
+  "@nicknameStartHintRecords": {
+    "description": "닉네임 정하기. 기보를 눌러 가입했을 때"
+  },
+  "nicknameStartHintProfile": "정하고 나면 내 정보로 가요",
+  "@nicknameStartHintProfile": {
+    "description": "닉네임 정하기. 내 정보를 눌러 가입했을 때"
+  },
+  "recordsTitle": "내 기보",
+  "@recordsTitle": {
+    "description": "내 기보 목록 화면 제목"
+  },
+  "recordsFreePlay": "새 판에서 놓아보기",
+  "@recordsFreePlay": {
+    "description": "내 기보 목록 위쪽의 연구용 판 버튼"
+  },
+  "recordsEmpty": "아직 끝난 대국이 없어요",
+  "@recordsEmpty": {
+    "description": "내 기보 목록이 비었을 때"
+  },
+  "recordsToday": "오늘",
+  "@recordsToday": {
+    "description": "내 기보 목록의 날짜 묶음"
+  },
+  "recordsYesterday": "어제",
+  "@recordsYesterday": {
+    "description": "내 기보 목록의 날짜 묶음"
+  },
+  "recordsDate": "{date}",
+  "@recordsDate": {
+    "description": "내 기보 목록의 날짜 묶음. 어제보다 앞",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "recordsMoveCount": "{count}수",
+  "@recordsMoveCount": {
+    "description": "기보의 수",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsWin": "승",
+  "@recordsWin": {
+    "description": "기보의 승패 표시. 이긴 판"
+  },
+  "recordsLoss": "패",
+  "@recordsLoss": {
+    "description": "기보의 승패 표시. 진 판"
+  },
+  "recordsLoadMore": "더 보기",
+  "@recordsLoadMore": {
+    "description": "내 기보 목록 맨 아래의 다음 쪽 불러오기"
+  },
+  "errorLoadRecords": "기보를 불러오지 못했어요",
+  "@errorLoadRecords": {
+    "description": "내 기보 목록 읽기 실패"
+  },
+  "freePlayHandicapGuide": "접장기로 두려면 한에서 뗄 기물을 골라 주세요",
+  "@freePlayHandicapGuide": {
+    "description": "새 판에서 놓아보기 창의 안내"
+  },
+  "freePlayStart": "상차림 고르기",
+  "@freePlayStart": {
+    "description": "새 판에서 놓아보기 창의 시작 버튼"
+  },
+  "profileEditNickname": "닉네임 바꾸기",
+  "@profileEditNickname": {
+    "description": "내 정보의 닉네임 옆 연필 버튼"
+  },
+  "profileToday": "오늘 {wins}승 {losses}패",
+  "@profileToday": {
+    "description": "내 정보 프로필 카드의 오늘 전적",
+    "placeholders": {
+      "wins": {
+        "type": "int"
+      },
+      "losses": {
+        "type": "int"
+      }
+    }
+  },
+  "profileStatsTitle": "전적",
+  "@profileStatsTitle": {
+    "description": "내 정보의 전적 묶음 제목"
+  },
+  "profileGames": "대국 수",
+  "@profileGames": {
+    "description": "내 정보 전적의 대국 수"
+  },
+  "profileWins": "승",
+  "@profileWins": {
+    "description": "내 정보 전적의 승"
+  },
+  "profileLosses": "패",
+  "@profileLosses": {
+    "description": "내 정보 전적의 패"
+  },
+  "profileWinRate": "승률",
+  "@profileWinRate": {
+    "description": "내 정보 전적의 승률"
+  },
+  "winRateValue": "{rate}%",
+  "@winRateValue": {
+    "description": "승률 값",
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "profileRecent": "최근 10판",
+  "@profileRecent": {
+    "description": "내 정보 전적의 최근 승패"
+  },
+  "profileRecentEmpty": "아직 둔 대국이 없어요",
+  "@profileRecentEmpty": {
+    "description": "내 정보에 최근 대국이 없을 때"
+  },
+  "profileAllRecords": "기보 전체 보기",
+  "@profileAllRecords": {
+    "description": "내 정보에서 내 기보 목록으로 가는 버튼"
+  },
+  "errorLoadStats": "전적을 불러오지 못했어요",
+  "@errorLoadStats": {
+    "description": "전적 읽기 실패"
+  },
+  "nicknameChangeSubmit": "바꾸기",
+  "@nicknameChangeSubmit": {
+    "description": "닉네임 바꾸기 화면의 버튼"
+  },
+  "nicknameChangeHint": "바꾸면 {days}일 동안 다시 바꿀 수 없어요",
+  "@nicknameChangeHint": {
+    "description": "닉네임 바꾸기 버튼 위 안내",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameSame": "지금 쓰는 닉네임이에요",
+  "@nicknameSame": {
+    "description": "닉네임 바꾸기에서 지금 닉네임을 그대로 넣었을 때"
+  },
+  "nicknameChangeAvailableAt": "{date}부터 다시 바꿀 수 있어요",
+  "@nicknameChangeAvailableAt": {
+    "description": "닉네임을 바꾼 지 7일이 지나지 않았을 때",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "errorNicknameChangeCooldown": "닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요",
+  "@errorNicknameChangeCooldown": {
+    "description": "서버가 7일 제한으로 거절했을 때"
+  },
+  "errorNicknameChangeNotFree": "무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요",
+  "@errorNicknameChangeNotFree": {
+    "description": "두 번째 닉네임 변경. 엽전 기능이 아직 없다"
+  },
+  "errorChangeNickname": "닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorChangeNickname": {
+    "description": "닉네임 바꾸기 실패"
+  },
+  "nicknameChanged": "닉네임을 바꿨어요",
+  "@nicknameChanged": {
+    "description": "닉네임을 바꾼 뒤 알림"
+  },
+  "userInfoStats": "{games}판 · 승률 {rate}%",
+  "@userInfoStats": {
+    "description": "다른 사용자 정보의 대국 수와 승률",
+    "placeholders": {
+      "games": {
+        "type": "int"
+      },
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "userInfoHeadToHead": "나와의 전적 {wins}승 {losses}패",
+  "@userInfoHeadToHead": {
+    "description": "다른 사용자 정보의 나와의 전적",
+    "placeholders": {
+      "wins": {
+        "type": "int"
+      },
+      "losses": {
+        "type": "int"
+      }
+    }
+  },
+  "userInfoHeadToHeadEmpty": "나와 둔 대국이 없어요",
+  "@userInfoHeadToHeadEmpty": {
+    "description": "다른 사용자 정보. 나와 둔 대국이 없을 때"
+  },
+  "recordsDetail": "{reason} · {count}수",
+  "@recordsDetail": {
+    "description": "기보의 결과 종류와 수",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

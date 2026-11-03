@@ -321,5 +321,125 @@
   "errorLoadBlocks": "Couldn't load blocked players",
   "errorUnblock": "Couldn't unblock. Please try again later",
   "unknownUser": "Unknown player",
-  "blockListDate": "Blocked {date}"
+  "blockListDate": "Blocked {date}",
+  "menuRecords": "Records",
+  "menuProfile": "My info",
+  "loginSheetTitleRecords": "Sign in to see\nyour game records",
+  "loginSheetTitleProfile": "Sign in to see\nyour rank and record",
+  "nicknameStartHintRecords": "Next, we'll open your records",
+  "nicknameStartHintProfile": "Next, we'll open your info",
+  "recordsTitle": "My records",
+  "recordsFreePlay": "Free play on a new board",
+  "recordsEmpty": "No finished games yet",
+  "recordsToday": "Today",
+  "recordsYesterday": "Yesterday",
+  "recordsDate": "{date}",
+  "@recordsDate": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "recordsMoveCount": "{count} moves",
+  "@recordsMoveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsWin": "W",
+  "recordsLoss": "L",
+  "recordsLoadMore": "Load more",
+  "errorLoadRecords": "Couldn't load your records",
+  "freePlayHandicapGuide": "For a handicap game, pick Han's pieces to remove",
+  "freePlayStart": "Choose setups",
+  "profileEditNickname": "Change nickname",
+  "profileToday": "Today {wins}W {losses}L",
+  "@profileToday": {
+    "placeholders": {
+      "wins": {
+        "type": "int"
+      },
+      "losses": {
+        "type": "int"
+      }
+    }
+  },
+  "profileStatsTitle": "Record",
+  "profileGames": "Games",
+  "profileWins": "Wins",
+  "profileLosses": "Losses",
+  "profileWinRate": "Win rate",
+  "winRateValue": "{rate}%",
+  "@winRateValue": {
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "profileRecent": "Last 10 games",
+  "profileRecentEmpty": "No games yet",
+  "profileAllRecords": "See all records",
+  "errorLoadStats": "Couldn't load the record",
+  "nicknameChangeSubmit": "Change",
+  "nicknameChangeHint": "After changing, you can't change it again for {days} days",
+  "@nicknameChangeHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameSame": "This is your current nickname",
+  "nicknameChangeAvailableAt": "You can change it again from {date}",
+  "@nicknameChangeAvailableAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "errorNicknameChangeCooldown": "You can't change your nickname again within 7 days",
+  "errorNicknameChangeNotFree": "You've used your free nickname change. More changes are coming soon",
+  "errorChangeNickname": "Couldn't change your nickname. Please try again later",
+  "nicknameChanged": "Nickname changed",
+  "userInfoStats": "{games} games · {rate}% wins",
+  "@userInfoStats": {
+    "placeholders": {
+      "games": {
+        "type": "int"
+      },
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "userInfoHeadToHead": "Against me: {wins}W {losses}L",
+  "@userInfoHeadToHead": {
+    "placeholders": {
+      "wins": {
+        "type": "int"
+      },
+      "losses": {
+        "type": "int"
+      }
+    }
+  },
+  "userInfoHeadToHeadEmpty": "No games against me",
+  "recordsDetail": "{reason} · {count} moves",
+  "@recordsDetail": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

@@ -1301,4 +1301,161 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return 'Blocked $dateString';
   }
+
+  @override
+  String get menuRecords => 'Records';
+
+  @override
+  String get menuProfile => 'My info';
+
+  @override
+  String get loginSheetTitleRecords => 'Sign in to see\nyour game records';
+
+  @override
+  String get loginSheetTitleProfile => 'Sign in to see\nyour rank and record';
+
+  @override
+  String get nicknameStartHintRecords => 'Next, we\'ll open your records';
+
+  @override
+  String get nicknameStartHintProfile => 'Next, we\'ll open your info';
+
+  @override
+  String get recordsTitle => 'My records';
+
+  @override
+  String get recordsFreePlay => 'Free play on a new board';
+
+  @override
+  String get recordsEmpty => 'No finished games yet';
+
+  @override
+  String get recordsToday => 'Today';
+
+  @override
+  String get recordsYesterday => 'Yesterday';
+
+  @override
+  String recordsDate(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String recordsMoveCount(int count) {
+    return '$count moves';
+  }
+
+  @override
+  String get recordsWin => 'W';
+
+  @override
+  String get recordsLoss => 'L';
+
+  @override
+  String get recordsLoadMore => 'Load more';
+
+  @override
+  String get errorLoadRecords => 'Couldn\'t load your records';
+
+  @override
+  String get freePlayHandicapGuide =>
+      'For a handicap game, pick Han\'s pieces to remove';
+
+  @override
+  String get freePlayStart => 'Choose setups';
+
+  @override
+  String get profileEditNickname => 'Change nickname';
+
+  @override
+  String profileToday(int wins, int losses) {
+    return 'Today ${wins}W ${losses}L';
+  }
+
+  @override
+  String get profileStatsTitle => 'Record';
+
+  @override
+  String get profileGames => 'Games';
+
+  @override
+  String get profileWins => 'Wins';
+
+  @override
+  String get profileLosses => 'Losses';
+
+  @override
+  String get profileWinRate => 'Win rate';
+
+  @override
+  String winRateValue(int rate) {
+    return '$rate%';
+  }
+
+  @override
+  String get profileRecent => 'Last 10 games';
+
+  @override
+  String get profileRecentEmpty => 'No games yet';
+
+  @override
+  String get profileAllRecords => 'See all records';
+
+  @override
+  String get errorLoadStats => 'Couldn\'t load the record';
+
+  @override
+  String get nicknameChangeSubmit => 'Change';
+
+  @override
+  String nicknameChangeHint(int days) {
+    return 'After changing, you can\'t change it again for $days days';
+  }
+
+  @override
+  String get nicknameSame => 'This is your current nickname';
+
+  @override
+  String nicknameChangeAvailableAt(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'You can change it again from $dateString';
+  }
+
+  @override
+  String get errorNicknameChangeCooldown =>
+      'You can\'t change your nickname again within 7 days';
+
+  @override
+  String get errorNicknameChangeNotFree =>
+      'You\'ve used your free nickname change. More changes are coming soon';
+
+  @override
+  String get errorChangeNickname =>
+      'Couldn\'t change your nickname. Please try again later';
+
+  @override
+  String get nicknameChanged => 'Nickname changed';
+
+  @override
+  String userInfoStats(int games, int rate) {
+    return '$games games · $rate% wins';
+  }
+
+  @override
+  String userInfoHeadToHead(int wins, int losses) {
+    return 'Against me: ${wins}W ${losses}L';
+  }
+
+  @override
+  String get userInfoHeadToHeadEmpty => 'No games against me';
+
+  @override
+  String recordsDetail(String reason, int count) {
+    return '$reason · $count moves';
+  }
 }

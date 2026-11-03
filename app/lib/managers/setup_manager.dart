@@ -3,7 +3,7 @@ import 'package:janggi_core/janggi_core.dart';
 
 /// 상차림 화면의 상태. 상차림 화면이 만들고 `dispose()`한다.
 ///
-/// 한 기기에서 양쪽을 두는 개발용 대국이므로 한이 먼저 고르고 이어서 초가 같은 화면에서 고른다.
+/// 한 기기에서 양쪽을 두는 개발용 대국과 새 판에서 놓아보기이므로 한이 먼저 고르고 이어서 초가 같은 화면에서 고른다.
 class SetupManager extends ChangeNotifier {
   /// 아무것도 누르지 않았을 때 골라 둔 상차림(`docs/game/time.md`의 상차림 시간).
   static const defaultFormation = Formation.horseElephantHorseElephant;
@@ -11,10 +11,15 @@ class SetupManager extends ChangeNotifier {
   /// 각 진영 뒷줄에서 마·상이 놓이는 세로줄. 어느 진영이든 b, c, g, h 세로줄이다.
   static const _formationFiles = [1, 2, 6, 7];
 
+  /// 접장기로 한에서 뗀 기물. 접장기가 아니면 비어 있다.
+  final Set<HandicapPiece> hanRemoved;
+
   Side _chooser = Side.han;
   Formation _picked = defaultFormation;
   Formation? _hanFormation;
   Formation? _choFormation;
+
+  SetupManager({this.hanRemoved = const {}});
 
   /// 지금 상차림을 고르는 진영.
   Side get chooser => _chooser;
@@ -32,6 +37,7 @@ class SetupManager extends ChangeNotifier {
   Position get preview => createInitialPosition(
     cho: _choFormation ?? (_chooser == Side.cho ? _picked : defaultFormation),
     han: _hanFormation ?? _picked,
+    hanRemoved: hanRemoved,
   );
 
   /// 양쪽이 확정한 상차림의 처음 국면. 확정 전이면 [StateError]를 던진다.
@@ -41,7 +47,7 @@ class SetupManager extends ChangeNotifier {
     if (cho == null || han == null) {
       throw StateError('상차림이 아직 끝나지 않았다');
     }
-    return createInitialPosition(cho: cho, han: han);
+    return createInitialPosition(cho: cho, han: han, hanRemoved: hanRemoved);
   }
 
   /// [side]의 마·상 네 자리.

@@ -151,6 +151,10 @@ class _LoginSheetState extends State<LoginSheet> {
     LoginPurpose.joinRoom => l10n.loginSheetTitleJoinRoom,
     // 로그인하면 관전하면서\n채팅할 수 있어요
     LoginPurpose.spectateChat => l10n.loginSheetTitleSpectateChat,
+    // 로그인하면\n내 기보를 볼 수 있어요
+    LoginPurpose.records => l10n.loginSheetTitleRecords,
+    // 로그인하면\n급수와 전적을 볼 수 있어요
+    LoginPurpose.profile => l10n.loginSheetTitleProfile,
   };
 
   void _onClose() {

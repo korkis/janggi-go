@@ -17,7 +17,12 @@ class ReviewManager extends ChangeNotifier {
   /// 놓아보기 판. 놓아보기를 끈 상태면 null이다.
   BoardManager? _trial;
 
-  ReviewManager({required this.record}) : _ply = record.moves.length;
+  /// [trying]이면 놓아보기를 켠 채로 시작한다(새 판에서 놓아보기).
+  ReviewManager({required this.record, bool trying = false}) : _ply = record.moves.length {
+    if (trying) {
+      toggleTrial();
+    }
+  }
 
   @override
   void dispose() {

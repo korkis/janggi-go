@@ -12,6 +12,10 @@ class UserPrivateRepository {
   Stream<UserPrivate?> watchUserPrivate(String uid) =>
       firestore.collection('users_private').doc(uid).snapshots().map(_decode);
 
+  /// 본인의 비공개 정보를 한 번 읽는다. 프로필을 만들기 전이면 null.
+  Future<UserPrivate?> getUserPrivate(String uid) async =>
+      _decode(await firestore.collection('users_private').doc(uid).get());
+
   /// 설정의 "대국 신청 받기"를 바꾼다. 보안 규칙이 본인의 이 필드만 허용한다.
   Future<void> updateChallengesEnabled(String uid, bool enabled) async {
     await firestore.collection('users_private').doc(uid).update({'challengesEnabled': enabled});

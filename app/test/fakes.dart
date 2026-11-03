@@ -8,6 +8,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/active_game.dart';
+import 'package:janggigo/models/archived_game.dart';
 import 'package:janggigo/models/app_config.dart';
 import 'package:janggigo/models/challenge.dart';
 import 'package:janggigo/models/chat_message.dart';
@@ -21,6 +22,7 @@ import 'package:janggigo/models/spectate_list_entry.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
+import 'package:janggigo/repositories/archived_game_repository.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
 import 'package:janggigo/repositories/challenge_repository.dart';
 import 'package:janggigo/repositories/chat_repository.dart';
@@ -135,6 +137,33 @@ class FakeUserRepository implements UserRepository {
       rankLevel: 1,
       stats: const UserStats(games: 0, wins: 0, losses: 0),
       createdAt: DateTime.utc(2026, 11, 2),
+    );
+  }
+
+  /// 바꾼 닉네임. 예: `me 장기신`.
+  final nicknameChanges = <String>[];
+
+  /// 다음 닉네임 바꾸기가 이 오류로 실패한다.
+  Object? nextChangeError;
+
+  @override
+  Future<void> changeNickname(String nickname) async {
+    final error = nextChangeError;
+    if (error != null) {
+      nextChangeError = null;
+      throw error;
+    }
+    if (takenNicknames.contains(nickname.toLowerCase())) {
+      throw AppException.fromNicknameRejectReason(NicknameRejectReason.taken);
+    }
+    final uid = authRepository.currentUid!;
+    final profile = profiles[uid]!;
+    nicknameChanges.add('$uid $nickname');
+    profiles[uid] = UserProfile(
+      nickname: nickname,
+      rankLevel: profile.rankLevel,
+      stats: profile.stats,
+      createdAt: profile.createdAt,
     );
   }
 }
@@ -340,6 +369,9 @@ class FakeUserPrivateRepository implements UserPrivateRepository {
 
   @override
   Future<void> updateChallengesEnabled(String uid, bool enabled) async => challengesEnabledWrites.add('$uid $enabled');
+
+  @override
+  Future<UserPrivate?> getUserPrivate(String uid) async => _latest[uid];
 
   /// 대국 서버가 [uid]의 급수 진행을 바꾼 것처럼 보낸다.
   void emit(String uid, UserPrivate? userPrivate) {
@@ -815,6 +847,54 @@ class FakeChatRepository implements ChatRepository {
       _controllers.putIfAbsent(key, StreamController<List<ChatEntry>>.broadcast);
 }
 
+class FakeArchivedGameRepository implements ArchivedGameRepository {
+  /// 끝난 대국. 최근에 끝난 것이 앞이다.
+  var games = <({String gameId, ArchivedGame game})>[];
+
+  /// 다음 읽기가 이 오류로 실패한다.
+  Object? nextError;
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  Future<List<({String gameId, ArchivedGame game})>> getArchivedGames(
+    String uid, {
+    required int limit,
+    DateTime? endedBefore,
+    DateTime? endedSince,
+  }) async {
+    _throwNextError();
+    return games
+        .where((item) => item.game.playerUids.contains(uid))
+        .where((item) => endedBefore == null || item.game.endedAt.isBefore(endedBefore))
+        .where((item) => endedSince == null || !item.game.endedAt.isBefore(endedSince))
+        .take(limit)
+        .toList();
+  }
+
+  @override
+  Future<({int games, int wins})> getPairRecord(String uid, String opponentUid) async {
+    _throwNextError();
+    final pairGames = [
+      for (final item in games)
+        if (item.game.playerUids.contains(uid) && item.game.playerUids.contains(opponentUid)) item.game,
+    ];
+    return (
+      games: pairGames.length,
+      wins: pairGames.where((game) => game.players.get(game.result.winner).uid == uid).length,
+    );
+  }
+
+  void _throwNextError() {
+    final error = nextError;
+    if (error != null) {
+      nextError = null;
+      throw error;
+    }
+  }
+}
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -832,6 +912,7 @@ typedef FakeApp = ({
   FakeSpectateListRepository spectateList,
   FakeSpectatorRepository spectators,
   FakeChatRepository chats,
+  FakeArchivedGameRepository archivedGames,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -851,6 +932,7 @@ FakeApp setUpFakeApp() {
   final spectateListRepository = FakeSpectateListRepository();
   final spectatorRepository = FakeSpectatorRepository();
   final chatRepository = FakeChatRepository();
+  final archivedGameRepository = FakeArchivedGameRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -868,6 +950,7 @@ FakeApp setUpFakeApp() {
     spectateListRepository: spectateListRepository,
     spectatorRepository: spectatorRepository,
     chatRepository: chatRepository,
+    archivedGameRepository: archivedGameRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -886,5 +969,6 @@ FakeApp setUpFakeApp() {
     spectateList: spectateListRepository,
     spectators: spectatorRepository,
     chats: chatRepository,
+    archivedGames: archivedGameRepository,
   );
 }

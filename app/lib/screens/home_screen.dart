@@ -18,23 +18,25 @@ import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
 import '../widgets/spectate_card.dart';
-import 'block_list_screen.dart';
 import 'create_room_screen.dart';
 import 'lobby_screen.dart';
 import 'login_flow.dart';
+import 'profile_screen.dart';
 import 'quick_match_screen.dart';
+import 'records_screen.dart';
 import 'room_join_flow.dart';
 import 'room_screen.dart';
 import 'setup_screen.dart';
 import 'spectate_list_screen.dart';
 import 'spectate_screen.dart';
 
-/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실 버튼, 지금 볼 만한 대국과, 개발 빌드에서만 보이는 개발용 대국 카드들을
-/// 보여준다.
+/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실·기보·내 정보 버튼, 지금 볼 만한 대국과, 개발 빌드에서만 보이는 개발용
+/// 대국 카드들을 보여준다.
 ///
 /// 앱의 처음 화면이라 초대 링크로 들어온 방도 여기서 받아 방 대기실로 간다.
 ///
-/// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 대국실은 왼쪽 메뉴로 간다.
+/// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 대국실·기보·내 정보는 왼쪽 메뉴로
+/// 간다.
 /// 오른쪽 칸에는 "지금 볼 만한 대국"을 2열 카드로 두고, 개발 빌드에서는 그 아래에 개발용 대국 카드를 둔다.
 ///
 /// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
@@ -70,6 +72,8 @@ class HomeScreen extends StatelessWidget {
         const _QuickMatchButton(),
         const SizedBox(height: 12),
         const _RoomButtons(showLobby: true),
+        const SizedBox(height: 12),
+        const _MenuButtons(),
         const SizedBox(height: 24),
         const _SpectateSection(wide: false),
         const SizedBox(height: 16),
@@ -348,6 +352,40 @@ class _RoomButtons extends StatelessWidget {
       return;
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const CreateRoomScreen()));
+  }
+}
+
+/// 기보 버튼과 내 정보 버튼(`docs/screens.md`의 홈). 아래쪽 탭이 생기기 전까지 버튼으로 둔다. 1024 이상은 왼쪽 메뉴에 있어
+/// 두지 않는다.
+class _MenuButtons extends StatelessWidget {
+  const _MenuButtons();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.tonalIcon(
+            onPressed: () => RecordsScreen.open(context),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            icon: const Icon(Icons.menu_book),
+            // 기보
+            label: Text(l10n.menuRecords),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton.tonalIcon(
+            onPressed: () => ProfileScreen.open(context),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            icon: const Icon(Icons.person),
+            // 내 정보
+            label: Text(l10n.menuProfile),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -701,31 +739,19 @@ class _MyCard extends StatelessWidget {
             ),
           ],
         ],
-        // 차단 목록은 내 정보 화면(구현 순서 12번)이 생기면 그 메뉴로 옮긴다.
-        const SizedBox(height: 8),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          children: [
-            TextButton.icon(
-              onPressed: () => _onBlockList(context),
-              icon: const Icon(Icons.block),
-              // 차단 목록
-              label: Text(l10n.blockListTitle),
+        if (!kReleaseMode) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => _onSignOut(context),
+              // 로그아웃 (개발용)
+              child: Text(l10n.homeDevSignOut),
             ),
-            if (!kReleaseMode)
-              TextButton(
-                onPressed: () => _onSignOut(context),
-                // 로그아웃 (개발용)
-                child: Text(l10n.homeDevSignOut),
-              ),
-          ],
-        ),
+          ),
+        ],
       ],
     );
-  }
-
-  Future<void> _onBlockList(BuildContext context) async {
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const BlockListScreen()));
   }
 
   Future<void> _onLogin(BuildContext context) async {

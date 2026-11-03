@@ -21,19 +21,29 @@ import '../widgets/game_scaffold.dart';
 import '../widgets/piece_icon.dart';
 import '../widgets/player_bar.dart';
 import 'game_screen.dart';
+import 'review_screen.dart';
 
 /// 상차림 화면. 한이 먼저 고르고 초는 한이 확정한 뒤 고른다(`docs/game/rules.md`).
 ///
-/// 개발용 대국([gameId]가 null)은 한 기기에서 한이 먼저 고르고 이어서 초가 고른다. 상차림 버튼의 기물 순서가 고르는 사람 기준
+/// 개발용 대국([gameId]가 null)과 새 판에서 놓아보기([freePlay])는 한 기기에서 한이 먼저 고르고 이어서 초가 고른다. 상차림 버튼의 기물 순서가 고르는 사람 기준
 /// 왼쪽부터이므로 고르는 쪽이 아래에 오도록 판을 돌린다. 온라인 대국은 내 진영이 아래이고 서버가 정한 차례와 마감을 따른다.
-/// 상차림은 판 위에 띄운 상차림 창에서 고르고(`docs/screens.md`의 상차림), 끝나면 대국 화면으로 넘어간다.
+/// 상차림은 판 위에 띄운 상차림 창에서 고르고(`docs/screens.md`의 상차림), 끝나면 대국 화면으로 넘어간다. 새 판에서 놓아보기는
+/// 대국 화면 대신 놓아보기를 켠 복기 화면으로 넘어간다.
 class SetupScreen extends StatefulWidget {
-  /// 온라인 대국 ID. null이면 한 기기에서 양쪽을 고르는 개발용 대국이다.
+  /// 온라인 대국 ID. null이면 한 기기에서 양쪽을 고르는 개발용 대국이나 새 판에서 놓아보기다.
   final String? gameId;
 
-  const SetupScreen({super.key}) : gameId = null;
+  /// 새 판에서 놓아보기(`docs/screens.md`의 내 기보 목록). 양쪽을 자유롭게 두는 연구용 판이다.
+  final bool freePlay;
 
-  const SetupScreen.online({super.key, required String this.gameId});
+  /// 새 판에서 놓아보기의 접장기로 한에서 뗄 기물.
+  final Set<HandicapPiece> hanRemoved;
+
+  const SetupScreen({super.key}) : gameId = null, freePlay = false, hanRemoved = const {};
+
+  const SetupScreen.online({super.key, required String this.gameId}) : freePlay = false, hanRemoved = const {};
+
+  const SetupScreen.freePlay({super.key, this.hanRemoved = const {}}) : gameId = null, freePlay = true;
 
   @override
   State<SetupScreen> createState() => _SetupScreenState();
@@ -51,7 +61,7 @@ class _SetupScreenState extends State<SetupScreen> {
     super.initState();
     final gameId = widget.gameId;
     if (gameId == null) {
-      _setup = SetupManager()..addListener(_onSetupChanged);
+      _setup = SetupManager(hanRemoved: widget.hanRemoved)..addListener(_onSetupChanged);
     } else {
       _online = OnlineGameManager(
         gameId: gameId,
@@ -302,6 +312,16 @@ class _SetupScreenState extends State<SetupScreen> {
       return;
     }
     final initialPosition = setup.initialPosition;
+    if (widget.freePlay) {
+      // 놓아보기
+      final title = AppLocalizations.of(context).reviewTrial;
+      Navigator.of(context).pushReplacement(
+        createGameRoute<void>(
+          (context) => ReviewScreen(record: Game.start(initialPosition), title: title, trying: true),
+        ),
+      );
+      return;
+    }
     Navigator.of(context)
         .pushReplacement(createGameRoute<void>((context) => GameScreen(initialPosition: initialPosition)));
   }

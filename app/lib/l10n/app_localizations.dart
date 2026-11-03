@@ -2029,6 +2029,264 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'{date} 차단'**
   String blockListDate(DateTime date);
+
+  /// 왼쪽 메뉴와 홈 버튼의 기보(내 기보 목록)
+  ///
+  /// In ko, this message translates to:
+  /// **'기보'**
+  String get menuRecords;
+
+  /// 왼쪽 메뉴와 홈 버튼의 내 정보
+  ///
+  /// In ko, this message translates to:
+  /// **'내 정보'**
+  String get menuProfile;
+
+  /// 로그인 창 제목. 기보를 눌렀을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면\n내 기보를 볼 수 있어요'**
+  String get loginSheetTitleRecords;
+
+  /// 로그인 창 제목. 내 정보를 눌렀을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면\n급수와 전적을 볼 수 있어요'**
+  String get loginSheetTitleProfile;
+
+  /// 닉네임 정하기. 기보를 눌러 가입했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 내 기보로 가요'**
+  String get nicknameStartHintRecords;
+
+  /// 닉네임 정하기. 내 정보를 눌러 가입했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 내 정보로 가요'**
+  String get nicknameStartHintProfile;
+
+  /// 내 기보 목록 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'내 기보'**
+  String get recordsTitle;
+
+  /// 내 기보 목록 위쪽의 연구용 판 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'새 판에서 놓아보기'**
+  String get recordsFreePlay;
+
+  /// 내 기보 목록이 비었을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 끝난 대국이 없어요'**
+  String get recordsEmpty;
+
+  /// 내 기보 목록의 날짜 묶음
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘'**
+  String get recordsToday;
+
+  /// 내 기보 목록의 날짜 묶음
+  ///
+  /// In ko, this message translates to:
+  /// **'어제'**
+  String get recordsYesterday;
+
+  /// 내 기보 목록의 날짜 묶음. 어제보다 앞
+  ///
+  /// In ko, this message translates to:
+  /// **'{date}'**
+  String recordsDate(DateTime date);
+
+  /// 기보의 수
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}수'**
+  String recordsMoveCount(int count);
+
+  /// 기보의 승패 표시. 이긴 판
+  ///
+  /// In ko, this message translates to:
+  /// **'승'**
+  String get recordsWin;
+
+  /// 기보의 승패 표시. 진 판
+  ///
+  /// In ko, this message translates to:
+  /// **'패'**
+  String get recordsLoss;
+
+  /// 내 기보 목록 맨 아래의 다음 쪽 불러오기
+  ///
+  /// In ko, this message translates to:
+  /// **'더 보기'**
+  String get recordsLoadMore;
+
+  /// 내 기보 목록 읽기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'기보를 불러오지 못했어요'**
+  String get errorLoadRecords;
+
+  /// 새 판에서 놓아보기 창의 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'접장기로 두려면 한에서 뗄 기물을 골라 주세요'**
+  String get freePlayHandicapGuide;
+
+  /// 새 판에서 놓아보기 창의 시작 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'상차림 고르기'**
+  String get freePlayStart;
+
+  /// 내 정보의 닉네임 옆 연필 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임 바꾸기'**
+  String get profileEditNickname;
+
+  /// 내 정보 프로필 카드의 오늘 전적
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 {wins}승 {losses}패'**
+  String profileToday(int wins, int losses);
+
+  /// 내 정보의 전적 묶음 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'전적'**
+  String get profileStatsTitle;
+
+  /// 내 정보 전적의 대국 수
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 수'**
+  String get profileGames;
+
+  /// 내 정보 전적의 승
+  ///
+  /// In ko, this message translates to:
+  /// **'승'**
+  String get profileWins;
+
+  /// 내 정보 전적의 패
+  ///
+  /// In ko, this message translates to:
+  /// **'패'**
+  String get profileLosses;
+
+  /// 내 정보 전적의 승률
+  ///
+  /// In ko, this message translates to:
+  /// **'승률'**
+  String get profileWinRate;
+
+  /// 승률 값
+  ///
+  /// In ko, this message translates to:
+  /// **'{rate}%'**
+  String winRateValue(int rate);
+
+  /// 내 정보 전적의 최근 승패
+  ///
+  /// In ko, this message translates to:
+  /// **'최근 10판'**
+  String get profileRecent;
+
+  /// 내 정보에 최근 대국이 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 둔 대국이 없어요'**
+  String get profileRecentEmpty;
+
+  /// 내 정보에서 내 기보 목록으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'기보 전체 보기'**
+  String get profileAllRecords;
+
+  /// 전적 읽기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'전적을 불러오지 못했어요'**
+  String get errorLoadStats;
+
+  /// 닉네임 바꾸기 화면의 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'바꾸기'**
+  String get nicknameChangeSubmit;
+
+  /// 닉네임 바꾸기 버튼 위 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'바꾸면 {days}일 동안 다시 바꿀 수 없어요'**
+  String nicknameChangeHint(int days);
+
+  /// 닉네임 바꾸기에서 지금 닉네임을 그대로 넣었을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 쓰는 닉네임이에요'**
+  String get nicknameSame;
+
+  /// 닉네임을 바꾼 지 7일이 지나지 않았을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'{date}부터 다시 바꿀 수 있어요'**
+  String nicknameChangeAvailableAt(DateTime date);
+
+  /// 서버가 7일 제한으로 거절했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요'**
+  String get errorNicknameChangeCooldown;
+
+  /// 두 번째 닉네임 변경. 엽전 기능이 아직 없다
+  ///
+  /// In ko, this message translates to:
+  /// **'무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요'**
+  String get errorNicknameChangeNotFree;
+
+  /// 닉네임 바꾸기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorChangeNickname;
+
+  /// 닉네임을 바꾼 뒤 알림
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임을 바꿨어요'**
+  String get nicknameChanged;
+
+  /// 다른 사용자 정보의 대국 수와 승률
+  ///
+  /// In ko, this message translates to:
+  /// **'{games}판 · 승률 {rate}%'**
+  String userInfoStats(int games, int rate);
+
+  /// 다른 사용자 정보의 나와의 전적
+  ///
+  /// In ko, this message translates to:
+  /// **'나와의 전적 {wins}승 {losses}패'**
+  String userInfoHeadToHead(int wins, int losses);
+
+  /// 다른 사용자 정보. 나와 둔 대국이 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'나와 둔 대국이 없어요'**
+  String get userInfoHeadToHeadEmpty;
+
+  /// 기보의 결과 종류와 수
+  ///
+  /// In ko, this message translates to:
+  /// **'{reason} · {count}수'**
+  String recordsDetail(String reason, int count);
 }
 
 class _AppLocalizationsDelegate

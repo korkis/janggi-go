@@ -109,6 +109,12 @@ abstract final class NicknameRules {
   static const maxLength = 10;
   static final pattern = RegExp(r'^[가-힣A-Za-z0-9]+$');
 
+  /// 닉네임을 바꾼 뒤 다시 바꿀 수 없는 기간(`docs/screens.md`의 내 정보). 서버(`NICKNAME_CHANGE_COOLDOWN_DAYS`)와 같다.
+  static const changeCooldownDays = 7;
+
+  /// 엽전 없이 바꿀 수 있는 횟수. 첫 변경만 무료이고, 엽전으로 바꾸기는 3단계에서 연다(`docs/monetization.md`).
+  static const freeChangeCount = 1;
+
   static bool isValidFormat(String nickname) =>
       nickname.length >= minLength && nickname.length <= maxLength && pattern.hasMatch(nickname);
 }

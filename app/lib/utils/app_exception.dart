@@ -35,6 +35,8 @@ enum AppErrorCode {
   targetUnavailable,
   chatMessageBlocked,
   chatRestricted,
+  nicknameChangeCooldown,
+  nicknameChangeNotFree,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -144,5 +146,9 @@ class AppException implements Exception {
     AppErrorCode.chatMessageBlocked => l10n.errorChatMessageBlocked,
     // 이용이 제한되어 지금은 채팅할 수 없어요
     AppErrorCode.chatRestricted => l10n.errorChatRestricted,
+    // 닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요
+    AppErrorCode.nicknameChangeCooldown => l10n.errorNicknameChangeCooldown,
+    // 무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요
+    AppErrorCode.nicknameChangeNotFree => l10n.errorNicknameChangeNotFree,
   };
 }

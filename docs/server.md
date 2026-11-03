@@ -226,7 +226,7 @@ flowchart LR
 1. 결과(`result`, `endedAt`)를 RTDB에 쓰고 `phase`를 `finished`로 바꾼다. `spectate_list`에서 지운다.
 2. `finalizeGame`을 예약하고 바로 한 번 실행한다. Firestore 트랜잭션 하나로 다음을 한다. `games_archived/{gameId}`가 이미 있으면 아무것도 하지 않는다(한 번만 반영).
    - `games_archived/{gameId}` 만들기.
-   - `users/{uid}.stats` 갱신.
+   - `users/{uid}.stats` 갱신. 온라인 대국은 종류(빠른 대국, 방, 신청)와 급수 대국 여부에 상관없이 모두 센다(2026-11-03 구현). 급수 대국이면 바뀐 `rankLevel`도 같은 쓰기에 담는다.
    - 급수 대국이면 `ratings` 갱신, `users.rankLevel`, `users_private.rankProgress`·`winsToNextRank`, `player_states.lastRankChange` 쓰기.
    - `player_states.gameId`를 비우고 `lastGameId`를 쓴다.
 3. `online_users`의 상태를 `waiting`으로 돌린다.
@@ -331,11 +331,21 @@ flowchart LR
 |---|---|
 | `checkNickname` | 닉네임 정하기 화면에서 입력하는 동안 쓸 수 있는지 확인한다. 형식, 중복, 금칙어, 운영진 사칭 단어 |
 | `createProfile` | 첫 가입 때 닉네임을 정한다. `nicknames`, `users`(`rankLevel` 1), `users_private`를 한 트랜잭션으로 만든다 |
-| `changeNickname` | 닉네임을 바꾼다. 7일 제한, 첫 변경 무료. 엽전을 쓰는 두 번째 변경부터는 3단계에서 붙인다 |
+| `changeNickname` | 닉네임을 바꾼다. 7일 제한, 첫 변경 무료. 엽전을 쓰는 두 번째 변경부터는 3단계에서 붙인다. 아래 "닉네임 바꾸기" |
 | `sendChatMessage` | `channel`, `gameId?`, `text`를 받아 권한과 채팅 제한을 확인하고 검사한다. 통과하면 `chats_*`와 `chat_checks`에 쓰고, 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 거절 사유를 돌려준다. 아래 "채팅 Callable" |
 | `reportMessage` | `channel`, `gameId?`, `messageId`를 받아 신고된 메시지와 앞뒤 메시지, 검사 결과 사본으로 `reports`를 만든다. 아래 "채팅 Callable" |
 | `deleteAccount` | 회원 탈퇴. 지울 범위는 [database.md](./database.md)의 미정 |
 | Admin Callable | 신고 대기열·상세, 검사 기록, 사용자 조회, 제재 걸기, `configs/app` 바꾸기. 모두 `admin: true` claim을 다시 확인한다 |
+
+### 닉네임 바꾸기 — 확정 (2026-11-03 구현)
+
+- `changeNickname`은 `nickname`을 받아 `checkNickname`과 같은 형식, 사칭 단어, 금칙어 검사를 한 뒤 한 트랜잭션으로 바꾼다. 거절 이유는 `createProfile`처럼 `details.code`의 NicknameRejectReason(`invalidFormat`, `taken`, `bannedWord`, `impersonation`)이다.
+- 바꿀 수 없으면 `failed-precondition`과 `details.code`로 거절한다. `profileRequired`(프로필 없음), `nicknameChangeCooldown`(바꾼 지 7일이 지나지 않음), `nicknameChangeNotFree`(무료 변경을 이미 씀). 7일 제한을 먼저 본다.
+- 엽전이 아직 없으므로 두 번째 변경부터는 `nicknameChangeNotFree`로 막는다. 엽전(3단계)이 생기면 엽전을 쓰고 바꾸도록 연다. 무료 횟수는 `config.ts`의 `NICKNAME_FREE_CHANGE_COUNT`(1)다.
+- 지금 닉네임과 같은 닉네임이면(응답을 못 받고 다시 누른 경우) 바꾸지 않고 성공으로 본다. 영문 대소문자만 바꾸면 같은 `nicknames` 예약을 그대로 쓰고, 그 밖에는 이전 예약을 지우고 새로 만든다. 이전 닉네임은 바로 다른 사람이 쓸 수 있다.
+- 쓰는 것: `users.nickname`, `users_private.nicknameChangeCount`(+1)·`nicknameChangedAt`, `nickname_changes`(`before`, `after`). `users`의 급수와 전적은 건드리지 않는다.
+- 다른 곳에 복사해 둔 닉네임(`online_users`, `rooms.host`·`guest`, 진행 중 대국의 `meta.players`, 이미 보낸 채팅)은 바꾸지 않는다. 대국실 항목은 다음 `enterLobby`, 방은 다음에 들어갈 때, 대국은 다음 대국부터 새 닉네임이 된다. 기보에는 닉네임이 없어 바로 새 닉네임으로 보인다.
+- 앱은 내 정보의 연필 버튼을 누를 때 `users_private`를 읽어 7일 제한("11월 10일부터 다시 바꿀 수 있어요")과 무료 변경 사용("무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요")을 먼저 알리고, 바꿀 수 있을 때만 닉네임 화면을 연다.
 
 ### 채팅 Callable — 확정 (2026-11-03 구현)
 

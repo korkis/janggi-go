@@ -5,19 +5,21 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../models/online_user.dart';
+import '../models/user_profile.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/challenge_format.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../widgets/adaptive_layout.dart';
+import 'profile_screen.dart';
 import 'send_challenge_sheet.dart';
 
 /// 다른 사용자 정보(`docs/screens.md`의 다른 사용자 정보). 대국실 접속자를 누르면 아래에서 올라오고 1024 이상은 가운데 카드로
 /// 띄운다.
 ///
-/// 닉네임, 상태, 급수와 대국 신청(크게), 차단 버튼을 둔다. 대국 수, 승률, 나와의 전적은 전적(구현 순서 12번), 신고는 사용자
-/// 신고에 저장할 것이 정해지면(`docs/server.md`의 미정) 넣는다.
+/// 닉네임, 상태, 급수, 대국 수와 승률, 나와의 전적, 대국 신청(크게), 차단 버튼을 둔다. 전적은 창을 열 때 한 번 읽는다. 신고는
+/// 사용자 신고에 저장할 것이 정해지면(`docs/server.md`의 미정) 넣는다.
 class UserInfoSheet extends StatefulWidget {
   final String uid;
   final OnlineUser user;
@@ -37,6 +39,17 @@ class UserInfoSheet extends StatefulWidget {
 
 class _UserInfoSheetState extends State<UserInfoSheet> {
   var _blocking = false;
+
+  // 이 사람의 전적과 나와의 전적. 읽기 전이면 null이다.
+  UserStats? _stats;
+  ({int games, int wins})? _pairRecord;
+  var _recordFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecord();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +78,8 @@ class _UserInfoSheetState extends State<UserInfoSheet> {
                 OnlineStatusLabel(state: state),
               ],
             ),
+            const SizedBox(height: 8),
+            _buildRecord(context),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: state.isChallengeable ? _onChallenge : null,
@@ -85,6 +100,71 @@ class _UserInfoSheetState extends State<UserInfoSheet> {
         ),
       ),
     );
+  }
+
+  /// 대국 수와 승률, 나와의 전적 두 줄. 읽는 중이면 작은 진행 표시를 둔다.
+  Widget _buildRecord(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stats = _stats;
+    final pairRecord = _pairRecord;
+    const style = TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText);
+    if (_recordFailed) {
+      // 전적을 불러오지 못했어요
+      return Text(l10n.errorLoadStats, style: style);
+    }
+    if (stats == null || pairRecord == null) {
+      return const Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          // 32판 · 승률 56%
+          l10n.userInfoStats(stats.games, getWinRate(stats.games, stats.wins)),
+          style: style,
+        ),
+        Text(
+          // 나와의 전적 3승 2패 / 나와 둔 대국이 없어요
+          pairRecord.games == 0
+              ? l10n.userInfoHeadToHeadEmpty
+              : l10n.userInfoHeadToHead(pairRecord.wins, pairRecord.games - pairRecord.wins),
+          style: style,
+        ),
+      ],
+    );
+  }
+
+  /// 이 사람의 전적(`users.stats`)과 나와의 전적을 읽는다.
+  Future<void> _loadRecord() async {
+    final myUid = managers.authManager.uid;
+    if (myUid == null) {
+      return;
+    }
+    try {
+      final (profile, pairRecord) = await (
+        repositories.userRepository.getUser(widget.uid),
+        repositories.archivedGameRepository.getPairRecord(myUid, widget.uid),
+      ).wait;
+      if (profile == null) {
+        throw StateError('프로필이 없습니다');
+      }
+      if (mounted) {
+        setState(() {
+          _stats = profile.stats;
+          _pairRecord = pairRecord;
+        });
+      }
+    } catch (error, stackTrace) {
+      developer.log('다른 사용자 전적 읽기 실패', error: error, stackTrace: stackTrace);
+      if (mounted) {
+        setState(() {
+          _recordFailed = true;
+        });
+      }
+    }
   }
 
   Future<void> _onChallenge() async {

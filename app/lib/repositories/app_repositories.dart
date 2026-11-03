@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 import '../config.dart';
+import 'archived_game_repository.dart';
 import 'auth_repository.dart';
 import 'challenge_repository.dart';
 import 'chat_repository.dart';
@@ -42,6 +43,7 @@ class AppRepositories {
   final SpectateListRepository spectateListRepository;
   final SpectatorRepository spectatorRepository;
   final ChatRepository chatRepository;
+  final ArchivedGameRepository archivedGameRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -60,6 +62,7 @@ class AppRepositories {
     required this.spectateListRepository,
     required this.spectatorRepository,
     required this.chatRepository,
+    required this.archivedGameRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -91,6 +94,7 @@ class AppRepositories {
       spectateListRepository: SpectateListRepository(database: database),
       spectatorRepository: SpectatorRepository(database: database),
       chatRepository: ChatRepository(database: database, functions: functions),
+      archivedGameRepository: ArchivedGameRepository(firestore: firestore),
     );
   }
 }

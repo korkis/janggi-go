@@ -22,6 +22,12 @@ enum LoginPurpose {
 
   /// 관전 화면에서 관전 채팅을 연다.
   spectateChat,
+
+  /// 내 기보 목록을 연다.
+  records,
+
+  /// 내 정보를 연다.
+  profile,
 }
 
 /// 로그인과 첫 가입의 닉네임 정하기를 거친다. 하려던 일을 이어서 할 수 있으면 true, 사용자가 그만뒀으면 false.

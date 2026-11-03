@@ -25,17 +25,26 @@ enum _NicknameStatus {
   available,
   rejected,
 
+  /// 닉네임 바꾸기에서 지금 쓰는 닉네임을 그대로 넣었다.
+  current,
+
   /// 서버에 묻지 못했다.
   checkFailed,
 }
 
 /// 첫 가입의 닉네임 정하기(`docs/screens.md`의 닉네임 정하기). 프로필을 만들면 true를 돌려주며 닫는다.
 ///
-/// 뒤로 가기 버튼을 두지 않는다.
+/// 뒤로 가기 버튼을 두지 않는다. 내 정보의 닉네임 바꾸기([changing])도 이 화면을 그대로 쓰고 버튼만 바꾼다. 바꾸기는 뒤로 갈 수
+/// 있고, 미리보기에 지금 급수를 보여주며, 바꾸면 true를 돌려주며 닫는다.
 class NicknameScreen extends StatefulWidget {
   final LoginPurpose purpose;
 
-  const NicknameScreen({super.key, required this.purpose});
+  /// 내 정보의 닉네임 바꾸기다.
+  final bool changing;
+
+  const NicknameScreen({super.key, required this.purpose}) : changing = false;
+
+  const NicknameScreen.change({super.key}) : purpose = LoginPurpose.profile, changing = true;
 
   @override
   State<NicknameScreen> createState() => _NicknameScreenState();
@@ -76,18 +85,25 @@ class _NicknameScreenState extends State<NicknameScreen> {
     final l10n = AppLocalizations.of(context);
     final nickname = _controller.text;
     final startHint = _getStartHint(l10n);
+    final changing = widget.changing;
     return PopScope(
-      canPop: false,
+      canPop: changing,
       child: AppPage(
         layout: PageLayout.form,
         child: Scaffold(
+          appBar: changing
+              ? AppBar(
+                  // 닉네임 바꾸기
+                  title: Text(l10n.profileEditNickname),
+                )
+              : null,
           body: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+                    padding: EdgeInsets.fromLTRB(20, changing ? 16 : 48, 20, 20),
                     children: [
                       Text(
                         // 장기판에서 쓸\n이름을 정해 주세요
@@ -146,7 +162,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: LightColors.subText),
                       ),
                       const SizedBox(height: 10),
-                      _NicknamePreview(nickname: nickname, rankLevel: _initialRankLevel),
+                      _NicknamePreview(nickname: nickname, rankLevel: _getPreviewRankLevel()),
                     ],
                   ),
                 ),
@@ -167,8 +183,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
                         onPressed: _canSubmit ? _onSubmit : null,
                         child: _submitting
                             ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                            // 시작하기
-                            : Text(l10n.nicknameStart),
+                            // 바꾸기 / 시작하기
+                            : Text(changing ? l10n.nicknameChangeSubmit : l10n.nicknameStart),
                       ),
                     ],
                   ),
@@ -183,8 +199,24 @@ class _NicknameScreenState extends State<NicknameScreen> {
 
   bool get _canSubmit => _status == _NicknameStatus.available && !_submitting;
 
-  /// 시작하기 버튼 위에 알리는 이어서 할 일. 이어서 할 일이 없으면 null.
-  String? _getStartHint(AppLocalizations l10n) => switch (widget.purpose) {
+  /// 미리보기의 급수. 첫 가입은 18급, 바꾸기는 지금 급수다.
+  int _getPreviewRankLevel() {
+    if (!widget.changing) {
+      return _initialRankLevel;
+    }
+    return managers.rankManager.rankLevel ?? _initialRankLevel;
+  }
+
+  /// 시작하기 버튼 위에 알리는 이어서 할 일. 이어서 할 일이 없으면 null. 바꾸기는 7일 제한을 알린다.
+  String? _getStartHint(AppLocalizations l10n) {
+    if (widget.changing) {
+      // 바꾸면 7일 동안 다시 바꿀 수 없어요
+      return l10n.nicknameChangeHint(NicknameRules.changeCooldownDays);
+    }
+    return _getPurposeHint(l10n);
+  }
+
+  String? _getPurposeHint(AppLocalizations l10n) => switch (widget.purpose) {
     LoginPurpose.home => null,
     // 정하고 나면 바로 상대를 찾아요
     LoginPurpose.quickMatch => l10n.nicknameStartHintQuickMatch,
@@ -196,6 +228,10 @@ class _NicknameScreenState extends State<NicknameScreen> {
     LoginPurpose.joinRoom => l10n.nicknameStartHintJoinRoom,
     // 정하고 나면 관전 채팅으로 돌아가요
     LoginPurpose.spectateChat => l10n.nicknameStartHintSpectateChat,
+    // 정하고 나면 내 기보로 가요
+    LoginPurpose.records => l10n.nicknameStartHintRecords,
+    // 정하고 나면 내 정보로 가요
+    LoginPurpose.profile => l10n.nicknameStartHintProfile,
   };
 
   Widget _buildStatus(AppLocalizations l10n) {
@@ -226,6 +262,13 @@ class _NicknameScreenState extends State<NicknameScreen> {
               : AppException.fromNicknameRejectReason(reason).getMessage(l10n),
           color: Theme.of(context).colorScheme.error,
         );
+      case _NicknameStatus.current:
+        return _StatusLine(
+          icon: const Icon(Icons.info_outline, size: 18, color: LightColors.subText),
+          // 지금 쓰는 닉네임이에요
+          text: l10n.nicknameSame,
+          color: LightColors.subText,
+        );
       case _NicknameStatus.checkFailed:
         return _StatusLine(
           icon: Icon(Icons.error_outline, size: 18, color: Theme.of(context).colorScheme.error),
@@ -242,6 +285,10 @@ class _NicknameScreenState extends State<NicknameScreen> {
     final nickname = _controller.text;
     if (nickname.isEmpty) {
       setState(() => _status = _NicknameStatus.empty);
+      return;
+    }
+    if (widget.changing && nickname == managers.authManager.profile?.nickname) {
+      setState(() => _status = _NicknameStatus.current);
       return;
     }
     if (!NicknameRules.isValidFormat(nickname)) {
@@ -286,12 +333,16 @@ class _NicknameScreenState extends State<NicknameScreen> {
     final nickname = _controller.text;
     try {
       setState(() => _submitting = true);
-      await managers.authManager.createProfile(nickname);
+      if (widget.changing) {
+        await managers.authManager.changeNickname(nickname);
+      } else {
+        await managers.authManager.createProfile(nickname);
+      }
       if (mounted) {
         Navigator.of(context).pop(true);
       }
     } catch (error, stackTrace) {
-      developer.log('AuthManager.createProfile 실패', error: error, stackTrace: stackTrace);
+      developer.log('닉네임 정하기·바꾸기 실패', error: error, stackTrace: stackTrace);
       if (!mounted) {
         return;
       }
@@ -303,8 +354,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
         });
         return;
       }
-      // 닉네임을 정하지 못했어요. 잠시 후 다시 해 주세요
-      final message = error is AppException ? error.getMessage(l10n) : l10n.errorCreateProfile;
+      // 닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요 / 닉네임을 정하지 못했어요. 잠시 후 다시 해 주세요
+      final fallback = widget.changing ? l10n.errorChangeNickname : l10n.errorCreateProfile;
+      final message = error is AppException ? error.getMessage(l10n) : fallback;
       await DialogUtils.showMessage(context, message: message);
     } finally {
       if (mounted) {

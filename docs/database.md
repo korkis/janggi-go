@@ -73,7 +73,7 @@
 |---|---|---|---|
 | `nickname` | string | Functions | 현재 닉네임 |
 | `rankLevel` | number | 대국 서버 (처음 값 1은 Functions) | 급수 |
-| `stats` | map | 대국 서버 | `games`, `wins`, `losses` (number). 어느 대국을 셀지는 미정 |
+| `stats` | map | 대국 서버 | `games`, `wins`, `losses` (number). 온라인 대국을 모두 센다(종류와 급수 대국 여부 상관없음, 2026-11-03). `finalizeGame`이 기보와 같은 트랜잭션에서 더한다 |
 | `createdAt` | timestamp | Functions | 가입 시각 |
 
 - 읽기: 로그인한 사용자. 쓰기: 클라이언트 없음.
@@ -99,7 +99,7 @@
 | `challengesEnabled` | boolean | 앱(본인), Functions(처음 값 `true`) | 설정의 "대국 신청 받기" |
 | `rankProgress` | number | 대국 서버 | 현재 급수 구간 안에서의 위치 0~1. 진행 막대에 쓴다 |
 | `winsToNextRank` | number? | 대국 서버 | "4급까지 약 3승"의 어림 승수. 9단이거나 아직 급수 대국을 두지 않았으면 null(Functions가 null로 만든다) |
-| `nicknameChangeCount` | number | Functions | 닉네임을 바꾼 횟수. 첫 변경 무료 판단에 쓴다 |
+| `nicknameChangeCount` | number | Functions | 닉네임을 바꾼 횟수. 첫 변경 무료 판단에 쓴다. 엽전이 생기기 전까지는 1이면 더 바꿀 수 없다 |
 | `nicknameChangedAt` | timestamp? | Functions | 마지막으로 바꾼 시각. 7일 제한에 쓴다 |
 | `sanction` | map? | Functions | 지금 걸린 제재. `type`(SanctionType), `endsAt`(timestamp?, 영구면 null), `reason`(string) |
 
@@ -128,7 +128,7 @@
 
 ### `nickname_changes/{changeId}` — 서버 전용
 
-Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)의 닉네임 바꾸기).
+Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)의 닉네임 바꾸기). Functions `changeNickname`이 바꿀 때마다 자동 ID로 하나 만든다.
 
 | 필드 | 타입 |
 |---|---|
@@ -251,7 +251,11 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 
 - 읽기: 로그인한 사용자. 쓰기: 대국 서버.
 - 닉네임은 저장하지 않는다. 이전 닉네임을 다른 사용자에게 보여주지 않기 위해서다([screens.md](./screens.md)의 내 정보). 앱은 `users/{uid}`의 현재 닉네임을 읽어 보여준다.
-- 색인: `playerUids` array-contains + `endedAt` 내림차순, `pairKey` + `endedAt` 내림차순.
+- 색인: `playerUids` array-contains + `endedAt` 내림차순, `pairKey` + `endedAt` 내림차순(`server/firestore.indexes.json`).
+- 앱의 조회(2026-11-03 구현)
+  - 내 기보 목록: `playerUids` array-contains 내 uid, `endedAt` 내림차순으로 20개씩. 다음 쪽은 마지막 기보의 `endedAt`보다 앞인 것을 읽는다.
+  - 내 정보: 같은 조회로 최근 10개, 오늘 전적은 오늘 0시(기기 시간대) 이후 `endedAt`.
+  - 나와의 전적: 세기 쿼리(`count()`) 세 번. `pairKey` 전체, 내가 초이고 초가 이긴 판, 내가 한이고 한이 이긴 판. 모두 같음 조건이라 복합 색인이 없어도 된다.
 
 ### `reports/{reportId}` — 서버 전용
 
@@ -485,7 +489,6 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 
 ## 미정
 
-- `users.stats`에 어느 대국(빠른 대국만 또는 온라인 대국 전체)을 셀지.
 - 닫힌 방(`rooms`의 `status == closed`)을 지우는 때와 방법(TTL 또는 정리 작업).
 - 회원 탈퇴 때 지울 데이터와 남길 데이터. 기보(`games_archived`)는 uid만 남기고 앱이 "탈퇴한 사용자"로 보여주는 안을 검토한다.
 - 자체 금칙어 목록을 둘 곳(`config.ts` 또는 서버 전용 Firestore 문서)과 Admin 웹에서 고칠 수 있게 할지. 지금은 `config.ts`의 `BANNED_WORDS`다.
