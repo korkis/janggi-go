@@ -56,16 +56,31 @@ export const BANNED_WORDS = [
   "ㅈㄹ",
   "미친놈",
   "미친년",
-  "니애미",
-  "느금마",
+  "애미",
+  "느금",
   "엠창",
   "fuck",
   "shit",
   "bitch",
+  // 아래는 2026-11-03 실제 OpenAI 검사에서 통과해 버린 표현이다(docs/moderation.md의 실제 검사 확인).
+  "시바",
+  "씨빠",
+  "ㄲㅈ",
+  "ㅗㅗ",
+  "닥쳐",
+  "벌레같",
+  "한남충",
+  "김치녀",
+  "틀딱",
+  "뒤져라",
+  "뒤질래",
+  "대가리",
+  // 띄어쓰기가 있는 구절은 띄어쓰기를 모두 지운 글에서 찾는다.
+  "집 찾아간",
 ];
 
 // 금칙어를 품고 있지만 평범한 낱말. 금칙어를 찾기 전에 지운다.
-export const BANNED_WORD_EXCEPTIONS = ["시발점", "시발역", "시발택시"];
+export const BANNED_WORD_EXCEPTIONS = ["시발점", "시발역", "시발택시", "시바견"];
 
 // OpenAI Moderation 모델 이름(docs/moderation.md).
 export const MODERATION_MODEL = "omni-moderation-latest";

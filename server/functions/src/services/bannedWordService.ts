@@ -29,8 +29,15 @@ function normalize(text: string): string {
   return merged.join(" ");
 }
 
-/** [text]에 자체 금칙어가 들어 있는지. 닉네임과 채팅이 같이 쓴다. */
+/**
+ * [text]에 자체 금칙어가 들어 있는지. 닉네임과 채팅이 같이 쓴다.
+ * 띄어쓰기가 있는 구절("집 찾아간")은 여러 낱말이라 낱말 경계 문제가 적으므로, 띄어쓰기를 모두 지운 글에서 찾아 "니 집 찾아간다"처럼
+ * 한 글자 낱말이 붙은 경우도 찾는다.
+ */
 export function hasBannedWord(text: string): boolean {
   const normalized = normalize(text);
-  return BANNED_WORDS.some((word) => normalized.includes(word));
+  const compact = normalized.replace(/ /g, "");
+  return BANNED_WORDS.some((word) =>
+    word.includes(" ") ? compact.includes(word.replace(/ /g, "")) : normalized.includes(word),
+  );
 }
