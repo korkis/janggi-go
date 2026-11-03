@@ -1148,12 +1148,6 @@ abstract class AppLocalizations {
   /// **'방에 빈자리가 없어요'**
   String get errorRoomFull;
 
-  /// 방 들어가기 실패. 방이 대국 중일 때
-  ///
-  /// In ko, this message translates to:
-  /// **'지금 대국 중인 방이에요'**
-  String get errorRoomPlaying;
-
   /// 방 들어가기 실패. 방장이 나가 방이 닫혔을 때
   ///
   /// In ko, this message translates to:
@@ -1741,6 +1735,108 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'초대'**
   String get onlineUsersInvite;
+
+  /// 왼쪽 메뉴와 관전 목록 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'관전'**
+  String get menuSpectate;
+
+  /// 관전 목록 위. 목록에 보이는 대국 수
+  ///
+  /// In ko, this message translates to:
+  /// **'진행 중인 대국 {count}개'**
+  String spectateGameCount(int count);
+
+  /// 관전 목록이 비었을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 볼 수 있는 대국이 없어요'**
+  String get spectateEmpty;
+
+  /// 관전 목록이 비었을 때 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'대국이 시작되면 여기에 보여요'**
+  String get spectateEmptyDescription;
+
+  /// 관전 목록 읽기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'관전 목록을 불러오지 못했어요'**
+  String get errorLoadSpectateList;
+
+  /// 관전 카드의 관전자 수
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}명'**
+  String spectatorCount(int count);
+
+  /// 관전 카드의 몇 수째
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}수째'**
+  String spectateMoveCount(int count);
+
+  /// 관전 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'관전 · {count}명 보는 중'**
+  String spectateTitle(int count);
+
+  /// 관전 화면의 관전 채팅 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'관전 채팅'**
+  String get spectateChat;
+
+  /// 관전 채팅이 생기기 전 자리 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'관전 채팅은 곧 열려요'**
+  String get spectateChatSoon;
+
+  /// 관전 화면. 상차림 중
+  ///
+  /// In ko, this message translates to:
+  /// **'대국자가 상차림을 고르고 있어요'**
+  String get spectateSetup;
+
+  /// 관전하려던 대국이 지워졌을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 끝난 대국이에요'**
+  String get spectateGameGone;
+
+  /// 관전 권하기 확인 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'관전하기'**
+  String get spectateAction;
+
+  /// 링크로 들어가려던 방이 대국 중일 때 관전 권하기
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 대국 중인 방이에요. 관전할까요?'**
+  String get spectateRoomPlaying;
+
+  /// 홈의 관전 카드 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 볼 만한 대국'**
+  String get homeSpectateTitle;
+
+  /// 홈의 관전 카드에서 관전 목록으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'전체 보기'**
+  String get homeSpectateAll;
+
+  /// 대국실에 열린 방이 없을 때 관전 목록 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'진행 중인 대국을 구경해 보세요'**
+  String get lobbySpectateTitle;
 }
 
 class _AppLocalizationsDelegate

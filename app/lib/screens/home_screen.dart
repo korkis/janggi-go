@@ -7,14 +7,17 @@ import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../managers/invite_link_manager.dart';
 import '../models/game_enums.dart';
+import '../models/spectate_list_entry.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
+import '../utils/spectate_order.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
+import '../widgets/spectate_card.dart';
 import 'create_room_screen.dart';
 import 'lobby_screen.dart';
 import 'login_flow.dart';
@@ -22,13 +25,16 @@ import 'quick_match_screen.dart';
 import 'room_join_flow.dart';
 import 'room_screen.dart';
 import 'setup_screen.dart';
+import 'spectate_list_screen.dart';
+import 'spectate_screen.dart';
 
-/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실 버튼과, 개발 빌드에서만 보이는 개발용 대국 카드들을 보여준다.
+/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실 버튼, 지금 볼 만한 대국과, 개발 빌드에서만 보이는 개발용 대국 카드들을
+/// 보여준다.
 ///
 /// 앱의 처음 화면이라 초대 링크로 들어온 방도 여기서 받아 방 대기실로 간다.
 ///
 /// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 대국실은 왼쪽 메뉴로 간다.
-/// 오른쪽 칸의 "지금 볼 만한 대국"은 관전이 생기면 넣고, 그전에는 개발용 대국 카드를 둔다.
+/// 오른쪽 칸에는 "지금 볼 만한 대국"을 2열 카드로 두고, 개발 빌드에서는 그 아래에 개발용 대국 카드를 둔다.
 ///
 /// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
 class HomeScreen extends StatelessWidget {
@@ -63,6 +69,8 @@ class HomeScreen extends StatelessWidget {
         const _QuickMatchButton(),
         const SizedBox(height: 12),
         const _RoomButtons(showLobby: true),
+        const SizedBox(height: 24),
+        const _SpectateSection(wide: false),
         const SizedBox(height: 16),
         if (!kReleaseMode) const _DevGameCard(),
         if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
@@ -93,7 +101,9 @@ class HomeScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(12, 32, 32, 32),
             children: [
-              if (!kReleaseMode)
+              const _SpectateSection(wide: true),
+              if (!kReleaseMode) ...[
+                const SizedBox(height: 16),
                 const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -102,6 +112,7 @@ class HomeScreen extends StatelessWidget {
                     Expanded(child: _DevOnlineGameCard()),
                   ],
                 ),
+              ],
             ],
           ),
         ),
@@ -162,6 +173,128 @@ class _ResumeGameButton extends StatelessWidget {
 
   void _onResumeRoom(BuildContext context, String roomId) {
     Navigator.of(context).push(RoomScreen.createRoute(roomId));
+  }
+}
+
+/// 지금 볼 만한 대국(`docs/screens.md`의 홈). 관전 목록과 같은 순서로 앞의 몇 대국만 보여준다.
+///
+/// 1024 미만은 카드를 가로로 넘겨 보고([wide]가 false), 1024 이상은 오른쪽 칸에 2열 카드로 크게 보여준다. 아래쪽 탭이 생기기
+/// 전까지 "전체 보기"로 관전 목록에 간다. 홈에 돌아올 때(관전을 마치고) 다시 읽는다.
+class _SpectateSection extends StatefulWidget {
+  static const _limit = 6;
+  static const _narrowCardWidth = 220.0;
+
+  final bool wide;
+
+  const _SpectateSection({required this.wide});
+
+  @override
+  State<_SpectateSection> createState() => _SpectateSectionState();
+}
+
+class _SpectateSectionState extends State<_SpectateSection> {
+  List<({String gameId, SpectateListEntry entry})>? _entries;
+  var _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEntries();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                // 지금 볼 만한 대국
+                l10n.homeSpectateTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            TextButton(
+              onPressed: _onOpenList,
+              // 전체 보기
+              child: Text(l10n.homeSpectateAll),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _buildContent(context),
+      ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final entries = _entries;
+    if (entries == null && !_failed) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (entries == null || entries.isEmpty) {
+      return Text(
+        // 관전 목록을 불러오지 못했어요 / 지금 볼 수 있는 대국이 없어요
+        entries == null ? l10n.errorLoadSpectateList : l10n.spectateEmpty,
+        style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+      );
+    }
+    if (widget.wide) {
+      return SpectateCardGrid(entries: entries, onOpen: _onOpen);
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final item in entries)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: SizedBox(
+                width: _SpectateSection._narrowCardWidth,
+                child: SpectateCard(entry: item.entry, onTap: () => _onOpen(item.gameId)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadEntries() async {
+    try {
+      final entries = await repositories.spectateListRepository.getEntries();
+      if (mounted) {
+        setState(() {
+          _entries = sortSpectateEntries(entries).take(_SpectateSection._limit).toList();
+          _failed = false;
+        });
+      }
+    } catch (error, stackTrace) {
+      developer.log('SpectateListRepository.getEntries 실패', error: error, stackTrace: stackTrace);
+      if (mounted) {
+        setState(() {
+          _failed = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _onOpen(String gameId) async {
+    await openSpectate(context, gameId);
+    if (mounted) {
+      await _loadEntries();
+    }
+  }
+
+  Future<void> _onOpenList() async {
+    await SpectateListScreen.open(context);
+    if (mounted) {
+      await _loadEntries();
+    }
   }
 }
 

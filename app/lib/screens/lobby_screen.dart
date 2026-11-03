@@ -4,22 +4,27 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/room.dart';
+import '../models/spectate_list_entry.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/rank_format.dart';
+import '../utils/spectate_order.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/room_condition_chips.dart';
+import '../widgets/spectate_card.dart';
 import 'create_room_screen.dart';
 import 'login_flow.dart';
 import 'online_users_tab.dart';
 import 'room_join_flow.dart';
+import 'spectate_screen.dart';
 
 /// 대국실(`docs/screens.md`의 대국실). 방 목록과 접속자 두 탭이 있고, 로비 채팅 탭은 구현 순서 11번에 붙인다.
 ///
 /// 접속자 탭은 `configs/app.onlineUsersVisible`이 켜져 있을 때만 보여준다. 꺼져 있으면 탭 없이 방 목록만 보여준다.
 ///
 /// 방 목록은 공개되어 상대를 기다리는 방을 한 번 읽고, 당겨서 새로 읽는다(`docs/dev_rules.md`의 실시간이 아닌 목록).
-/// 열린 방이 없을 때의 관전 목록과 AI 대국 버튼(`docs/game/matching.md`의 방 목록)은 관전(10번)과 AI 대국(4단계)이 생기면 넣는다.
+/// 열린 방이 없으면 진행 중인 대국 관전 목록을 대신 보여준다(`docs/game/matching.md`의 방 목록). AI 대국 버튼은 AI 대국(4단계)이
+/// 생기면 넣는다.
 class LobbyScreen extends StatefulWidget {
   const LobbyScreen({super.key});
 
@@ -44,6 +49,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
   List<({String id, Room room})>? _rooms;
   var _loading = false;
   var _failed = false;
+
+  // 열린 방이 없을 때 대신 보여주는 관전 목록. 읽지 못했으면 비워 둔다.
+  List<({String gameId, SpectateListEntry entry})> _spectateEntries = const [];
 
   // 들어가는 중인 방. 같은 방을 두 번 누르지 않게 한다.
   String? _joiningRoomId;
@@ -143,6 +151,16 @@ class _LobbyScreenState extends State<LobbyScreen> {
           // 방 만들기
           child: Text(l10n.homeCreateRoom),
         ),
+        if (_spectateEntries.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          Text(
+            // 진행 중인 대국을 구경해 보세요
+            l10n.lobbySpectateTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          SpectateCardGrid(entries: _spectateEntries, onOpen: _onSpectate),
+        ],
       ]);
     } else {
       final tiles = [
@@ -202,6 +220,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
           _failed = false;
         });
       }
+      if (rooms.isEmpty) {
+        await _loadSpectateEntries();
+      }
     } catch (error, stackTrace) {
       developer.log('RoomRepository.getRooms 실패', error: error, stackTrace: stackTrace);
       if (mounted) {
@@ -215,6 +236,27 @@ class _LobbyScreenState extends State<LobbyScreen> {
           _loading = false;
         });
       }
+    }
+  }
+
+  /// 열린 방이 없을 때 대신 보여줄 관전 목록. 읽지 못하면 방이 없다는 안내만 남긴다.
+  Future<void> _loadSpectateEntries() async {
+    try {
+      final entries = await repositories.spectateListRepository.getEntries();
+      if (mounted) {
+        setState(() {
+          _spectateEntries = sortSpectateEntries(entries);
+        });
+      }
+    } catch (error, stackTrace) {
+      developer.log('SpectateListRepository.getEntries 실패', error: error, stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _onSpectate(String gameId) async {
+    await openSpectate(context, gameId);
+    if (mounted) {
+      await _loadRooms();
     }
   }
 

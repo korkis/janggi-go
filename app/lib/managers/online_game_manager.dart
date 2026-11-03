@@ -13,7 +13,9 @@ import '../utils/game_clock.dart';
 import 'board_manager.dart';
 import 'connection_manager.dart';
 
-/// 온라인 대국 하나의 상태. 상차림 화면과 대국 화면이 각자 만들고 `dispose()`한다.
+/// 온라인 대국 하나의 상태. 상차림 화면, 대국 화면, 관전 화면이 각자 만들고 `dispose()`한다.
+///
+/// 관전 화면에서는 내 진영([mySide])이 없으므로 판을 서버 상태에 맞추기만 하고 `checkGame`을 부르지 않는다.
 ///
 /// RTDB `games_active/{gameId}`를 듣고 상차림과 판을 서버 상태에 맞춘다. 대국 상태는 서버만 쓰므로 앱은 API를 부르고
 /// 바뀐 값을 다시 받아 그린다. 내 수는 서버에 보내자마자 판에 먼저 보여주고, 서버가 거절하면 서버 상태로 되돌린다.
@@ -30,8 +32,8 @@ class OnlineGameManager extends ChangeNotifier {
 
   final String gameId;
 
-  /// 이 기기에 로그인한 사용자.
-  final String uid;
+  /// 이 기기에 로그인한 사용자. 로그인하지 않은 관전자면 null이다.
+  final String? uid;
 
   /// 내 접속 상태. 서버가 나를 끊긴 것으로 기록했을 때 연결되어 있는지 본다.
   final ConnectionManager connectionManager;

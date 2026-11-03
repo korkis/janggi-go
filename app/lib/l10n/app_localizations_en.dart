@@ -732,9 +732,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorRoomFull => 'This room is full';
 
   @override
-  String get errorRoomPlaying => 'A game is in progress in this room';
-
-  @override
   String get errorRoomClosed => 'This room has closed';
 
   @override
@@ -1126,4 +1123,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onlineUsersInvite => 'Invite';
+
+  @override
+  String get menuSpectate => 'Watch';
+
+  @override
+  String spectateGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count games in progress',
+      one: '1 game in progress',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get spectateEmpty => 'No games to watch right now';
+
+  @override
+  String get spectateEmptyDescription => 'Games show up here once they start';
+
+  @override
+  String get errorLoadSpectateList => 'Couldn\'t load games to watch';
+
+  @override
+  String spectatorCount(int count) {
+    return '$count';
+  }
+
+  @override
+  String spectateMoveCount(int count) {
+    return 'Move $count';
+  }
+
+  @override
+  String spectateTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count viewers',
+      one: '1 viewer',
+    );
+    return 'Watching · $_temp0';
+  }
+
+  @override
+  String get spectateChat => 'Chat';
+
+  @override
+  String get spectateChatSoon => 'Spectator chat is coming soon';
+
+  @override
+  String get spectateSetup => 'The players are choosing their setups';
+
+  @override
+  String get spectateGameGone => 'This game has already ended';
+
+  @override
+  String get spectateAction => 'Watch';
+
+  @override
+  String get spectateRoomPlaying =>
+      'A game is in progress in this room. Watch it?';
+
+  @override
+  String get homeSpectateTitle => 'Games worth watching';
+
+  @override
+  String get homeSpectateAll => 'See all';
+
+  @override
+  String get lobbySpectateTitle => 'Watch a game in progress';
 }

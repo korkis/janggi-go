@@ -682,9 +682,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorRoomFull => '방에 빈자리가 없어요';
 
   @override
-  String get errorRoomPlaying => '지금 대국 중인 방이에요';
-
-  @override
   String get errorRoomClosed => '닫힌 방이에요';
 
   @override
@@ -1061,4 +1058,63 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onlineUsersInvite => '초대';
+
+  @override
+  String get menuSpectate => '관전';
+
+  @override
+  String spectateGameCount(int count) {
+    return '진행 중인 대국 $count개';
+  }
+
+  @override
+  String get spectateEmpty => '지금 볼 수 있는 대국이 없어요';
+
+  @override
+  String get spectateEmptyDescription => '대국이 시작되면 여기에 보여요';
+
+  @override
+  String get errorLoadSpectateList => '관전 목록을 불러오지 못했어요';
+
+  @override
+  String spectatorCount(int count) {
+    return '$count명';
+  }
+
+  @override
+  String spectateMoveCount(int count) {
+    return '$count수째';
+  }
+
+  @override
+  String spectateTitle(int count) {
+    return '관전 · $count명 보는 중';
+  }
+
+  @override
+  String get spectateChat => '관전 채팅';
+
+  @override
+  String get spectateChatSoon => '관전 채팅은 곧 열려요';
+
+  @override
+  String get spectateSetup => '대국자가 상차림을 고르고 있어요';
+
+  @override
+  String get spectateGameGone => '이미 끝난 대국이에요';
+
+  @override
+  String get spectateAction => '관전하기';
+
+  @override
+  String get spectateRoomPlaying => '지금 대국 중인 방이에요. 관전할까요?';
+
+  @override
+  String get homeSpectateTitle => '지금 볼 만한 대국';
+
+  @override
+  String get homeSpectateAll => '전체 보기';
+
+  @override
+  String get lobbySpectateTitle => '진행 중인 대국을 구경해 보세요';
 }

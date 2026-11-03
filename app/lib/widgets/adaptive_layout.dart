@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../screens/lobby_screen.dart';
+import '../screens/spectate_list_screen.dart';
 import '../theme/app_theme.dart';
 
 /// 화면 폭에 따른 배치 구간(`docs/ui.md`의 넓은 화면). 폭은 앱 창의 논리 픽셀이다.
@@ -61,7 +62,7 @@ enum PageLayout {
 }
 
 /// 왼쪽 메뉴의 항목. 화면이 생긴 메뉴만 둔다.
-enum AppMenu { home, lobby }
+enum AppMenu { home, lobby, spectate }
 
 /// 일반 화면(밝은 화면)의 폭별 틀. 화면의 [Scaffold]를 [child]로 받는다.
 ///
@@ -227,6 +228,14 @@ class SideMenu extends StatelessWidget {
                 selected: selected == AppMenu.lobby,
                 onTap: () => _onSelect(context, AppMenu.lobby),
               ),
+              _SideMenuItem(
+                icon: Icons.visibility_outlined,
+                selectedIcon: Icons.visibility,
+                // 관전
+                label: l10n.menuSpectate,
+                selected: selected == AppMenu.spectate,
+                onTap: () => _onSelect(context, AppMenu.spectate),
+              ),
             ],
           ),
         ),
@@ -244,6 +253,8 @@ class SideMenu extends StatelessWidget {
         Navigator.of(context).popUntil(_isFirstRoute);
       case AppMenu.lobby:
         await LobbyScreen.open(context);
+      case AppMenu.spectate:
+        await SpectateListScreen.open(context);
     }
   }
 

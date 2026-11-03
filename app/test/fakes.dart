@@ -16,6 +16,7 @@ import 'package:janggigo/models/nickname_reject_reason.dart';
 import 'package:janggigo/models/online_user.dart';
 import 'package:janggigo/models/player_state.dart';
 import 'package:janggigo/models/room.dart';
+import 'package:janggigo/models/spectate_list_entry.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
@@ -29,6 +30,8 @@ import 'package:janggigo/repositories/online_user_repository.dart';
 import 'package:janggigo/repositories/player_state_repository.dart';
 import 'package:janggigo/repositories/room_repository.dart';
 import 'package:janggigo/repositories/server_time_repository.dart';
+import 'package:janggigo/repositories/spectate_list_repository.dart';
+import 'package:janggigo/repositories/spectator_repository.dart';
 import 'package:janggigo/repositories/user_block_repository.dart';
 import 'package:janggigo/repositories/user_private_repository.dart';
 import 'package:janggigo/repositories/user_repository.dart';
@@ -656,6 +659,72 @@ class FakeUserBlockRepository implements UserBlockRepository {
       _controllers.putIfAbsent(uid, StreamController<Set<String>>.broadcast);
 }
 
+class FakeSpectateListRepository implements SpectateListRepository {
+  final _controllers = <String, StreamController<SpectateListEntry?>>{};
+  final _latest = <String, SpectateListEntry?>{};
+
+  /// [getEntries]가 돌려줄 목록. 정렬하지 않은 그대로다.
+  var entries = <({String gameId, SpectateListEntry entry})>[];
+
+  /// 다음 [getEntries]가 이 오류로 실패한다.
+  Object? nextError;
+
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  Future<List<({String gameId, SpectateListEntry entry})>> getEntries() async {
+    final error = nextError;
+    if (error != null) {
+      nextError = null;
+      throw error;
+    }
+    return entries;
+  }
+
+  @override
+  Stream<SpectateListEntry?> watchEntry(String gameId) async* {
+    yield _latest[gameId];
+    yield* _getController(gameId).stream;
+  }
+
+  void emit(String gameId, SpectateListEntry? entry) {
+    _latest[gameId] = entry;
+    _getController(gameId).add(entry);
+  }
+
+  StreamController<SpectateListEntry?> _getController(String gameId) =>
+      _controllers.putIfAbsent(gameId, StreamController<SpectateListEntry?>.broadcast);
+}
+
+class FakeSpectatorRepository implements SpectatorRepository {
+  /// 지금 남아 있는 관전자 표시. `gameId/viewerId`.
+  final spectators = <String>{};
+
+  /// 만들고 지운 기록. `create gameId`, `remove gameId`.
+  final calls = <String>[];
+
+  var _nextId = 0;
+
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  String createViewerId() => 'viewer${_nextId++}'.padRight(20, '0');
+
+  @override
+  Future<void> createSpectator(String gameId, String viewerId) async {
+    calls.add('create $gameId');
+    spectators.add('$gameId/$viewerId');
+  }
+
+  @override
+  Future<void> removeSpectator(String gameId, String viewerId) async {
+    calls.add('remove $gameId');
+    spectators.remove('$gameId/$viewerId');
+  }
+}
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -670,6 +739,8 @@ typedef FakeApp = ({
   FakeOnlineUserRepository onlineUsers,
   FakeChallengeRepository challenges,
   FakeUserBlockRepository blocks,
+  FakeSpectateListRepository spectateList,
+  FakeSpectatorRepository spectators,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -686,6 +757,8 @@ FakeApp setUpFakeApp() {
   final onlineUserRepository = FakeOnlineUserRepository();
   final challengeRepository = FakeChallengeRepository();
   final userBlockRepository = FakeUserBlockRepository();
+  final spectateListRepository = FakeSpectateListRepository();
+  final spectatorRepository = FakeSpectatorRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -700,6 +773,8 @@ FakeApp setUpFakeApp() {
     onlineUserRepository: onlineUserRepository,
     challengeRepository: challengeRepository,
     userBlockRepository: userBlockRepository,
+    spectateListRepository: spectateListRepository,
+    spectatorRepository: spectatorRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -715,5 +790,7 @@ FakeApp setUpFakeApp() {
     onlineUsers: onlineUserRepository,
     challenges: challengeRepository,
     blocks: userBlockRepository,
+    spectateList: spectateListRepository,
+    spectators: spectatorRepository,
   );
 }

@@ -35,6 +35,7 @@ enum GameResultAction {
 /// 대국자는 내 진영 기준으로 승리·패배를 보여주고, 관전자는 이긴 쪽 기준으로 보여준다.
 /// 온라인 대국([online]이 있다)은 급수 대국이면 급수 변동을 보여주고, 다시 두기는 대국 서버에 보내 두 사람이 모두 누르면
 /// 새 대국에 묶인 뒤 창을 닫는다. 빠른 대국이면 가장 큰 버튼으로 한 판 더를 둔다.
+/// 관전([spectating])이면 급수 변동과 다시 두기 없이 복기하기와 나가기만 둔다.
 class GameResultSheet extends StatefulWidget {
   final GameResult result;
   final int moveCount;
@@ -43,7 +44,17 @@ class GameResultSheet extends StatefulWidget {
   /// 온라인 대국. 개발용 대국이면 null이고 다시 두기는 같은 기기에서 바로 다시 둔다.
   final OnlineGameManager? online;
 
-  const GameResultSheet({super.key, required this.result, required this.moveCount, required this.elapsed, this.online});
+  /// 남의 대국을 관전하다 끝났다. 나가기는 [GameResultAction.home]으로 돌려준다.
+  final bool spectating;
+
+  const GameResultSheet({
+    super.key,
+    required this.result,
+    required this.moveCount,
+    required this.elapsed,
+    this.online,
+    this.spectating = false,
+  });
 
   @override
   State<GameResultSheet> createState() => _GameResultSheetState();
@@ -76,11 +87,12 @@ class _GameResultSheetState extends State<GameResultSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final detail = _getScoreDetail(l10n);
-    final online = widget.online;
+    final spectating = widget.spectating;
+    final online = spectating ? null : widget.online;
     final quick = online?.game?.meta.mode == GameMode.quick;
     final inRoom = online?.game?.meta.roomId != null;
     // 내 진영. 관전자와 한 기기에서 양쪽을 두는 개발용 대국은 null이고 이긴 쪽 기준으로 보여준다.
-    final mySide = online?.mySide;
+    final mySide = widget.online?.mySide;
     final emblemSide = mySide ?? result.winner;
     final won = emblemSide == result.winner;
     final String title;
@@ -166,7 +178,7 @@ class _GameResultSheetState extends State<GameResultSheet> {
             ],
             if (online != null)
               ListenableBuilder(listenable: online, builder: _buildOnlineRematch)
-            else
+            else if (!spectating)
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(GameResultAction.rematch),
                 // 다시 두기
@@ -186,8 +198,8 @@ class _GameResultSheetState extends State<GameResultSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(GameResultAction.home),
-                    // 방 대기실로 / 홈으로
-                    child: Text(inRoom ? l10n.resultBackToRoom : l10n.resultHome),
+                    // 나가기 / 방 대기실로 / 홈으로
+                    child: Text(_getHomeLabel(l10n, inRoom: inRoom)),
                   ),
                 ),
               ],
@@ -196,6 +208,19 @@ class _GameResultSheetState extends State<GameResultSheet> {
         ),
       ),
     );
+  }
+
+  String _getHomeLabel(AppLocalizations l10n, {required bool inRoom}) {
+    if (widget.spectating) {
+      // 나가기
+      return l10n.leaveGameAction;
+    }
+    if (inRoom) {
+      // 방 대기실로
+      return l10n.resultBackToRoom;
+    }
+    // 홈으로
+    return l10n.resultHome;
   }
 
   /// 이번 급수 대국의 급수 변동. 대국 서버가 반영하기 전이나 급수 대국이 아니면 보이지 않는다.

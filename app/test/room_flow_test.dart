@@ -226,16 +226,31 @@ void main() {
     await _tearDown(tester, fakes, 'me');
   });
 
-  testWidgets('초대받은 방이 대국 중이면 그 사실을 알린다', (tester) async {
+  testWidgets('초대받은 방이 대국 중이면 관전을 권하고, 고르면 그 대국을 관전한다', (tester) async {
     final fakes = await _startSignedIn(tester, 'me');
-    fakes.rooms.emit('room1', _room(hostUid: 'opp', guest: 'x', status: RoomStatus.playing));
+    fakes.rooms.emit('room1', _room(hostUid: 'opp', guest: 'x', status: RoomStatus.playing, gameId: 'g1'));
     fakes.rooms.nextError = const AppException(AppErrorCode.roomFull);
 
     fakes.deepLinks.emit(Uri.parse('janggigo://r/room1'));
     await _pumpFor(tester);
-    expect(find.text('지금 대국 중인 방이에요'), findsOneWidget);
-    await _tap(tester, find.text('확인'));
+    expect(find.text('지금 대국 중인 방이에요. 관전할까요?'), findsOneWidget);
+    await _tap(tester, find.text('취소'));
     expect(find.text('빠른 대국'), findsOneWidget);
+
+    fakes.rooms.nextError = const AppException(AppErrorCode.roomFull);
+    fakes.deepLinks.emit(Uri.parse('janggigo://r/room1'));
+    await _pumpFor(tester);
+    await _tap(tester, find.text('관전하기'));
+    // 비공개 방 대국은 관전 목록에 없어 관전자 수 없이 "관전"만 쓴다.
+    fakes.games.emit('g1', buildGameJson(cho: 'opp', han: 'x', phase: 'playing', turn: 'cho', roomId: 'room1'));
+    await _pumpFor(tester);
+    expect(find.text('관전'), findsOneWidget);
+    expect(find.text('판 돌리기'), findsOneWidget);
+    expect(fakes.spectators.calls, ['create g1']);
+
+    await _tap(tester, find.text('나가기'));
+    expect(find.text('빠른 대국'), findsOneWidget);
+    expect(fakes.spectators.calls, ['create g1', 'remove g1']);
 
     await _tearDown(tester, fakes, 'me');
   });

@@ -15,6 +15,8 @@ import 'online_user_repository.dart';
 import 'player_state_repository.dart';
 import 'room_repository.dart';
 import 'server_time_repository.dart';
+import 'spectate_list_repository.dart';
+import 'spectator_repository.dart';
 import 'user_block_repository.dart';
 import 'user_private_repository.dart';
 import 'user_repository.dart';
@@ -36,6 +38,8 @@ class AppRepositories {
   final OnlineUserRepository onlineUserRepository;
   final ChallengeRepository challengeRepository;
   final UserBlockRepository userBlockRepository;
+  final SpectateListRepository spectateListRepository;
+  final SpectatorRepository spectatorRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -51,6 +55,8 @@ class AppRepositories {
     required this.onlineUserRepository,
     required this.challengeRepository,
     required this.userBlockRepository,
+    required this.spectateListRepository,
+    required this.spectatorRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -79,6 +85,8 @@ class AppRepositories {
         getServerUrl: getGameServerUrl,
       ),
       userBlockRepository: UserBlockRepository(firestore: firestore),
+      spectateListRepository: SpectateListRepository(database: database),
+      spectatorRepository: SpectatorRepository(database: database),
     );
   }
 }

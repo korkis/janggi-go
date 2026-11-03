@@ -212,7 +212,7 @@ class _GameScreenState extends State<GameScreen> {
             label: l10n.passedLast,
             color: GameColors.subText,
           ),
-        if (game != null) _PlayerClock(online: _online!, side: side),
+        if (game != null) PlayerClock(online: _online!, side: side),
       ],
     );
   }
@@ -448,11 +448,11 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 /// 온라인 대국 정보 줄의 시계. 서버 시각이 바뀔 때마다 이것만 다시 그린다.
-class _PlayerClock extends StatelessWidget {
+class PlayerClock extends StatelessWidget {
   final OnlineGameManager online;
   final Side side;
 
-  const _PlayerClock({required this.online, required this.side});
+  const PlayerClock({super.key, required this.online, required this.side});
 
   @override
   Widget build(BuildContext context) {
