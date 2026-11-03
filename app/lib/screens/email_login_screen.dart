@@ -30,6 +30,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   final _passwordConfirmController = TextEditingController();
 
   bool _passwordVisible = false;
+  bool _passwordConfirmVisible = false;
   bool _submitting = false;
   String? _emailError;
   String? _passwordError;
@@ -116,12 +117,22 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                     ),
                     TextField(
                       controller: _passwordConfirmController,
-                      obscureText: !_passwordVisible,
+                      obscureText: !_passwordConfirmVisible,
                       autofillHints: const [AutofillHints.newPassword],
                       textInputAction: TextInputAction.done,
                       onSubmitted: _onSubmitted,
                       style: const TextStyle(fontSize: AppTextSizes.body),
-                      decoration: _inputDecoration(errorText: _passwordConfirmError),
+                      decoration: _inputDecoration(
+                        errorText: _passwordConfirmError,
+                        suffixIcon: IconButton(
+                          onPressed: _onTogglePasswordConfirmVisible,
+                          // 비밀번호 확인 숨기기 / 비밀번호 확인 보기
+                          tooltip: _passwordConfirmVisible ? l10n.hidePasswordConfirm : l10n.showPasswordConfirm,
+                          icon: Icon(
+                            _passwordConfirmVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          ),
+                        ),
+                      ),
                     ),
                   ] else
                     Align(
@@ -203,6 +214,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     setState(() => _passwordVisible = !_passwordVisible);
   }
 
+  void _onTogglePasswordConfirmVisible() {
+    setState(() => _passwordConfirmVisible = !_passwordConfirmVisible);
+  }
+
   void _onSubmitted(String _) {
     if (!_submitting) {
       _onSubmit();
@@ -210,9 +225,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   }
 
   Future<void> _onSignUp() async {
-    final signedIn = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (context) => const EmailLoginScreen(signUp: true)));
+    final signedIn = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (context) => const EmailLoginScreen(signUp: true)));
     if (signedIn == true && mounted) {
       Navigator.of(context).pop(true);
     }

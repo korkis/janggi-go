@@ -43,7 +43,6 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        testMatchIntro: Duration.zero,
         testRoomCheckInterval: const Duration(milliseconds: 500),
         testRoomAbsentLimit: absentLimit,
       );

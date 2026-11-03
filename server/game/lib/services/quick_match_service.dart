@@ -214,7 +214,6 @@ class QuickMatchService {
       players: GamePlayers(cho: players[0], han: players[1]),
       timeControl: settings.timeControl,
       disconnectLimitMs: settings.getDisconnectLimitMs(appConfig),
-      introMs: settings.matchIntro.inMilliseconds,
       now: now.millisecondsSinceEpoch,
       rematchBlocked: appConfig.quickRematchLimit <= 0,
     );

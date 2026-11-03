@@ -47,7 +47,6 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        testMatchIntro: Duration.zero,
         testQuickMatchStepInterval: stepInterval,
       );
       httpServer = await server.serve(port: 0);
@@ -205,7 +204,6 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        testMatchIntro: Duration.zero,
       );
       httpServer = await server.serve(port: 0);
       await ensureAppConfig(server.firestore);
@@ -255,7 +253,6 @@ void main() {
         ),
         timeControl: defaultTimeControl,
         disconnectLimitMs: 30000,
-        introMs: 0,
         now: now.millisecondsSinceEpoch,
         rematchCount: rematchCount,
         rematchBlocked: rematchCount >= 5,

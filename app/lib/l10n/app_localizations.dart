@@ -152,11 +152,17 @@ abstract class AppLocalizations {
   /// **'상차림을 골라 주세요'**
   String get setupTitle;
 
-  /// 상대가 상차림을 확정했을 때 상대 정보 줄에 보이는 글자
+  /// 상대가 상차림을 확정했을 때 상차림 창에 보이는 글자. 옆에 상대의 마·상 기물 네 개를 놓는다
   ///
   /// In ko, this message translates to:
-  /// **'정했어요'**
+  /// **'상대가 정했어요'**
   String get setupDecided;
+
+  /// 상차림 창 위쪽의 내 진영과 두는 순서
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{나는 초 · 먼저 둬요} han{나는 한 · 나중에 둬요} other{}}'**
+  String setupMySide(String side);
 
   /// 상차림을 확정하는 버튼
   ///
@@ -248,13 +254,43 @@ abstract class AppLocalizations {
   /// **'나가기'**
   String get leaveGameAction;
 
-  /// 대국 결과 종류
+  /// 대국 결과 종류. 내가 이겼거나 관전자일 때 쓴다
   ///
   /// In ko, this message translates to:
   /// **'{reason, select, checkmate{외통승} resignation{기권승} timeout{시간승} consecutivePasses{점수승} moveLimit{점수승} noLegalMoves{점수승} disconnect{접속 끊김승} other{}}'**
   String resultReason(String reason);
 
-  /// 대국 결과 창의 큰 제목
+  /// 내가 졌을 때의 대국 결과 종류
+  ///
+  /// In ko, this message translates to:
+  /// **'{reason, select, checkmate{외통패} resignation{기권패} timeout{시간패} consecutivePasses{점수패} moveLimit{점수패} noLegalMoves{점수패} disconnect{접속 끊김패} other{}}'**
+  String resultReasonLoss(String reason);
+
+  /// 대국 결과 창의 제목. 내 진영 기준으로 이겼을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{초 승리!} han{한 승리!} other{}}'**
+  String resultMyWin(String side);
+
+  /// 대국 결과 창의 제목. 내 진영 기준으로 졌을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{초 패배!} han{한 패배!} other{}}'**
+  String resultMyLoss(String side);
+
+  /// 대국 결과 창 가운데 궁 아래의 큰 글자
+  ///
+  /// In ko, this message translates to:
+  /// **'승리'**
+  String get resultOutcomeWin;
+
+  /// 대국 결과 창 가운데 궁 아래의 큰 글자
+  ///
+  /// In ko, this message translates to:
+  /// **'패배'**
+  String get resultOutcomeLoss;
+
+  /// 대국 결과 창의 제목. 관전자가 볼 때 이긴 쪽 기준
   ///
   /// In ko, this message translates to:
   /// **'{side, select, cho{초 승리} han{한 승리} other{}}'**
@@ -493,6 +529,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'비밀번호 숨기기'**
   String get hidePassword;
+
+  /// 이메일 가입 화면 비밀번호 확인 칸의 보기 버튼 화면 읽기 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호 확인 보기'**
+  String get showPasswordConfirm;
+
+  /// 이메일 가입 화면 비밀번호 확인 칸의 숨기기 버튼 화면 읽기 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호 확인 숨기기'**
+  String get hidePasswordConfirm;
 
   /// 비밀번호 재설정 메일 보내기 링크
   ///
@@ -758,16 +806,16 @@ abstract class AppLocalizations {
   /// **'초읽기 {count}회'**
   String clockPeriods(int count);
 
-  /// 상차림 남은 시간
+  /// 상차림 창의 남은 상차림 시간
   ///
   /// In ko, this message translates to:
   /// **'{seconds}초'**
   String setupSeconds(int seconds);
 
-  /// 상대가 상차림을 고르는 동안 정하기 버튼 자리에 보이는 글자
+  /// 상대가 상차림을 고르는 동안 상차림 창과 판 위에 보이는 안내
   ///
   /// In ko, this message translates to:
-  /// **'상대가 고르고 있어요'**
+  /// **'상대가 상차림을 고르고 있어요'**
   String get setupOpponentChoosing;
 
   /// 온라인 대국 기권 확인
@@ -913,36 +961,6 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'그만 찾기'**
   String get quickMatchStop;
-
-  /// 빠른 대국 상대 찾음 화면 제목
-  ///
-  /// In ko, this message translates to:
-  /// **'상대를 찾았어요'**
-  String get quickMatchFound;
-
-  /// 빠른 대국 상대 찾음 화면 가운데
-  ///
-  /// In ko, this message translates to:
-  /// **'VS'**
-  String get quickMatchVersus;
-
-  /// 빠른 대국 상대 찾음 화면의 진영과 두는 순서
-  ///
-  /// In ko, this message translates to:
-  /// **'{side, select, cho{초 · 먼저 둬요} han{한 · 나중에 둬요} other{}}'**
-  String quickMatchMoveOrder(String side);
-
-  /// 빠른 대국 상대 찾음 화면의 시간 규칙
-  ///
-  /// In ko, this message translates to:
-  /// **'기본 {minutes}분 · 초읽기 {seconds}초 {periods}회'**
-  String quickMatchTimeRule(int minutes, int seconds, int periods);
-
-  /// 빠른 대국 상대 찾음 화면. 급수에 반영하는 대국
-  ///
-  /// In ko, this message translates to:
-  /// **'급수 대국'**
-  String get quickMatchRated;
 
   /// 빠른 대국 대기열 들어가기 실패
   ///

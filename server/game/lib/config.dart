@@ -33,9 +33,6 @@ final defaultTimeControl = TimeControl(
   extensionLimit: extensionLimit,
 );
 
-/// 상대 찾음 화면을 보여주는 시간. 상차림은 대국을 만든 시각 + 이 시간에 시작한다(`docs/server.md`의 대국 만들기와 상차림).
-const matchIntroSeconds = 3;
-
 /// 접속 상태의 `lastSeenAt`이 이보다 오래되면 앱이 연결되어 있다고 써 두었어도 끊긴 것으로 본다(`docs/server.md`의 접속 끊김).
 /// 앱은 대국 중 `configs/app.heartbeatSeconds`(5초)마다 갱신하므로 세 번 넘게 갱신하지 못한 경우다.
 const presenceStaleSeconds = 15;

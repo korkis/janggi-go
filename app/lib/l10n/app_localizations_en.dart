@@ -51,7 +51,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setupTitle => 'Choose your setup';
 
   @override
-  String get setupDecided => 'Ready';
+  String get setupDecided => 'Opponent is ready';
+
+  @override
+  String setupMySide(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'You are Cho · You move first',
+      'han': 'You are Han · You move second',
+      'other': '',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get setupConfirm => 'Use this setup';
@@ -127,17 +137,58 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String resultReason(String reason) {
     String _temp0 = intl.Intl.selectLogic(reason, {
-      'checkmate': 'Checkmate',
-      'resignation': 'Resignation',
-      'timeout': 'Timeout',
-      'consecutivePasses': 'On points',
-      'moveLimit': 'On points',
-      'noLegalMoves': 'On points',
-      'disconnect': 'Disconnection',
+      'checkmate': 'Win by checkmate',
+      'resignation': 'Win by resignation',
+      'timeout': 'Win on time',
+      'consecutivePasses': 'Win on points',
+      'moveLimit': 'Win on points',
+      'noLegalMoves': 'Win on points',
+      'disconnect': 'Win by disconnection',
       'other': '',
     });
     return '$_temp0';
   }
+
+  @override
+  String resultReasonLoss(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'checkmate': 'Loss by checkmate',
+      'resignation': 'Loss by resignation',
+      'timeout': 'Loss on time',
+      'consecutivePasses': 'Loss on points',
+      'moveLimit': 'Loss on points',
+      'noLegalMoves': 'Loss on points',
+      'disconnect': 'Loss by disconnection',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String resultMyWin(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'Cho wins!',
+      'han': 'Han wins!',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String resultMyLoss(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'Cho loses!',
+      'han': 'Han loses!',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get resultOutcomeWin => 'Victory';
+
+  @override
+  String get resultOutcomeLoss => 'Defeat';
 
   @override
   String resultWinner(String side) {
@@ -285,6 +336,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hidePassword => 'Hide password';
+
+  @override
+  String get showPasswordConfirm => 'Show password confirmation';
+
+  @override
+  String get hidePasswordConfirm => 'Hide password confirmation';
 
   @override
   String get forgotPassword => 'Forgot your password?';
@@ -461,7 +518,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get setupOpponentChoosing => 'Opponent is choosing';
+  String get setupOpponentChoosing => 'Your opponent is choosing a setup';
 
   @override
   String get resignConfirmOnline => 'Resign? You will lose this game.';
@@ -557,30 +614,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quickMatchStop => 'Stop searching';
-
-  @override
-  String get quickMatchFound => 'Opponent found';
-
-  @override
-  String get quickMatchVersus => 'VS';
-
-  @override
-  String quickMatchMoveOrder(String side) {
-    String _temp0 = intl.Intl.selectLogic(side, {
-      'cho': 'Cho · Moves first',
-      'han': 'Han · Moves second',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String quickMatchTimeRule(int minutes, int seconds, int periods) {
-    return '$minutes min · $periods×${seconds}s byoyomi';
-  }
-
-  @override
-  String get quickMatchRated => 'Ranked game';
 
   @override
   String get errorQuickMatch =>

@@ -13,6 +13,7 @@ import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
+import '../widgets/piece_icon.dart';
 import '../widgets/player_bar.dart';
 import '../widgets/rank_progress_bar.dart';
 
@@ -31,6 +32,7 @@ enum GameResultAction {
 
 /// 대국 결과 창. 끝난 판을 뒤에 둔 채 아래에서 올라온다(`docs/screens.md`의 대국 결과).
 ///
+/// 대국자는 내 진영 기준으로 승리·패배를 보여주고, 관전자는 이긴 쪽 기준으로 보여준다.
 /// 온라인 대국([online]이 있다)은 급수 대국이면 급수 변동을 보여주고, 다시 두기는 대국 서버에 보내 두 사람이 모두 누르면
 /// 새 대국에 묶인 뒤 창을 닫는다. 빠른 대국이면 가장 큰 버튼으로 한 판 더를 둔다.
 class GameResultSheet extends StatefulWidget {
@@ -77,6 +79,21 @@ class _GameResultSheetState extends State<GameResultSheet> {
     final online = widget.online;
     final quick = online?.game?.meta.mode == GameMode.quick;
     final inRoom = online?.game?.meta.roomId != null;
+    // 내 진영. 관전자와 한 기기에서 양쪽을 두는 개발용 대국은 null이고 이긴 쪽 기준으로 보여준다.
+    final mySide = online?.mySide;
+    final emblemSide = mySide ?? result.winner;
+    final won = emblemSide == result.winner;
+    final String title;
+    if (mySide == null) {
+      // 초 승리 / 한 승리
+      title = l10n.resultWinner(result.winner.name);
+    } else if (won) {
+      // 초 승리! / 한 승리!
+      title = l10n.resultMyWin(mySide.name);
+    } else {
+      // 초 패배! / 한 패배!
+      title = l10n.resultMyLoss(mySide.name);
+    }
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
@@ -84,27 +101,31 @@ class _GameResultSheetState extends State<GameResultSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800, color: GameColors.text),
+            ),
+            const SizedBox(height: 16),
+            _ResultEmblem(side: emblemSide, won: won),
+            const SizedBox(height: 14),
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(color: GameColors.accentSurface, borderRadius: BorderRadius.circular(999)),
+                decoration: BoxDecoration(
+                  color: won ? GameColors.goldSurface : GameColors.raisedButton,
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 child: Text(
-                  // 외통승 / 기권승 / 점수승
-                  l10n.resultReason(result.reason.name),
-                  style: const TextStyle(
+                  // 외통승 / 기권승 / 점수승 / 외통패 / 기권패 / 점수패
+                  won ? l10n.resultReason(result.reason.name) : l10n.resultReasonLoss(result.reason.name),
+                  style: TextStyle(
                     fontSize: AppTextSizes.body,
                     fontWeight: FontWeight.w800,
-                    color: GameColors.accent,
+                    color: won ? GameColors.gold : GameColors.subText,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              // 초 승리 / 한 승리
-              l10n.resultWinner(result.winner.name),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: AppTextSizes.headline, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(
@@ -389,6 +410,50 @@ class _GameResultSheetState extends State<GameResultSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 결과 창 가운데의 큰 표시. [side]의 궁과 승리·패배를 크게 둔다. 이기면 금빛으로 밝게, 지면 차분하게 보여준다.
+class _ResultEmblem extends StatelessWidget {
+  static const _size = 112.0;
+
+  final Side side;
+  final bool won;
+
+  const _ResultEmblem({required this.side, required this.won});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      children: [
+        Container(
+          width: _size,
+          height: _size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: won ? GameColors.goldSurface : GameColors.background,
+            border: Border.all(color: won ? GameColors.gold : GameColors.outline, width: 3),
+            boxShadow: won ? const [BoxShadow(color: GameColors.goldGlow, blurRadius: 28, spreadRadius: 2)] : null,
+          ),
+          child: Opacity(
+            opacity: won ? 1 : 0.6,
+            child: PieceIcon(piece: Piece(side, PieceType.king), size: _size * 0.7),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          // 승리 / 패배
+          won ? l10n.resultOutcomeWin : l10n.resultOutcomeLoss,
+          style: TextStyle(
+            fontSize: AppTextSizes.headline,
+            fontWeight: FontWeight.w900,
+            color: won ? GameColors.gold : GameColors.subText,
+          ),
+        ),
+      ],
     );
   }
 }

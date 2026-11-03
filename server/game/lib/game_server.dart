@@ -84,7 +84,7 @@ class GameServer {
   /// [environment]에 맞게 조립한다. 에뮬레이터에서는 개발용 API(`devPing`, `devCreateGame`)를 함께 연다.
   ///
   /// [onDevPingTask]는 테스트가 `devPing` 예약 작업이 돌았는지 확인할 때 쓴다.
-  /// [testTimeControl], [testMatchIntro], [testDisconnectLimit], [testQuickMatchStepInterval]은 에뮬레이터에서 만드는 모든
+  /// [testTimeControl], [testDisconnectLimit], [testQuickMatchStepInterval]은 에뮬레이터에서 만드는 모든
   /// 대국(개발용, 빠른 대국, 방, 다시 두기)의 시간과 매칭 범위를 넓히는 간격이다. [testRoomCheckInterval], [testRoomAbsentLimit]은
   /// 방 연결 확인 간격과 방을 닫거나 자리를 비우기까지의 시간이다. 통합 테스트가 짧게 줄일 때 쓰고 운영에서는 무시한다.
   factory GameServer.create({
@@ -169,16 +169,8 @@ class GameServer {
       logger: logger,
     );
     final newGameSettings = production
-        ? NewGameSettings(
-            timeControl: defaultTimeControl,
-            matchIntro: const Duration(seconds: matchIntroSeconds),
-            disconnectLimit: null,
-          )
-        : NewGameSettings(
-            timeControl: testTimeControl ?? defaultTimeControl,
-            matchIntro: testMatchIntro ?? const Duration(seconds: matchIntroSeconds),
-            disconnectLimit: testDisconnectLimit,
-          );
+        ? NewGameSettings(timeControl: defaultTimeControl, disconnectLimit: null)
+        : NewGameSettings(timeControl: testTimeControl ?? defaultTimeControl, disconnectLimit: testDisconnectLimit);
     final quickMatchService = QuickMatchService(
       firestore: firestore,
       gameService: gameService,

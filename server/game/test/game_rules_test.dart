@@ -8,9 +8,8 @@ import 'package:janggigo_game/services/game_rules.dart';
 import 'package:test/test.dart';
 
 const _createdAt = 1000000;
-const _introMs = matchIntroSeconds * 1000;
 const _setupMs = 20000;
-const _startsAt = _createdAt + _introMs;
+const _startsAt = _createdAt;
 
 ActiveGame _newGame() {
   return createActiveGame(
@@ -23,7 +22,6 @@ ActiveGame _newGame() {
     ),
     timeControl: defaultTimeControl,
     disconnectLimitMs: 30000,
-    introMs: _introMs,
     now: _createdAt,
   );
 }
@@ -55,7 +53,7 @@ Matcher _rejectedWith(GameErrorCode code) =>
 
 void main() {
   group('상차림', () {
-    test('새 대국은 상대 찾음 화면 뒤에 한부터 20초를 받는다', () {
+    test('새 대국은 만든 시각부터 한이 20초를 받는다', () {
       final game = _newGame();
       expect(game.state.phase, GamePhase.setup);
       expect(game.state.setup.turn, Side.han);
@@ -269,7 +267,7 @@ void main() {
         Side.han: <Connection>[],
       };
       final marked = applyDueEvents(_newGame(), _startsAt + 1000, drafts: const {}, connections: connections);
-      // 한은 대국을 만든 때부터 끊겨 있었고, 30초는 한의 상차림 마감(상대 찾음 3초 + 20초)보다 늦다.
+      // 한은 대국을 만든 때부터 끊겨 있었고, 30초는 한의 상차림 마감(20초)보다 늦다.
       expect(marked.state.phase, GamePhase.setup);
       expect(marked.state.disconnect.han.since, _createdAt);
       final lost = applyDueEvents(marked, _createdAt + _limitMs, drafts: const {}, connections: connections);
@@ -364,7 +362,6 @@ void main() {
         ),
         timeControl: defaultTimeControl,
         disconnectLimitMs: 30000,
-        introMs: _introMs,
         now: _createdAt,
         rematchCount: rematchCount,
       );
@@ -409,7 +406,6 @@ void main() {
         players: _newGame().meta.players,
         timeControl: defaultTimeControl,
         disconnectLimitMs: 30000,
-        introMs: _introMs,
         now: _createdAt,
         rematchOf: 'old',
         rematchCount: 5,

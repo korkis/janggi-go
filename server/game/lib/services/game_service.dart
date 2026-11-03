@@ -37,13 +37,10 @@ typedef GameBindingCheck = Future<void> Function(FirestoreTransaction transactio
 class NewGameSettings {
   final TimeControl timeControl;
 
-  /// 상대 찾음 화면 시간.
-  final Duration matchIntro;
-
   /// 접속 끊김 허용 시간 합계. null이면 `configs/app.disconnectLimitSeconds`를 쓴다.
   final Duration? disconnectLimit;
 
-  const NewGameSettings({required this.timeControl, required this.matchIntro, required this.disconnectLimit});
+  const NewGameSettings({required this.timeControl, required this.disconnectLimit});
 
   int getDisconnectLimitMs(AppConfig appConfig) {
     return (disconnectLimit ?? Duration(seconds: appConfig.disconnectLimitSeconds)).inMilliseconds;

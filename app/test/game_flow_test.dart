@@ -55,7 +55,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('이 상차림으로 정하기'));
     await tester.pumpAndSettle();
-    expect(find.text('정했어요'), findsOneWidget);
+    expect(find.text('상대가 정했어요'), findsOneWidget);
 
     await tester.tap(find.text('이 상차림으로 정하기'));
     await tester.pumpAndSettle();

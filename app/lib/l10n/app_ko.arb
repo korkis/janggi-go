@@ -46,9 +46,18 @@
   "@setupTitle": {
     "description": "상차림 화면 제목"
   },
-  "setupDecided": "정했어요",
+  "setupDecided": "상대가 정했어요",
   "@setupDecided": {
-    "description": "상대가 상차림을 확정했을 때 상대 정보 줄에 보이는 글자"
+    "description": "상대가 상차림을 확정했을 때 상차림 창에 보이는 글자. 옆에 상대의 마·상 기물 네 개를 놓는다"
+  },
+  "setupMySide": "{side, select, cho{나는 초 · 먼저 둬요} han{나는 한 · 나중에 둬요} other{}}",
+  "@setupMySide": {
+    "description": "상차림 창 위쪽의 내 진영과 두는 순서",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
   },
   "setupConfirm": "이 상차림으로 정하기",
   "@setupConfirm": {
@@ -132,16 +141,51 @@
   },
   "resultReason": "{reason, select, checkmate{외통승} resignation{기권승} timeout{시간승} consecutivePasses{점수승} moveLimit{점수승} noLegalMoves{점수승} disconnect{접속 끊김승} other{}}",
   "@resultReason": {
-    "description": "대국 결과 종류",
+    "description": "대국 결과 종류. 내가 이겼거나 관전자일 때 쓴다",
     "placeholders": {
       "reason": {
         "type": "String"
       }
     }
   },
+  "resultReasonLoss": "{reason, select, checkmate{외통패} resignation{기권패} timeout{시간패} consecutivePasses{점수패} moveLimit{점수패} noLegalMoves{점수패} disconnect{접속 끊김패} other{}}",
+  "@resultReasonLoss": {
+    "description": "내가 졌을 때의 대국 결과 종류",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "resultMyWin": "{side, select, cho{초 승리!} han{한 승리!} other{}}",
+  "@resultMyWin": {
+    "description": "대국 결과 창의 제목. 내 진영 기준으로 이겼을 때",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "resultMyLoss": "{side, select, cho{초 패배!} han{한 패배!} other{}}",
+  "@resultMyLoss": {
+    "description": "대국 결과 창의 제목. 내 진영 기준으로 졌을 때",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "resultOutcomeWin": "승리",
+  "@resultOutcomeWin": {
+    "description": "대국 결과 창 가운데 궁 아래의 큰 글자"
+  },
+  "resultOutcomeLoss": "패배",
+  "@resultOutcomeLoss": {
+    "description": "대국 결과 창 가운데 궁 아래의 큰 글자"
+  },
   "resultWinner": "{side, select, cho{초 승리} han{한 승리} other{}}",
   "@resultWinner": {
-    "description": "대국 결과 창의 큰 제목",
+    "description": "대국 결과 창의 제목. 관전자가 볼 때 이긴 쪽 기준",
     "placeholders": {
       "side": {
         "type": "String"
@@ -335,6 +379,14 @@
   "hidePassword": "비밀번호 숨기기",
   "@hidePassword": {
     "description": "비밀번호 숨기기 버튼의 화면 읽기 이름"
+  },
+  "showPasswordConfirm": "비밀번호 확인 보기",
+  "@showPasswordConfirm": {
+    "description": "이메일 가입 화면 비밀번호 확인 칸의 보기 버튼 화면 읽기 이름"
+  },
+  "hidePasswordConfirm": "비밀번호 확인 숨기기",
+  "@hidePasswordConfirm": {
+    "description": "이메일 가입 화면 비밀번호 확인 칸의 숨기기 버튼 화면 읽기 이름"
   },
   "forgotPassword": "비밀번호를 잊으셨나요?",
   "@forgotPassword": {
@@ -568,16 +620,16 @@
   },
   "setupSeconds": "{seconds}초",
   "@setupSeconds": {
-    "description": "상차림 남은 시간",
+    "description": "상차림 창의 남은 상차림 시간",
     "placeholders": {
       "seconds": {
         "type": "int"
       }
     }
   },
-  "setupOpponentChoosing": "상대가 고르고 있어요",
+  "setupOpponentChoosing": "상대가 상차림을 고르고 있어요",
   "@setupOpponentChoosing": {
-    "description": "상대가 상차림을 고르는 동안 정하기 버튼 자리에 보이는 글자"
+    "description": "상대가 상차림을 고르는 동안 상차림 창과 판 위에 보이는 안내"
   },
   "resignConfirmOnline": "기권할까요? 이 대국은 지게 돼요",
   "@resignConfirmOnline": {
@@ -692,42 +744,6 @@
   "quickMatchStop": "그만 찾기",
   "@quickMatchStop": {
     "description": "빠른 대국 대기 화면 맨 아래 버튼"
-  },
-  "quickMatchFound": "상대를 찾았어요",
-  "@quickMatchFound": {
-    "description": "빠른 대국 상대 찾음 화면 제목"
-  },
-  "quickMatchVersus": "VS",
-  "@quickMatchVersus": {
-    "description": "빠른 대국 상대 찾음 화면 가운데"
-  },
-  "quickMatchMoveOrder": "{side, select, cho{초 · 먼저 둬요} han{한 · 나중에 둬요} other{}}",
-  "@quickMatchMoveOrder": {
-    "description": "빠른 대국 상대 찾음 화면의 진영과 두는 순서",
-    "placeholders": {
-      "side": {
-        "type": "String"
-      }
-    }
-  },
-  "quickMatchTimeRule": "기본 {minutes}분 · 초읽기 {seconds}초 {periods}회",
-  "@quickMatchTimeRule": {
-    "description": "빠른 대국 상대 찾음 화면의 시간 규칙",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      },
-      "seconds": {
-        "type": "int"
-      },
-      "periods": {
-        "type": "int"
-      }
-    }
-  },
-  "quickMatchRated": "급수 대국",
-  "@quickMatchRated": {
-    "description": "빠른 대국 상대 찾음 화면. 급수에 반영하는 대국"
   },
   "errorQuickMatch": "상대를 찾지 못했어요. 잠시 후 다시 해 주세요",
   "@errorQuickMatch": {

@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:janggi_core/janggi_core.dart';
@@ -23,7 +24,7 @@ import 'game_screen.dart';
 ///
 /// 개발용 대국([gameId]가 null)은 한 기기에서 한이 먼저 고르고 이어서 초가 고른다. 상차림 버튼의 기물 순서가 고르는 사람 기준
 /// 왼쪽부터이므로 고르는 쪽이 아래에 오도록 판을 돌린다. 온라인 대국은 내 진영이 아래이고 서버가 정한 차례와 마감을 따른다.
-/// 상차림이 끝나면 대국 화면으로 넘어간다.
+/// 상차림은 판 위에 띄운 상차림 창에서 고르고(`docs/screens.md`의 상차림), 끝나면 대국 화면으로 넘어간다.
 class SetupScreen extends StatefulWidget {
   /// 온라인 대국 ID. null이면 한 기기에서 양쪽을 고르는 개발용 대국이다.
   final String? gameId;
@@ -81,6 +82,7 @@ class _SetupScreenState extends State<SetupScreen> {
     final l10n = AppLocalizations.of(context);
     final setup = _setup!;
     final chooser = setup.chooser;
+    final opponent = chooser.opponent;
     final flipped = chooser == Side.han;
     return Column(
       children: [
@@ -89,39 +91,29 @@ class _SetupScreenState extends State<SetupScreen> {
           title: l10n.setupTitle,
           onBack: _onBack,
         ),
-        PlayerBar(
-          side: chooser.opponent,
-          active: false,
-          trailing: [
-            if (chooser == Side.cho)
-              _buildDecidedBadge(
-                context,
-                squares: setup.getFormationSquares(chooser.opponent),
-                position: setup.preview,
-                flipped: flipped,
-              ),
-          ],
-        ),
-        // 판, 고르는 쪽 정보 줄, 상차림 버튼을 붙여 두고 남는 높이는 정하기 버튼 위에 둔다.
         Expanded(
-          child: Column(
-            children: [
-              Flexible(
-                child: BoardView(
-                  position: setup.preview,
-                  flipped: flipped,
-                  highlighted: setup.getFormationSquares(chooser),
-                ),
-              ),
-              PlayerBar(side: chooser, active: true),
-              _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
-            ],
+          child: _SetupLayout(
+            opponentBar: PlayerBar(side: opponent, active: false),
+            board: BoardView(
+              position: setup.preview,
+              flipped: flipped,
+              highlighted: setup.getFormationSquares(chooser),
+            ),
+            myBar: PlayerBar(side: chooser, active: true),
+            dialog: _SetupDialog(
+              opponentSide: opponent,
+              // 한 / 초
+              opponentName: l10n.sideName(opponent.name),
+              mySide: chooser,
+              timer: null,
+              decided: chooser == Side.cho
+                  ? _getOrderedPieces(setup.getFormationSquares(opponent), setup.preview, flipped: flipped)
+                  : null,
+              opponentChoosing: false,
+              grid: _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
+              onConfirm: _onConfirm,
+            ),
           ),
-        ),
-        _buildConfirmButton(
-          // 이 상차림으로 정하기
-          label: l10n.setupConfirm,
-          onPressed: _onConfirm,
         ),
       ],
     );
@@ -146,6 +138,7 @@ class _SetupScreenState extends State<SetupScreen> {
     final opponentSide = mySide.opponent;
     final setupTurn = online.setupTurn;
     final flipped = mySide == Side.han;
+    final myConfirmed = online.hasConfirmedFormation(mySide);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: _onPopInvoked,
@@ -156,51 +149,51 @@ class _SetupScreenState extends State<SetupScreen> {
             title: l10n.setupTitle,
             onBack: _onBack,
           ),
-          PlayerBar(
-            side: opponentSide,
-            active: setupTurn == opponentSide,
-            name: getPlayerName(l10n, game.meta.players.get(opponentSide)),
-            notice: DisconnectNotice(online: online, side: opponentSide),
-            trailing: [
-              if (online.hasConfirmedFormation(opponentSide))
-                _buildDecidedBadge(
-                  context,
-                  squares: online.getFormationSquares(opponentSide),
-                  position: online.setupPreview,
-                  flipped: flipped,
-                ),
-              if (setupTurn == opponentSide) _buildSetupTimer(online),
-            ],
-          ),
           Expanded(
-            child: Column(
-              children: [
-                Flexible(
-                  child: BoardView(
-                    position: online.setupPreview,
-                    flipped: flipped,
-                    highlighted: online.getFormationSquares(mySide),
-                  ),
-                ),
-                PlayerBar(
-                  side: mySide,
-                  active: setupTurn == mySide,
-                  name: getPlayerName(l10n, game.meta.players.get(mySide)),
-                  trailing: [if (setupTurn == mySide) _buildSetupTimer(online)],
-                ),
-                _buildFormationGrid(
-                  context,
-                  side: mySide,
-                  picked: online.picked,
-                  onPick: online.canPickFormation ? _onPickOnline : null,
-                ),
-              ],
+            child: _SetupLayout(
+              opponentBar: PlayerBar(
+                side: opponentSide,
+                active: setupTurn == opponentSide,
+                name: getPlayerName(l10n, game.meta.players.get(opponentSide)),
+                notice: DisconnectNotice(online: online, side: opponentSide),
+                trailing: [if (setupTurn == opponentSide) _buildSetupTimer(online)],
+              ),
+              board: BoardView(
+                position: online.setupPreview,
+                flipped: flipped,
+                highlighted: online.getFormationSquares(mySide),
+              ),
+              myBar: PlayerBar(
+                side: mySide,
+                active: setupTurn == mySide,
+                name: getPlayerName(l10n, game.meta.players.get(mySide)),
+              ),
+              // 확정한 뒤에는 창을 닫고 판 위에 안내만 둔다.
+              dialog: myConfirmed
+                  ? null
+                  : _SetupDialog(
+                      opponentSide: opponentSide,
+                      opponentName: getPlayerName(l10n, game.meta.players.get(opponentSide)),
+                      mySide: mySide,
+                      timer: _buildSetupTimer(online),
+                      decided: online.hasConfirmedFormation(opponentSide)
+                          ? _getOrderedPieces(
+                              online.getFormationSquares(opponentSide),
+                              online.setupPreview,
+                              flipped: flipped,
+                            )
+                          : null,
+                      opponentChoosing: setupTurn == opponentSide,
+                      grid: _buildFormationGrid(
+                        context,
+                        side: mySide,
+                        picked: online.picked,
+                        onPick: online.canPickFormation ? _onPickOnline : null,
+                      ),
+                      onConfirm: online.canPickFormation ? _onConfirmOnline : null,
+                    ),
+              notice: myConfirmed ? const _WaitingNotice() : null,
             ),
-          ),
-          _buildConfirmButton(
-            // 상대가 고르고 있어요 / 이 상차림으로 정하기
-            label: setupTurn == opponentSide ? l10n.setupOpponentChoosing : l10n.setupConfirm,
-            onPressed: online.canPickFormation ? _onConfirmOnline : null,
           ),
         ],
       ),
@@ -239,36 +232,20 @@ class _SetupScreenState extends State<SetupScreen> {
     if (remaining == null) {
       return const SizedBox.shrink();
     }
+    final color = remaining.inSeconds < 5 ? GameColors.check : GameColors.buttonText;
     return PlayerBadge(
       // 20초
       label: l10n.setupSeconds((remaining.inMilliseconds / 1000).ceil()),
-      color: remaining.inSeconds < 5 ? GameColors.check : GameColors.buttonText,
+      color: color,
+      leading: Icon(Icons.timer_outlined, size: 20, color: color),
     );
   }
 
-  /// 상대가 정한 마·상 네 개를 화면에 놓인 순서대로 보여준다.
-  Widget _buildDecidedBadge(
-    BuildContext context, {
-    required Set<Square> squares,
-    required Position position,
-    required bool flipped,
-  }) {
-    final l10n = AppLocalizations.of(context);
+  /// [squares]의 기물을 화면에 놓인 순서(왼쪽부터)대로 늘어놓는다.
+  List<Piece> _getOrderedPieces(Set<Square> squares, Position position, {required bool flipped}) {
     final geometry = BoardGeometry(Size.zero, flipped: flipped);
     final ordered = squares.toList()..sort((a, b) => geometry.columnOf(a).compareTo(geometry.columnOf(b)));
-    return PlayerBadge(
-      // 정했어요
-      label: l10n.setupDecided,
-      color: GameColors.buttonText,
-      leading: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check, color: GameColors.accent, size: 20),
-          const SizedBox(width: 4),
-          for (final square in ordered) PieceIcon(piece: position.pieceAt(square)!, size: 24),
-        ],
-      ),
-    );
+    return [for (final square in ordered) position.pieceAt(square)!];
   }
 
   /// 네 가지 상차림 버튼(2×2). [onPick]이 null이면 누를 수 없다.
@@ -278,41 +255,28 @@ class _SetupScreenState extends State<SetupScreen> {
     required Formation picked,
     required ValueChanged<Formation>? onPick,
   }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Column(
-        children: [
-          for (var row = 0; row < 2; row++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  for (var column = 0; column < 2; column++) ...[
-                    if (column > 0) const SizedBox(width: 8),
-                    Expanded(
-                      child: _FormationButton(
-                        formation: Formation.values[row * 2 + column],
-                        side: side,
-                        selected: Formation.values[row * 2 + column] == picked,
-                        onPick: onPick,
-                      ),
+    return Column(
+      children: [
+        for (var row = 0; row < 2; row++)
+          Padding(
+            padding: EdgeInsets.only(top: row == 0 ? 0 : 8),
+            child: Row(
+              children: [
+                for (var column = 0; column < 2; column++) ...[
+                  if (column > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: _FormationButton(
+                      formation: Formation.values[row * 2 + column],
+                      side: side,
+                      selected: Formation.values[row * 2 + column] == picked,
+                      onPick: onPick,
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConfirmButton({required String label, required VoidCallback? onPressed}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      child: SizedBox(
-        width: double.infinity,
-        child: FilledButton(onPressed: onPressed, child: Text(label)),
-      ),
+          ),
+      ],
     );
   }
 
@@ -398,6 +362,260 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 }
 
+/// 상차림 화면의 자리. 대국 화면처럼 상대 정보 줄, 판, 내 정보 줄을 놓고 그 위에 어둡게 까는 막과 상차림 창을 올린다.
+///
+/// 고를 때마다 판의 내 쪽 마·상 줄이 바뀌는 것이 보여야 하므로 그 줄은 막과 창으로 덮지 않고, 창은 그 줄 바로 위에 놓는다.
+class _SetupLayout extends StatelessWidget {
+  final Widget opponentBar;
+  final Widget board;
+  final Widget myBar;
+
+  /// 상차림 창. null이면 막과 창 없이 판만 보여준다.
+  final Widget? dialog;
+
+  /// 창을 닫은 뒤 판 가운데에 띄우는 안내.
+  final Widget? notice;
+
+  const _SetupLayout({
+    required this.opponentBar,
+    required this.board,
+    required this.myBar,
+    required this.dialog,
+    this.notice,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dialog = this.dialog;
+    final notice = this.notice;
+    return CustomMultiChildLayout(
+      delegate: _SetupLayoutDelegate(),
+      children: [
+        LayoutId(id: _SetupSlot.opponentBar, child: opponentBar),
+        LayoutId(id: _SetupSlot.board, child: board),
+        LayoutId(id: _SetupSlot.myBar, child: myBar),
+        if (dialog != null) ...[
+          LayoutId(
+            id: _SetupSlot.scrim,
+            child: const ColoredBox(color: GameColors.scrim),
+          ),
+          LayoutId(id: _SetupSlot.dialog, child: dialog),
+        ],
+        if (notice != null) LayoutId(id: _SetupSlot.notice, child: notice),
+      ],
+    );
+  }
+}
+
+enum _SetupSlot { opponentBar, board, myBar, scrim, dialog, notice }
+
+/// 정보 줄 사이에 판을 가장 크게 놓고, 판 아래쪽 내 마·상 줄 위까지만 막과 상차림 창을 놓는다.
+class _SetupLayoutDelegate extends MultiChildLayoutDelegate {
+  /// 판 아래 끝에서 이만큼(칸 크기의 배수) 위까지는 막과 창으로 덮지 않는다. 내 쪽 마·상 줄과 금빛 표시가 들어간다.
+  static const _uncoveredCells = 2.0;
+
+  /// 상차림 창의 가장 넓은 너비.
+  static const _dialogMaxWidth = 440.0;
+
+  static const _gap = 8.0;
+
+  @override
+  void performLayout(Size size) {
+    final barConstraints = BoxConstraints(minWidth: size.width, maxWidth: size.width, maxHeight: size.height);
+    final opponentBarHeight = layoutChild(_SetupSlot.opponentBar, barConstraints).height;
+    final myBarHeight = layoutChild(_SetupSlot.myBar, barConstraints).height;
+    final boardMaxHeight = max(0.0, size.height - opponentBarHeight - myBarHeight);
+    final boardWidth = min(size.width, boardMaxHeight * BoardGeometry.aspectRatio);
+    final boardSize = Size(boardWidth, boardWidth / BoardGeometry.aspectRatio);
+    layoutChild(_SetupSlot.board, BoxConstraints.tight(boardSize));
+    positionChild(_SetupSlot.opponentBar, Offset.zero);
+    positionChild(_SetupSlot.board, Offset((size.width - boardSize.width) / 2, opponentBarHeight));
+    positionChild(_SetupSlot.myBar, Offset(0, opponentBarHeight + boardSize.height));
+
+    final cell = boardSize.width / BoardGeometry.widthCells;
+    final coveredHeight = max(0.0, opponentBarHeight + boardSize.height - cell * _uncoveredCells);
+    if (hasChild(_SetupSlot.scrim)) {
+      layoutChild(_SetupSlot.scrim, BoxConstraints.tight(Size(size.width, coveredHeight)));
+      positionChild(_SetupSlot.scrim, Offset.zero);
+    }
+    if (hasChild(_SetupSlot.dialog)) {
+      final dialogSize = layoutChild(
+        _SetupSlot.dialog,
+        BoxConstraints(
+          maxWidth: max(0.0, min(size.width - _gap * 2, _dialogMaxWidth)),
+          maxHeight: max(0.0, coveredHeight - _gap * 2),
+        ),
+      );
+      // 창을 내 쪽 마·상 줄 바로 위에 붙여 고른 상차림이 판에 놓이는 모습을 가까이 보여준다.
+      positionChild(
+        _SetupSlot.dialog,
+        Offset((size.width - dialogSize.width) / 2, max(_gap, coveredHeight - _gap - dialogSize.height)),
+      );
+    }
+    if (hasChild(_SetupSlot.notice)) {
+      final noticeSize = layoutChild(
+        _SetupSlot.notice,
+        BoxConstraints(maxWidth: max(0.0, size.width - _gap * 4), maxHeight: boardSize.height),
+      );
+      positionChild(
+        _SetupSlot.notice,
+        Offset((size.width - noticeSize.width) / 2, opponentBarHeight + (boardSize.height - noticeSize.height) / 2),
+      );
+    }
+  }
+
+  @override
+  bool shouldRelayout(_SetupLayoutDelegate oldDelegate) => false;
+}
+
+/// 상차림 창. 상대 닉네임과 급수, 내 진영, 남은 시간, 상대가 정한 상차림, 상차림 버튼과 정하기 버튼을 둔다.
+class _SetupDialog extends StatelessWidget {
+  final Side opponentSide;
+  final String opponentName;
+  final Side mySide;
+
+  /// 남은 상차림 시간. null이면 보여주지 않는다(개발용 대국).
+  final Widget? timer;
+
+  /// 상대가 정한 마·상 기물 네 개(화면에 놓인 순서). 상대가 아직 정하지 않았으면 null.
+  final List<Piece>? decided;
+
+  /// 상대가 먼저 고르는 중이라 아직 고를 수 없다.
+  final bool opponentChoosing;
+
+  final Widget grid;
+
+  /// null이면 누를 수 없다.
+  final VoidCallback? onConfirm;
+
+  const _SetupDialog({
+    required this.opponentSide,
+    required this.opponentName,
+    required this.mySide,
+    required this.timer,
+    required this.decided,
+    required this.opponentChoosing,
+    required this.grid,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final timer = this.timer;
+    final decided = this.decided;
+    return Material(
+      color: GameColors.surface,
+      elevation: 6,
+      shadowColor: Colors.black,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                SideAvatar(side: opponentSide, size: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    opponentName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: AppTextSizes.title,
+                      fontWeight: FontWeight.w800,
+                      color: GameColors.text,
+                    ),
+                  ),
+                ),
+                ?timer,
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              // 나는 초 · 먼저 둬요 / 나는 한 · 나중에 둬요
+              l10n.setupMySide(mySide.name),
+              style: const TextStyle(
+                fontSize: AppTextSizes.body,
+                fontWeight: FontWeight.w700,
+                color: GameColors.accent,
+              ),
+            ),
+            if (decided != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.check, color: GameColors.accent, size: 20),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      // 상대가 정했어요
+                      l10n.setupDecided,
+                      style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.buttonText),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  for (final piece in decided) PieceIcon(piece: piece, size: 28),
+                ],
+              ),
+            ] else if (opponentChoosing) ...[
+              const SizedBox(height: 8),
+              Text(
+                // 상대가 상차림을 고르고 있어요
+                l10n.setupOpponentChoosing,
+                style: const TextStyle(fontSize: AppTextSizes.body, color: GameColors.subText),
+              ),
+            ],
+            const SizedBox(height: 14),
+            grid,
+            const SizedBox(height: 14),
+            FilledButton(
+              onPressed: onConfirm,
+              // 이 상차림으로 정하기
+              child: Text(l10n.setupConfirm),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 내 상차림을 확정한 뒤 상대를 기다리는 동안 판 위에 띄우는 안내.
+class _WaitingNotice extends StatelessWidget {
+  const _WaitingNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      decoration: BoxDecoration(
+        color: GameColors.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2.5)),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              // 상대가 상차림을 고르고 있어요
+              l10n.setupOpponentChoosing,
+              style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700, color: GameColors.text),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 상차림 버튼. 글자 없이 마·상 기물 네 개를 고르는 사람 기준 왼쪽부터 놓고, 화면 읽기용 이름을 둔다.
 class _FormationButton extends StatelessWidget {
   final Formation formation;
@@ -421,7 +639,7 @@ class _FormationButton extends StatelessWidget {
       enabled: onPick != null,
       excludeSemantics: true,
       child: Material(
-        color: selected ? GameColors.accentSurface : GameColors.surface,
+        color: selected ? GameColors.accentSurface : GameColors.raisedButton,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(color: selected ? GameColors.accent : Colors.transparent, width: 2),
@@ -430,14 +648,14 @@ class _FormationButton extends StatelessWidget {
         child: InkWell(
           onTap: onPick == null ? null : _onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 58),
+            constraints: const BoxConstraints(minHeight: 56),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 for (final type in formation.pieces)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: PieceIcon(piece: Piece(side, type), size: 36),
+                    child: PieceIcon(piece: Piece(side, type), size: 34),
                   ),
               ],
             ),

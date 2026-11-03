@@ -45,6 +45,11 @@ abstract final class GameColors {
   /// 결과 창 등을 띄울 때 뒤에 깔리는 판을 어둡게 하는 막.
   static const scrim = Color(0x9908090C);
 
+  /// 결과 창의 승리 표시. 판의 금빛 표시와 같은 색 계열이다.
+  static const gold = Color(0xFFFFD678);
+  static const goldSurface = Color(0xFF3A3220);
+  static const goldGlow = Color(0x55FFD678);
+
   /// 장군 알림. 빨강·파랑은 한·초의 색이라 쓰지 않는다.
   static const check = Color(0xFFFFC65C);
 

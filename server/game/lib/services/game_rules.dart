@@ -14,7 +14,7 @@ import '../models/game_enums.dart';
 /// 상차림 시간 안에 아무것도 고르지 않았을 때의 상차림(`docs/game/time.md`).
 const defaultFormation = Formation.horseElephantHorseElephant;
 
-/// 새 대국. 상차림은 [now] + [introMs]에 한부터 시작한다.
+/// 새 대국. 상차림은 만든 시각 [now]에 한부터 시작한다(`docs/server.md`의 대국 만들기와 상차림).
 ///
 /// 방 대국이면 [roomId], 접장기면 한에서 뗄 기물 [handicap]을 준다. 다시 두기로 만든 대국이면 [rematchOf]와 [rematchCount]를 준다. [rematchBlocked]면 이 대국이 끝난 뒤 다시 두기를 받지
 /// 않으므로 처음부터 `rematch.blocked`를 쓴다(빠른 대국의 `quickRematchLimit`).
@@ -25,7 +25,6 @@ ActiveGame createActiveGame({
   required GamePlayers players,
   required TimeControl timeControl,
   required int disconnectLimitMs,
-  required int introMs,
   required int now,
   String? roomId,
   List<HandicapPiece>? handicap,
@@ -33,7 +32,7 @@ ActiveGame createActiveGame({
   int rematchCount = 0,
   bool rematchBlocked = false,
 }) {
-  final startsAt = now + introMs;
+  final startsAt = now;
   final clock = SideClock(baseMs: timeControl.baseMs, periods: timeControl.periods, extensionsUsed: 0);
   const disconnect = SideDisconnect(usedMs: 0, since: null);
   return ActiveGame(

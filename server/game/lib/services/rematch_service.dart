@@ -115,7 +115,6 @@ class RematchService {
         players: getRematchPlayers(previous, refreshed),
         timeControl: settings.timeControl,
         disconnectLimitMs: settings.getDisconnectLimitMs(appConfig),
-        introMs: settings.matchIntro.inMilliseconds,
         now: now.millisecondsSinceEpoch,
         roomId: meta.roomId,
         handicap: meta.handicap,

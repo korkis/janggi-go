@@ -109,7 +109,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('빠른 대국을 누르면 상대를 찾고, 대국이 생기면 상대 찾음을 보여준 뒤 상차림으로 간다', (tester) async {
+  testWidgets('빠른 대국을 누르면 상대를 찾고, 대국이 생기면 바로 상차림 창을 띄운다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();
     fakes.users.profiles['opp'] = _profile('한사람', 1);
@@ -125,20 +125,12 @@ void main() {
     expect(find.text('장기 규칙'), findsOneWidget);
 
     fakes.playerStates.emit('opp', _playerState(gameId: 'g1'));
-    fakes.games.emit(
-      'g1',
-      buildGameJson(mode: 'quick', rated: true, startsAt: DateTime.now().millisecondsSinceEpoch + 2000),
-    );
-    await _pumpFor(tester, const Duration(milliseconds: 500));
-    expect(find.text('상대를 찾았어요'), findsOneWidget);
-    expect(find.text('한opp · 1단'), findsOneWidget);
-    expect(find.text('초me · 18급'), findsOneWidget);
-    expect(find.text('한 · 나중에 둬요'), findsOneWidget);
-    expect(find.text('기본 5분 · 초읽기 30초 3회'), findsOneWidget);
-    expect(find.text('급수 대국'), findsOneWidget);
-
-    await _pumpFor(tester, const Duration(seconds: 3));
+    fakes.games.emit('g1', buildGameJson(mode: 'quick', rated: true, startsAt: DateTime.now().millisecondsSinceEpoch));
+    await _pumpFor(tester);
     expect(find.text('상차림을 골라 주세요'), findsOneWidget);
+    expect(find.text('초me · 18급'), findsNWidgets(2));
+    expect(find.text('나는 한 · 나중에 둬요'), findsOneWidget);
+    expect(find.text('이 상차림으로 정하기'), findsOneWidget);
 
     fakes.playerStates.emit('opp', null);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -186,6 +178,7 @@ void main() {
     await _pumpFor(tester);
 
     expect(find.text('기권승'), findsOneWidget);
+    expect(find.text('한 승리!'), findsOneWidget);
     expect(find.text('17급으로 올랐어요'), findsOneWidget);
     expect(find.text('16급까지 약 1승'), findsOneWidget);
     expect(find.text('한 판 더'), findsOneWidget);

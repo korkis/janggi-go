@@ -266,7 +266,6 @@ class RoomService {
       players: hostSide == Side.cho ? GamePlayers(cho: host, han: guest) : GamePlayers(cho: guest, han: host),
       timeControl: settings.timeControl,
       disconnectLimitMs: settings.getDisconnectLimitMs(appConfig),
-      introMs: settings.matchIntro.inMilliseconds,
       now: now.millisecondsSinceEpoch,
       roomId: roomId,
       handicap: room.handicap?.pieces,

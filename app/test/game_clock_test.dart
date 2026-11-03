@@ -49,7 +49,7 @@ void main() {
     expect(getClockDisplay(game, Side.cho, startedAt + 60000).base, const Duration(seconds: 295));
   });
 
-  test('상차림 남은 시간은 상대 찾음 화면 동안 20초다', () {
+  test('상차림 남은 시간은 상차림 시작 전에는 20초다', () {
     final game = ActiveGame.fromJson(buildGameJson(startsAt: 5000000));
     expect(getSetupRemaining(game, 4999000), const Duration(seconds: 20));
     expect(getSetupRemaining(game, 5007500), const Duration(milliseconds: 12500));

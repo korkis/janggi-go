@@ -38,7 +38,6 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        testMatchIntro: Duration.zero,
       );
       httpServer = await server.serve(port: 0);
       await ensureAppConfig(server.firestore);
@@ -190,7 +189,6 @@ void main() {
           extensionPeriods: 2,
           extensionLimit: 2,
         ),
-        testMatchIntro: Duration.zero,
         testDisconnectLimit: const Duration(milliseconds: limitMs),
       );
       httpServer = await server.serve(port: 0);

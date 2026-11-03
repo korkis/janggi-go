@@ -96,7 +96,6 @@ class DevCreateGameEndpoint extends CallableEndpoint {
       players: callerSide == Side.cho ? GamePlayers(cho: caller, han: other) : GamePlayers(cho: other, han: caller),
       timeControl: settings.timeControl,
       disconnectLimitMs: settings.getDisconnectLimitMs(appConfig),
-      introMs: settings.matchIntro.inMilliseconds,
       now: request.receivedAt.millisecondsSinceEpoch,
     );
     final gameId = await gameService.createGame(game, now: request.receivedAt);

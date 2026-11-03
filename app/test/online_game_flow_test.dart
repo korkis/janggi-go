@@ -47,7 +47,10 @@ void main() {
     await _pumpFor(tester);
     expect(find.text('상차림을 골라 주세요'), findsOneWidget);
     expect(find.text('한opp · 1단'), findsOneWidget);
-    expect(find.text('초me · 18급'), findsOneWidget);
+    // 상대 정보 줄과 상차림 창에 상대가 보인다.
+    expect(find.text('초me · 18급'), findsNWidgets(2));
+    expect(find.text('나는 한 · 나중에 둬요'), findsOneWidget);
+    expect(find.byIcon(Icons.timer_outlined), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('마상상마'));
     await tester.tap(find.text('이 상차림으로 정하기'));
@@ -59,7 +62,9 @@ void main() {
 
     fakes.games.emit('g1', buildGameJson(setupTurn: 'cho', hanFormation: 'horseElephantElephantHorse'));
     await _pumpFor(tester);
-    expect(find.text('상대가 고르고 있어요'), findsOneWidget);
+    // 확정하면 창을 닫고 판 위에 안내만 둔다.
+    expect(find.text('상대가 상차림을 고르고 있어요'), findsOneWidget);
+    expect(find.text('이 상차림으로 정하기'), findsNothing);
 
     fakes.games.emit(
       'g1',
@@ -91,13 +96,52 @@ void main() {
       ),
     );
     await _pumpFor(tester);
+    // 나는 한이고 한이 이겼다.
     expect(find.text('기권승'), findsOneWidget);
-    expect(find.text('한 승리'), findsOneWidget);
+    expect(find.text('한 승리!'), findsOneWidget);
+    expect(find.text('승리'), findsOneWidget);
     // 신청 대국이라 다시 두기는 있고 한 판 더는 없다.
     expect(find.text('다시 두기'), findsOneWidget);
     expect(find.text('한 판 더'), findsNothing);
 
     // 화면을 닫아 시계 타이머를 멈춘다.
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('결과 창은 진 쪽에게 내 진영 기준으로 패배를 보여준다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = setUpFakeApp();
+    await fakes.auth.signInWithEmail(email: 'me', password: 'password');
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Theme(
+          data: gameTheme,
+          child: const SetupScreen.online(gameId: 'g1'),
+        ),
+      ),
+    );
+    fakes.games.emit(
+      'g1',
+      buildGameJson(
+        phase: 'finished',
+        setupTurn: 'cho',
+        hanFormation: 'horseElephantHorseElephant',
+        choFormation: 'horseElephantHorseElephant',
+        turn: 'cho',
+        turnStartedAt: 1030000,
+        result: {'winner': 'han', 'reason': 'timeout', 'choScore': 72, 'hanScore': 73.5},
+        endedAt: 1040000,
+      ),
+    );
+    await _pumpFor(tester);
+    // 나는 초이고 한이 이겼다.
+    expect(find.text('초 패배!'), findsOneWidget);
+    expect(find.text('패배'), findsOneWidget);
+    expect(find.text('시간패'), findsOneWidget);
+    expect(find.text('한 승리'), findsNothing);
+
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

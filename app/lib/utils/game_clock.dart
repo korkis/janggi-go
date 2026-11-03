@@ -53,7 +53,7 @@ ClockDisplay getClockDisplay(ActiveGame game, Side side, int nowMs) {
   );
 }
 
-/// 지금 상차림을 고르는 쪽의 남은 시간. 상대 찾음 화면 동안은 상차림 시간 전체다. 상차림 중이 아니면 null.
+/// 지금 상차림을 고르는 쪽의 남은 시간. 상차림 시작 시각 전이면 상차림 시간 전체다. 상차림 중이 아니면 null.
 Duration? getSetupRemaining(ActiveGame game, int nowMs) {
   final state = game.state;
   if (state.phase != GamePhase.setup) {

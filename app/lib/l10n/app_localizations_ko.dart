@@ -51,7 +51,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get setupTitle => '상차림을 골라 주세요';
 
   @override
-  String get setupDecided => '정했어요';
+  String get setupDecided => '상대가 정했어요';
+
+  @override
+  String setupMySide(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '나는 초 · 먼저 둬요',
+      'han': '나는 한 · 나중에 둬요',
+      'other': '',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get setupConfirm => '이 상차림으로 정하기';
@@ -132,6 +142,47 @@ class AppLocalizationsKo extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String resultReasonLoss(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'checkmate': '외통패',
+      'resignation': '기권패',
+      'timeout': '시간패',
+      'consecutivePasses': '점수패',
+      'moveLimit': '점수패',
+      'noLegalMoves': '점수패',
+      'disconnect': '접속 끊김패',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String resultMyWin(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '초 승리!',
+      'han': '한 승리!',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String resultMyLoss(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '초 패배!',
+      'han': '한 패배!',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get resultOutcomeWin => '승리';
+
+  @override
+  String get resultOutcomeLoss => '패배';
 
   @override
   String resultWinner(String side) {
@@ -267,6 +318,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get hidePassword => '비밀번호 숨기기';
+
+  @override
+  String get showPasswordConfirm => '비밀번호 확인 보기';
+
+  @override
+  String get hidePasswordConfirm => '비밀번호 확인 숨기기';
 
   @override
   String get forgotPassword => '비밀번호를 잊으셨나요?';
@@ -430,7 +487,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get setupOpponentChoosing => '상대가 고르고 있어요';
+  String get setupOpponentChoosing => '상대가 상차림을 고르고 있어요';
 
   @override
   String get resignConfirmOnline => '기권할까요? 이 대국은 지게 돼요';
@@ -516,30 +573,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get quickMatchStop => '그만 찾기';
-
-  @override
-  String get quickMatchFound => '상대를 찾았어요';
-
-  @override
-  String get quickMatchVersus => 'VS';
-
-  @override
-  String quickMatchMoveOrder(String side) {
-    String _temp0 = intl.Intl.selectLogic(side, {
-      'cho': '초 · 먼저 둬요',
-      'han': '한 · 나중에 둬요',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String quickMatchTimeRule(int minutes, int seconds, int periods) {
-    return '기본 $minutes분 · 초읽기 $seconds초 $periods회';
-  }
-
-  @override
-  String get quickMatchRated => '급수 대국';
 
   @override
   String get errorQuickMatch => '상대를 찾지 못했어요. 잠시 후 다시 해 주세요';
