@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
+import 'managers/app_managers.dart';
 import 'screens/home_screen.dart';
 import 'screens/incoming_challenge_dialog.dart';
 import 'screens/sanction_dialog.dart';
@@ -19,10 +20,16 @@ class _JanggigoAppState extends State<JanggigoApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 설정에서 언어를 바꾸면 앱을 다시 켜지 않아도 바로 바뀐다(`docs/screens.md`의 설정).
+    return ListenableBuilder(listenable: managers.languageManager, builder: _buildMaterialApp);
+  }
+
+  Widget _buildMaterialApp(BuildContext context, Widget? child) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       onGenerateTitle: _getTitle,
       theme: lightTheme,
+      locale: managers.languageManager.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: _buildApp,

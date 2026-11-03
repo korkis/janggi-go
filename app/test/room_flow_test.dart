@@ -245,7 +245,8 @@ void main() {
     fakes.games.emit('g1', buildGameJson(cho: 'opp', han: 'x', phase: 'playing', turn: 'cho', roomId: 'room1'));
     await _pumpFor(tester);
     expect(find.text('관전'), findsOneWidget);
-    expect(find.text('판 돌리기'), findsOneWidget);
+    // 판 돌리기는 두지 않는다.
+    expect(find.text('판 돌리기'), findsNothing);
     expect(fakes.spectators.calls, ['create g1']);
 
     await _tap(tester, find.text('나가기'));
@@ -309,7 +310,7 @@ void main() {
     await _tearDown(tester, fakes, 'me');
   });
 
-  testWidgets('방 대국의 결과 창을 나가면 방 대기실로 돌아간다', (tester) async {
+  testWidgets('방 대국이 끝난 화면을 나가면 방 대기실로 돌아간다', (tester) async {
     final fakes = await _startSignedIn(tester, 'me');
     fakes.rooms.emit('room1', _room(hostUid: 'opp', guest: 'me', status: RoomStatus.playing, gameId: 'g1'));
     fakes.playerStates.emit('me', _playerState(roomId: 'room1'));
@@ -333,9 +334,9 @@ void main() {
     );
     fakes.playerStates.emit('me', _playerState(roomId: 'room1', gameId: 'g1'));
     await _pumpFor(tester);
-    expect(find.text('기권승'), findsOneWidget);
+    expect(find.text('승리 · 기권승'), findsOneWidget);
     expect(find.text('한 판 더'), findsNothing);
-    expect(find.text('홈으로'), findsNothing);
+    expect(find.text('나가기'), findsNothing);
 
     fakes.rooms.emit('room1', _room(hostUid: 'opp', guest: 'me', gameId: 'g1'));
     fakes.playerStates.emit('me', _playerState(roomId: 'room1'));

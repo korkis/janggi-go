@@ -250,6 +250,18 @@ bool isKingAttacked(List<Piece?> board, Side side) {
   return false;
 }
 
+/// [side]의 궁을 잡을 수 있는 상대 기물(장군을 건 기물)의 칸. 장군이 아니거나 궁이 없으면 비어 있다.
+List<Square> getKingAttackers(List<Piece?> board, Side side) {
+  final kingIndex = board.indexOf(Piece(side, PieceType.king));
+  if (kingIndex < 0) {
+    return const [];
+  }
+  return [
+    for (final move in generatePseudoMoves(board, side.opponent))
+      if (move.to!.index == kingIndex) move.from!,
+  ];
+}
+
 /// [side]가 둘 수 있는 기물 수 중 자기 궁이 장군으로 남지 않는 수.
 List<Move> generateLegalPieceMoves(List<Piece?> board, Side side) => [
       for (final move in generatePseudoMoves(board, side))

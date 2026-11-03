@@ -9,11 +9,19 @@ import 'package:janggigo/screens/setup_screen.dart';
 import 'package:janggigo/theme/app_theme.dart';
 import 'package:janggigo/widgets/board/board_geometry.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
+import 'package:janggigo/widgets/board/check_effect.dart';
+import 'package:janggigo/widgets/player_bar.dart';
 
 import 'fakes.dart';
 
 /// 판의 [square] 교차점을 누른다. 판은 [BoardView] 안에서 비율을 지키며 가운데 놓인다.
 Future<void> _tapSquare(WidgetTester tester, String square) async {
+  await _tapSquareOnly(tester, square);
+  await tester.pumpAndSettle();
+}
+
+/// [_tapSquare]와 같지만 애니메이션이 끝나기를 기다리지 않는다. 장군인 동안은 궁 위 도장이 계속 움직인다.
+Future<void> _tapSquareOnly(WidgetTester tester, String square) async {
   final box = tester.renderObject<RenderBox>(find.byType(BoardView));
   final width = box.size.width.clamp(0.0, box.size.height * BoardGeometry.aspectRatio);
   final boardSize = Size(width, width / BoardGeometry.aspectRatio);
@@ -22,7 +30,7 @@ Future<void> _tapSquare(WidgetTester tester, String square) async {
   );
   final center = BoardGeometry(boardSize, flipped: false).centerOf(Square.parse(square));
   await tester.tapAt(origin + center);
-  await tester.pumpAndSettle();
+  await tester.pump();
 }
 
 Widget _gameApp(Position initialPosition) => MaterialApp(
@@ -51,6 +59,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('상차림을 골라 주세요'), findsOneWidget);
+    // 상차림 창 뒤의 막은 화면 일부가 아니라 전체를 덮고, 창은 판의 내 쪽 마·상 줄 위에 놓인다.
+    final scrim = find.byWidgetPredicate((widget) => widget is ColoredBox && widget.color == GameColors.scrim);
+    expect(tester.getRect(scrim), Offset.zero & const Size(390, 844));
+    final boardRect = tester.getRect(find.byType(BoardView));
+    final cell = boardRect.width / BoardGeometry.widthCells;
+    expect(tester.getRect(find.text('이 상차림으로 정하기')).bottom, lessThan(boardRect.bottom - cell * 2));
     await tester.tap(find.bySemanticsLabel('마상상마'));
     await tester.pump();
     await tester.tap(find.text('이 상차림으로 정하기'));
@@ -71,36 +85,90 @@ void main() {
     await tester.tap(find.byIcon(Icons.pause));
     await tester.pumpAndSettle();
 
-    expect(find.text('점수승'), findsOneWidget);
-    expect(find.text('한 승리'), findsOneWidget);
-    expect(find.text('양쪽이 연속으로 한수쉼을 해서 점수로 정했어요'), findsOneWidget);
-    // 결과 창도 대국 화면과 같은 어두운 테마를 쓴다.
-    expect(Theme.of(tester.element(find.text('한 승리'))).brightness, Brightness.dark);
+    // 결과 창 없이 같은 화면이 복기 모드가 되고, 결과 도장이 머리줄 결과 칩으로 올라간다.
+    expect(find.text('한 승리 · 점수승'), findsOneWidget);
+    expect(Theme.of(tester.element(find.text('한 승리 · 점수승'))).brightness, Brightness.dark);
+    expect(find.text('복기 3 / 3수'), findsOneWidget);
 
-    await tester.tap(find.text('홈으로'));
+    await tester.tap(find.text('나가기'));
     await tester.pumpAndSettle();
     expect(find.text('시작하기'), findsOneWidget);
   });
 
-  testWidgets('외통을 걸면 결과 창을 띄운다', (tester) async {
+  testWidgets('외통을 걸면 판 가운데에 결과 도장을 찍고 머리줄 결과 칩으로 올린다', (tester) async {
     _usePhoneView(tester);
     await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));
 
     await _tapSquare(tester, 'i1');
-    await _tapSquare(tester, 'i10');
+    await _tapSquareOnly(tester, 'i10');
+    await tester.pump(const Duration(milliseconds: 800));
+    // 한 기기에서 양쪽을 두면 이긴 쪽 기준이라 승리 도장이다.
+    expect(find.text('승'), findsOneWidget);
+    expect(find.text('외통승 · 1수 · 0분 0초'), findsOneWidget);
 
-    expect(find.text('외통승'), findsOneWidget);
-    expect(find.text('초 승리'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('승'), findsNothing);
+    expect(find.text('초 승리 · 외통승'), findsOneWidget);
   });
 
-  testWidgets('결과 창에서 복기로 가서 수를 넘기고 놓아보기를 켰다 끈다', (tester) async {
+  testWidgets('장군을 걸면 첫 장군은 큰 도장을 찍고, 그 뒤에는 궁 위에 작은 도장을 둔다', (tester) async {
+    _usePhoneView(tester);
+    // 초 차 a1, 초 궁 f1, 한 궁 d10.
+    await tester.pumpWidget(_gameApp(Position.fromFen('3k5/9/9/9/9/9/9/9/9/R4K3 w')));
+
+    await _tapSquare(tester, 'a1');
+    await _tapSquareOnly(tester, 'd1');
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군')), findsNothing);
+    // 큰 도장이 사라지면 궁 위 작은 도장과 한 정보 줄의 장군 표시가 남는다.
+    expect(find.byType(CheckStamp), findsOneWidget);
+    expect(find.widgetWithText(PlayerBadge, '장군'), findsOneWidget);
+
+    await _tapSquareOnly(tester, 'd10');
+    await tester.pump(const Duration(milliseconds: 500));
+    await _tapSquareOnly(tester, 'e10');
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(CheckStamp), findsNothing);
+
+    await _tapSquareOnly(tester, 'd1');
+    await tester.pump(const Duration(milliseconds: 500));
+    await _tapSquareOnly(tester, 'e1');
+    await tester.pump(const Duration(milliseconds: 1000));
+    // 두 번째 장군부터는 큰 도장 없이 궁 위 작은 도장만 둔다.
+    expect(find.byType(CheckStamp), findsOneWidget);
+    expect(find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군')), findsNothing);
+  });
+
+  testWidgets('대국이 끝나면 같은 화면에서 마지막 수부터 복기한다', (tester) async {
     _usePhoneView(tester);
     await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));
     await _tapSquare(tester, 'i1');
     await _tapSquare(tester, 'i10');
 
-    await tester.tap(find.text('복기하기'));
+    expect(find.text('복기 1 / 1수'), findsOneWidget);
+    await tester.tap(find.text('이전'));
     await tester.pumpAndSettle();
+    expect(find.text('복기 0 / 1수'), findsOneWidget);
+    final board = tester.widget<BoardView>(find.byType(BoardView));
+    expect(board.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
+    expect(find.text('재대국 신청'), findsOneWidget);
+  });
+
+  testWidgets('복기 화면에서 수를 넘기고 놓아보기를 켰다 끈다', (tester) async {
+    _usePhoneView(tester);
+    final record = Game.start(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')).play(Move.parse('i1i10'));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Theme(
+          data: gameTheme,
+          child: ReviewScreen(record: record),
+        ),
+      ),
+    );
     expect(find.text('복기'), findsOneWidget);
     expect(find.text('1 / 1수'), findsOneWidget);
 
@@ -138,8 +206,7 @@ void main() {
 
     await tester.tap(find.text('기권하기'));
     await tester.pumpAndSettle();
-    expect(find.text('기권승'), findsOneWidget);
-    expect(find.text('한 승리'), findsOneWidget);
+    expect(find.text('한 승리 · 기권승'), findsOneWidget);
   });
 
   testWidgets('글자를 1.3배로 키워도 대국 화면이 넘치지 않는다', (tester) async {

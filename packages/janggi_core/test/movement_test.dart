@@ -156,6 +156,14 @@ void main() {
       expect(place({'e2': 'K', 'd3': 'p', 'd10': 'k'}).isInCheck(Side.cho), isTrue);
     });
 
+    test('장군을 건 기물과 궁의 칸을 알려 준다', () {
+      final position = place({'e2': 'K', 'e8': 'r', 'd4': 'n', 'd10': 'k'});
+      expect(position.checkingSquares(Side.cho).map((square) => square.toString()).toList()..sort(), ['d4', 'e8']);
+      expect(position.kingSquare(Side.cho).toString(), 'e2');
+      expect(place({'e2': 'K', 'e5': 'P', 'e8': 'r', 'd10': 'k'}).checkingSquares(Side.cho), isEmpty);
+      expect(place({'e2': 'K', 'd10': 'k'}).kingSquare(Side.han).toString(), 'd10');
+    });
+
     test('자기 궁이 장군으로 남는 수는 둘 수 없다', () {
       // e5 졸은 e8 차를 막고 있어서 옆으로 움직일 수 없다.
       final position = place({'e2': 'K', 'e5': 'P', 'e8': 'r', 'd10': 'k'});

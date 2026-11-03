@@ -179,8 +179,6 @@ class _ChatViewState extends State<ChatView> {
         if (_showHint) _NoticeLine(text: AppLocalizations.of(context).chatLongPressHint, colors: _colors),
         Expanded(child: _buildMessages(context)),
         const SizedBox(height: 8),
-        _buildPhrases(context),
-        const SizedBox(height: 8),
         _buildInput(context),
       ],
     );
@@ -250,38 +248,29 @@ class _ChatViewState extends State<ChatView> {
   Widget _buildItem(ChatItem item) {
     return switch (item) {
       ChatMessageItem() => _MessageBubble(
-        item: item,
+        text: item.entry.message.text,
+        nickname: item.mine ? null : item.entry.message.nickname,
         colors: _colors,
         onLongPress: item.mine ? null : () => _onMessageLongPress(item.entry),
+      ),
+      ChatOutgoingItem() => _MessageBubble(
+        text: item.text,
+        nickname: null,
+        colors: _colors,
+        failure: item.error == null ? null : getChatSendFailure(AppLocalizations.of(context), item.error!),
       ),
       ChatNoticeItem() => _NoticeLine(text: item.text, colors: _colors),
     };
   }
 
-  /// 입력칸 위의 자주 쓰는 말. 누르면 바로 보낸다.
-  Widget _buildPhrases(BuildContext context) {
-    final phrases = getChatPhrases(AppLocalizations.of(context), _chat.channel);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final phrase in phrases)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ActionChip(
-                label: Text(phrase, style: TextStyle(color: _colors.text)),
-                backgroundColor: _colors.chip,
-                side: BorderSide.none,
-                onPressed: _chat.sending ? null : () => _onPhrase(phrase),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
+  /// 입력칸과 보내기 버튼. 대국이 끝나고 상대가 나갔으면 입력 대신 그 안내를 둔다.
   Widget _buildInput(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final leftNickname = _chat.leftNickname;
+    if (leftNickname != null) {
+      // {nickname}님이 나갔어요
+      return _NoticeLine(text: l10n.chatOpponentLeft(leftNickname), colors: _colors);
+    }
     return Row(
       children: [
         Expanded(
@@ -309,7 +298,7 @@ class _ChatViewState extends State<ChatView> {
   }
 
   Widget _buildSendButton(BuildContext context, TextEditingValue value, Widget? child) {
-    final canSend = value.text.trim().isNotEmpty && !_chat.sending;
+    final canSend = value.text.trim().isNotEmpty;
     return IconButton.filled(
       onPressed: canSend ? _onSubmit : null,
       style: IconButton.styleFrom(minimumSize: const Size(minTouchSize, minTouchSize)),
@@ -374,24 +363,12 @@ class _ChatViewState extends State<ChatView> {
     if (!await _ensureProfile()) {
       return;
     }
+    // 보내기를 누르는 즉시 보낸 것처럼 보여주므로 입력칸도 바로 비운다. 보내지 못하면 그 말풍선에 알린다.
+    _controller.clear();
     try {
       await chat.send(text);
-      _controller.clear();
     } catch (error, stackTrace) {
-      // 걸린 메시지를 고쳐 보낼 수 있도록 입력칸은 그대로 둔다.
-      _onSendError(chat, error, stackTrace);
-    }
-  }
-
-  Future<void> _onPhrase(String phrase) async {
-    final chat = _chat;
-    if (!await _ensureProfile()) {
-      return;
-    }
-    try {
-      await chat.send(phrase);
-    } catch (error, stackTrace) {
-      _onSendError(chat, error, stackTrace);
+      _onSendError(error, stackTrace);
     }
   }
 
@@ -404,15 +381,12 @@ class _ChatViewState extends State<ChatView> {
     return ready && mounted;
   }
 
-  void _onSendError(ChatManager chat, Object error, StackTrace stackTrace) {
+  /// 보내지 못한 까닭은 그 말풍선 아래에 보여준다. 채팅 제한이면 사유와 끝나는 때를 팝업으로도 알린다.
+  void _onSendError(Object error, StackTrace stackTrace) {
     developer.log('ChatManager.send 실패', error: error, stackTrace: stackTrace);
     if (!mounted) {
       return;
     }
-    final l10n = AppLocalizations.of(context);
-    // 부적절한 표현이 있어 보내지 않았어요 / 메시지를 보내지 못했어요. 잠시 후 다시 해 주세요
-    chat.addNotice(error is AppException ? error.getMessage(l10n) : l10n.errorChatSend);
-    // 채팅 제한이면 사유와 끝나는 때를 팝업으로도 알린다.
     unawaited(showSanctionDialogForError(context, error));
   }
 
@@ -492,31 +466,11 @@ String getChatChannelLabel(AppLocalizations l10n, ChatChannel channel) => switch
   ChatChannel.spectator => l10n.spectateChat,
 };
 
-/// 입력칸 위의 자주 쓰는 말(`docs/screens.md`의 채팅).
-List<String> getChatPhrases(AppLocalizations l10n, ChatChannel channel) => switch (channel) {
-  ChatChannel.lobby => [
-    // 안녕하세요
-    l10n.chatPhraseHello,
-    // 반갑습니다
-    l10n.chatPhraseNiceToMeet,
-    // 한 판 두실 분 계세요?
-    l10n.chatPhraseLookingForGame,
-  ],
-  ChatChannel.game => [
-    // 안녕하세요
-    l10n.chatPhraseHello,
-    // 잘 부탁드립니다
-    l10n.chatPhraseGoodLuck,
-    // 수고하셨습니다
-    l10n.chatPhraseGoodGame,
-  ],
-  ChatChannel.spectator => [
-    // 좋은 수네요
-    l10n.chatPhraseNiceMove,
-    // 응원합니다
-    l10n.chatPhraseCheer,
-  ],
-};
+/// 보내지 못한 내 메시지 아래에 붙이는 까닭. 검사에 걸리면 그 이유, 그 밖에는 보내지 못했다는 안내다.
+String getChatSendFailure(AppLocalizations l10n, Object error) {
+  // 부적절한 표현이 있어 보내지 않았어요 / 메시지를 보내지 못했어요. 잠시 후 다시 해 주세요
+  return error is AppException ? error.getMessage(l10n) : l10n.errorChatSend;
+}
 
 enum _MessageAction { report, block }
 
@@ -566,26 +520,60 @@ class _MessageMenu extends StatelessWidget {
   }
 }
 
+/// 메시지 말풍선. 다른 사람 메시지는 왼쪽에 닉네임과 함께, 내 메시지는 오른쪽 강조색으로 보여준다.
+///
+/// 보내지 못한 내 메시지([failure])는 테두리만 남기고 흐리게 바꾸고, 옆에 "안 보냄", 아래에 까닭을 붙인다.
 class _MessageBubble extends StatelessWidget {
-  final ChatMessageItem item;
+  final String text;
+
+  /// 다른 사람 메시지의 닉네임. 내 메시지면 null이다.
+  final String? nickname;
   final _ChatColors colors;
+
+  /// 보내지 못한 까닭. 보냈거나 보내는 중이면 null이다.
+  final String? failure;
 
   /// 다른 사람 메시지를 길게 눌렀을 때. 내 메시지면 null이다.
   final VoidCallback? onLongPress;
 
-  const _MessageBubble({required this.item, required this.colors, required this.onLongPress});
+  const _MessageBubble({
+    required this.text,
+    required this.nickname,
+    required this.colors,
+    this.failure,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final message = item.entry.message;
-    final mine = item.mine;
+    final l10n = AppLocalizations.of(context);
+    final nickname = this.nickname;
+    final failure = this.failure;
+    final mine = nickname == null;
+    final failed = failure != null;
+    final Color background;
+    final Color textColor;
+    if (failed) {
+      background = Colors.transparent;
+      textColor = colors.subText;
+    } else if (mine) {
+      background = colors.myBubble;
+      textColor = colors.onMyBubble;
+    } else {
+      background = colors.bubble;
+      textColor = colors.text;
+    }
     final bubble = Container(
       constraints: const BoxConstraints(maxWidth: 300),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: mine ? colors.myBubble : colors.bubble, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(16),
+        border: failed ? Border.all(color: colors.myBubble.withValues(alpha: 0.5), width: 1.5) : null,
+      ),
       child: Text(
-        message.text,
-        style: TextStyle(fontSize: AppTextSizes.body, color: mine ? colors.onMyBubble : colors.text),
+        text,
+        style: TextStyle(fontSize: AppTextSizes.body, color: textColor),
       ),
     );
     return Padding(
@@ -593,15 +581,38 @@ class _MessageBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          if (!mine)
+          if (nickname != null)
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 2),
               child: Text(
-                message.nickname,
+                nickname,
                 style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700, color: colors.subText),
               ),
             ),
-          GestureDetector(onLongPress: onLongPress, child: bubble),
+          if (failed)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  // 안 보냄
+                  l10n.chatNotSent,
+                  style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700, color: colors.subText),
+                ),
+                const SizedBox(width: 6),
+                Flexible(child: Opacity(opacity: 0.7, child: bubble)),
+              ],
+            )
+          else
+            GestureDetector(onLongPress: onLongPress, child: bubble),
+          if (failed)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, right: 4),
+              child: Text(
+                failure,
+                textAlign: TextAlign.end,
+                style: TextStyle(fontSize: AppTextSizes.body, color: colors.subText),
+              ),
+            ),
         ],
       ),
     );
@@ -628,53 +639,86 @@ class _NoticeLine extends StatelessWidget {
   }
 }
 
-/// 대국·관전 화면 버튼 줄의 채팅 버튼. 새 메시지 수를 아이콘 위에 보여주고, 누르면 채팅 창을 연다.
-class ChatBarButton extends StatelessWidget {
+/// 대국·관전 화면 아래의 채팅 미리보기 한 줄(`docs/screens.md`의 대국 화면). 마지막 메시지와 새 메시지 수를 보여주고, 누르면 채팅
+/// 창을 연다. 여러 채팅이면(대국이 끝난 대국자의 대국 채팅과 관전 채팅) 첫 채팅의 마지막 메시지를 보여준다.
+class ChatPreviewLine extends StatelessWidget {
   final List<ChatManager> chats;
-  final String label;
 
-  const ChatBarButton({super.key, required this.chats, required this.label});
+  const ChatPreviewLine({super.key, required this.chats});
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(listenable: Listenable.merge(chats), builder: _buildButton);
+    return ListenableBuilder(listenable: Listenable.merge(chats), builder: _buildLine);
   }
 
-  Widget _buildButton(BuildContext context, Widget? child) {
-    return GameBarButton(
-      icon: Icons.chat_bubble_outline,
-      label: label,
-      badgeCount: getUnreadCount(chats),
-      onPressed: () => showChatSheet(context, chats),
-    );
-  }
-}
-
-/// 대국 결과 창의 채팅 버튼. 결과 창을 닫지 않고 채팅 창을 위에 연다.
-class ChatTextButton extends StatelessWidget {
-  final List<ChatManager> chats;
-
-  const ChatTextButton({super.key, required this.chats});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(listenable: Listenable.merge(chats), builder: _buildButton);
-  }
-
-  Widget _buildButton(BuildContext context, Widget? child) {
+  Widget _buildLine(BuildContext context, Widget? child) {
+    final l10n = AppLocalizations.of(context);
+    final chat = chats.first;
     final count = getUnreadCount(chats);
-    return TextButton.icon(
-      onPressed: () => showChatSheet(context, chats),
-      style: TextButton.styleFrom(foregroundColor: GameColors.buttonText, minimumSize: const Size(48, 48)),
-      icon: Badge(
-        isLabelVisible: count > 0,
-        label: Text('$count'),
-        backgroundColor: GameColors.accent,
-        textColor: GameColors.onAccent,
-        child: const Icon(Icons.chat_bubble_outline),
-      ),
+    final last = chat.signedIn ? chat.lastMessage : null;
+    final leftNickname = chat.leftNickname;
+    String? nickname;
+    final String text;
+    if (leftNickname != null && last == null) {
+      // {nickname}님이 나갔어요
+      text = l10n.chatOpponentLeft(leftNickname);
+    } else if (last is ChatMessageItem) {
+      nickname = last.mine ? null : last.entry.message.nickname;
+      text = last.entry.message.text;
+    } else if (last is ChatOutgoingItem) {
+      text = last.text;
+    } else {
       // 채팅
-      label: Text(AppLocalizations.of(context).chat, style: const TextStyle(fontSize: AppTextSizes.body)),
+      text = l10n.chatPreviewHint;
+    }
+    return Material(
+      color: GameColors.surface,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => showChatSheet(context, chats),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: minTouchSize),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              children: [
+                Badge(
+                  isLabelVisible: count > 0,
+                  label: Text('$count'),
+                  backgroundColor: GameColors.accent,
+                  textColor: GameColors.onAccent,
+                  child: const Icon(Icons.chat_bubble_outline, color: GameColors.subText, size: 22),
+                ),
+                const SizedBox(width: 12),
+                if (nickname != null) ...[
+                  Text(
+                    nickname,
+                    style: const TextStyle(
+                      fontSize: AppTextSizes.body,
+                      fontWeight: FontWeight.w700,
+                      color: GameColors.subText,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppTextSizes.body,
+                      color: last == null ? GameColors.subText : GameColors.text,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.expand_less, color: GameColors.subText),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

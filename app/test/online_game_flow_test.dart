@@ -28,7 +28,7 @@ Future<void> _pumpFor(WidgetTester tester, [Duration duration = const Duration(s
 }
 
 void main() {
-  testWidgets('온라인 상차림을 확정하면 대국 화면으로 넘어가고, 서버 결과가 오면 결과 창을 띄운다', (tester) async {
+  testWidgets('온라인 상차림을 확정하면 대국 화면으로 넘어가고, 서버 결과가 오면 같은 화면이 복기 모드로 바뀐다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();
     await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
@@ -96,25 +96,27 @@ void main() {
         endedAt: 1040000,
       ),
     );
-    await _pumpFor(tester);
-    // 나는 한이고 한이 이겼다.
-    expect(find.text('기권승'), findsOneWidget);
-    expect(find.text('한 승리!'), findsOneWidget);
-    expect(find.text('승리'), findsOneWidget);
-    // 신청 대국이라 다시 두기는 있고 한 판 더는 없다.
-    expect(find.text('다시 두기'), findsOneWidget);
+    await _pumpFor(tester, const Duration(milliseconds: 600));
+    // 나는 한이고 한이 이겼다. 판 가운데에 승리 도장을 찍는다.
+    expect(find.text('승'), findsOneWidget);
+    expect(find.textContaining('기권승 · 0수'), findsOneWidget);
+    await _pumpFor(tester, const Duration(seconds: 3));
+    expect(find.text('승'), findsNothing);
+    expect(find.text('승리 · 기권승'), findsOneWidget);
+    // 이긴 쪽에게 재대국 신청은 외곽선 버튼이다. 한 판 더는 없다.
+    expect(find.widgetWithText(OutlinedButton, '재대국 신청'), findsOneWidget);
     expect(find.text('한 판 더'), findsNothing);
 
     // 복기는 대국 화면처럼 내 진영(한)을 아래에 두고 정보 줄에 닉네임을 보여준다.
-    await tester.tap(find.text('복기하기'));
-    await _pumpFor(tester);
-    expect(find.text('복기'), findsOneWidget);
+    expect(find.text('복기 0 / 0수'), findsOneWidget);
     expect(tester.widget<BoardView>(find.byType(BoardView)).flipped, isTrue);
     expect(find.text('한opp · 1단'), findsOneWidget);
     expect(find.text('초me · 18급'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('결과 창은 진 쪽에게 내 진영 기준으로 패배를 보여준다', (tester) async {
+  testWidgets('대국이 끝나면 진 쪽에게 내 진영 기준으로 패배 도장을 찍고 재대국 신청을 주 버튼으로 둔다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();
     await fakes.auth.signInWithEmail(email: 'me', password: 'password');
@@ -141,12 +143,13 @@ void main() {
         endedAt: 1040000,
       ),
     );
-    await _pumpFor(tester);
+    await _pumpFor(tester, const Duration(milliseconds: 600));
     // 나는 초이고 한이 이겼다.
-    expect(find.text('초 패배!'), findsOneWidget);
-    expect(find.text('패배'), findsOneWidget);
-    expect(find.text('시간패'), findsOneWidget);
-    expect(find.text('한 승리'), findsNothing);
+    expect(find.text('패'), findsOneWidget);
+    await _pumpFor(tester, const Duration(seconds: 3));
+    expect(find.text('패배 · 시간패'), findsOneWidget);
+    expect(find.textContaining('한 승리'), findsNothing);
+    expect(find.widgetWithText(FilledButton, '재대국 신청'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -193,7 +196,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('상대 연결이 끊기면 상대 정보 줄에 남은 시간을, 내 연결이 끊기면 판 위에 다시 연결하는 중을 보여준다', (tester) async {
+  testWidgets('상대 연결이 끊기면 판 가운데 카드에 남은 시간을, 내 연결이 끊기면 판 위에 다시 연결하는 중을 보여준다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();
     await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
@@ -225,7 +228,9 @@ void main() {
     );
     await _pumpFor(tester);
     // 30초 - 앞서 끊긴 4초 - 지금 끊긴 5초
-    expect(find.textContaining(RegExp(r'^연결이 끊겼어요 2[01]초$')), findsOneWidget);
+    expect(find.text('초me님 연결이 끊겼어요'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^2[01]초 안에 돌아오지 않으면 한opp님의 승리로 끝나요$')), findsOneWidget);
+    expect(find.byType(DisconnectCard), findsOneWidget);
     expect(find.text('다시 연결하는 중'), findsNothing);
 
     fakes.connections.setConnected(false);

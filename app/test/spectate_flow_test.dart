@@ -122,13 +122,11 @@ void main() {
     expect(board.onSquareTap, isNull);
     expect(board.flipped, false);
     expect(tester.getTopLeft(find.text('한b · 1단')).dy, lessThan(tester.getTopLeft(find.text('초a · 18급')).dy));
-    await _tap(tester, find.text('판 돌리기'));
-    board = tester.widget<BoardView>(find.byType(BoardView));
-    expect(board.flipped, true);
-    expect(tester.getTopLeft(find.text('초a · 18급')).dy, lessThan(tester.getTopLeft(find.text('한b · 1단')).dy));
+    // 판 돌리기는 두지 않는다.
+    expect(find.text('판 돌리기'), findsNothing);
 
-    // 로그인하지 않은 관전자는 관전 채팅을 열면 메시지 대신 로그인 안내를 본다.
-    await _tap(tester, find.widgetWithText(GameBarButton, '관전 채팅'));
+    // 로그인하지 않은 관전자는 관전 채팅 미리보기를 누르면 메시지 대신 로그인 안내를 본다.
+    await _tap(tester, find.byType(ChatPreviewLine));
     expect(find.text('로그인하면 채팅할 수 있어요'), findsOneWidget);
     await tester.tapAt(const Offset(20, 20));
     await _pumpFor(tester);
@@ -142,7 +140,7 @@ void main() {
     expect(fakes.spectators.spectators, isEmpty);
   });
 
-  testWidgets('관전하던 대국이 끝나면 이긴 쪽 기준 결과를 보여주고, 지워진 대국은 끝났다고 알린다', (tester) async {
+  testWidgets('관전하던 대국이 끝나면 이긴 쪽 기준 결과로 같은 화면이 복기 모드가 되고, 지워진 대국은 끝났다고 알린다', (tester) async {
     _useView(tester, const Size(390, 844), devicePixelRatio: 3);
     final fakes = setUpFakeApp();
     fakes.spectateList.entries = [_entry('g1')];
@@ -162,14 +160,16 @@ void main() {
         endedAt: 1060000,
       ),
     );
-    await _pumpFor(tester);
-    expect(find.text('한 승리'), findsOneWidget);
-    expect(find.text('기권승'), findsOneWidget);
-    expect(find.text('다시 두기'), findsNothing);
+    await _pumpFor(tester, const Duration(milliseconds: 600));
+    // 관전자에게는 승리 도장을 찍는다.
+    expect(find.text('승'), findsOneWidget);
+    await _pumpFor(tester, const Duration(seconds: 3));
+    expect(find.text('한 승리 · 기권승'), findsOneWidget);
+    expect(find.text('재대국 신청'), findsNothing);
     expect(find.text('한 판 더'), findsNothing);
-    expect(find.text('복기하기'), findsOneWidget);
+    expect(find.text('복기 0 / 0수'), findsOneWidget);
 
-    await _tap(tester, find.widgetWithText(OutlinedButton, '나가기'));
+    await _tap(tester, find.widgetWithText(GameBarButton, '나가기'));
     expect(find.text('지금 볼 만한 대국'), findsOneWidget);
     expect(fakes.spectators.calls, ['create g1', 'remove g1']);
 
@@ -217,8 +217,8 @@ void main() {
     expect(find.text('관전 · 4명 보는 중'), findsOneWidget);
     expect(find.descendant(of: find.byType(GamePanel), matching: find.byType(ChatView)), findsOneWidget);
     expect(find.text('로그인하면 채팅할 수 있어요'), findsOneWidget);
-    expect(find.text('판 돌리기'), findsOneWidget);
-    expect(find.text('관전 채팅'), findsNothing);
+    expect(find.text('판 돌리기'), findsNothing);
+    expect(find.byType(ChatPreviewLine), findsNothing);
     expect(tester.takeException(), isNull);
 
     await _tap(tester, find.text('나가기'));

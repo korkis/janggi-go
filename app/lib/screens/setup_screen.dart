@@ -56,6 +56,9 @@ class _SetupScreenState extends State<SetupScreen> {
   // 대국 화면으로 넘어가기 시작했다. 서버 상태가 또 바뀌어도 다시 넘어가지 않는다.
   var _leaving = false;
 
+  // 판 자리를 재서 상차림 창과 끊김 카드를 그 위에 띄운다.
+  final _boardKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -101,21 +104,24 @@ class _SetupScreenState extends State<SetupScreen> {
       onBack: _onBack,
       layout: _SetupLayout(
         opponentBar: PlayerBar(side: opponent, active: false),
-        board: BoardView(position: setup.preview, flipped: flipped, highlighted: setup.getFormationSquares(chooser)),
-        myBar: PlayerBar(side: chooser, active: true),
-        dialog: _SetupDialog(
-          opponentSide: opponent,
-          // 한 / 초
-          opponentName: l10n.sideName(opponent.name),
-          mySide: chooser,
-          timer: null,
-          decided: chooser == Side.cho
-              ? _getOrderedPieces(setup.getFormationSquares(opponent), setup.preview, flipped: flipped)
-              : null,
-          opponentChoosing: false,
-          grid: _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
-          onConfirm: _onConfirm,
+        board: KeyedSubtree(
+          key: _boardKey,
+          child: BoardView(position: setup.preview, flipped: flipped, highlighted: setup.getFormationSquares(chooser)),
         ),
+        myBar: PlayerBar(side: chooser, active: true),
+      ),
+      dialog: _SetupDialog(
+        opponentSide: opponent,
+        // 한 / 초
+        opponentName: l10n.sideName(opponent.name),
+        mySide: chooser,
+        timer: null,
+        decided: chooser == Side.cho
+            ? _getOrderedPieces(setup.getFormationSquares(opponent), setup.preview, flipped: flipped)
+            : null,
+        opponentChoosing: false,
+        grid: _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
+        onConfirm: _onConfirm,
       ),
     );
   }
@@ -152,59 +158,64 @@ class _SetupScreenState extends State<SetupScreen> {
             side: opponentSide,
             active: setupTurn == opponentSide,
             name: getPlayerName(l10n, game.meta.players.get(opponentSide)),
-            notice: DisconnectNotice(online: online, side: opponentSide),
             trailing: [if (setupTurn == opponentSide) _buildSetupTimer(online)],
           ),
-          board: BoardView(
-            position: online.setupPreview,
-            flipped: flipped,
-            highlighted: online.getFormationSquares(mySide),
+          board: KeyedSubtree(
+            key: _boardKey,
+            child: BoardView(
+              position: online.setupPreview,
+              flipped: flipped,
+              highlighted: online.getFormationSquares(mySide),
+            ),
           ),
           myBar: PlayerBar(
             side: mySide,
             active: setupTurn == mySide,
             name: getPlayerName(l10n, game.meta.players.get(mySide)),
           ),
-          // 확정한 뒤에는 창을 닫고 판 위에 안내만 둔다.
-          dialog: myConfirmed
-              ? null
-              : _SetupDialog(
-                  opponentSide: opponentSide,
-                  opponentName: getPlayerName(l10n, game.meta.players.get(opponentSide)),
-                  mySide: mySide,
-                  timer: _buildSetupTimer(online),
-                  decided: online.hasConfirmedFormation(opponentSide)
-                      ? _getOrderedPieces(
-                          online.getFormationSquares(opponentSide),
-                          online.setupPreview,
-                          flipped: flipped,
-                        )
-                      : null,
-                  opponentChoosing: setupTurn == opponentSide,
-                  grid: _buildFormationGrid(
-                    context,
-                    side: mySide,
-                    picked: online.picked,
-                    onPick: online.canPickFormation ? _onPickOnline : null,
-                  ),
-                  onConfirm: online.canPickFormation ? _onConfirmOnline : null,
-                ),
           notice: myConfirmed ? const _WaitingNotice() : null,
         ),
+        // 확정한 뒤에는 창을 닫고 판 위에 안내만 둔다.
+        dialog: myConfirmed
+            ? null
+            : _SetupDialog(
+                opponentSide: opponentSide,
+                opponentName: getPlayerName(l10n, game.meta.players.get(opponentSide)),
+                mySide: mySide,
+                timer: _buildSetupTimer(online),
+                decided: online.hasConfirmedFormation(opponentSide)
+                    ? _getOrderedPieces(online.getFormationSquares(opponentSide), online.setupPreview, flipped: flipped)
+                    : null,
+                opponentChoosing: setupTurn == opponentSide,
+                grid: _buildFormationGrid(
+                  context,
+                  side: mySide,
+                  picked: online.picked,
+                  onPick: online.canPickFormation ? _onPickOnline : null,
+                ),
+                onConfirm: online.canPickFormation ? _onConfirmOnline : null,
+              ),
+        disconnect: DisconnectCard(online: online, side: opponentSide),
       ),
     );
   }
 
   /// 제목 줄과 상차림 자리. 1024 이상은 대국 화면처럼 판 영역과 오른쪽 패널로 나누고 상차림 창은 판 위에 그대로 띄운다.
+  ///
+  /// 상차림 창([dialog])이 있으면 화면 전체를 어둡게 깔고 그 위에 창을 띄운다(`docs/screens.md`의 상차림). 창은 판의 내 쪽
+  /// 마·상 줄을 가리지 않게 그 줄 바로 위에 놓는다. 상대 연결이 끊긴 동안([disconnect])은 판 가운데에 끊김 카드를 띄운다.
   Widget _buildFrame(
     BuildContext context, {
     required VoidCallback onBack,
     required Widget layout,
     List<String> details = const [],
+    Widget? dialog,
+    Widget? disconnect,
   }) {
     final l10n = AppLocalizations.of(context);
+    final Widget frame;
     if (getLayoutSize(context) == LayoutSize.expanded) {
-      return GameWideLayout(
+      frame = GameWideLayout(
         onBack: onBack,
         boardColumn: layout,
         panel: GamePanel(
@@ -213,15 +224,25 @@ class _SetupScreenState extends State<SetupScreen> {
           details: details,
         ),
       );
+    } else {
+      frame = Column(
+        children: [
+          GameHeader(
+            // 상차림을 골라 주세요
+            title: l10n.setupTitle,
+            onBack: onBack,
+          ),
+          Expanded(child: layout),
+        ],
+      );
     }
-    return Column(
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        GameHeader(
-          // 상차림을 골라 주세요
-          title: l10n.setupTitle,
-          onBack: onBack,
-        ),
-        Expanded(child: layout),
+        frame,
+        // 뒤로 버튼은 막 아래에서도 누를 수 있게 둔다.
+        if (dialog != null) const IgnorePointer(child: ColoredBox(color: GameColors.scrim)),
+        _BoardOverlay(boardKey: _boardKey, dialog: dialog, disconnect: disconnect),
       ],
     );
   }
@@ -398,31 +419,20 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 }
 
-/// 상차림 화면의 자리. 대국 화면처럼 상대 정보 줄, 판, 내 정보 줄을 놓고 그 위에 어둡게 까는 막과 상차림 창을 올린다.
-///
-/// 고를 때마다 판의 내 쪽 마·상 줄이 바뀌는 것이 보여야 하므로 그 줄은 막과 창으로 덮지 않고, 창은 그 줄 바로 위에 놓는다.
+/// 상차림 화면의 자리. 대국 화면처럼 상대 정보 줄, 판, 내 정보 줄을 놓는다. 어둡게 까는 막과 상차림 창은 [_BoardOverlay]가
+/// 화면 전체 위에 올린다.
 class _SetupLayout extends StatelessWidget {
   final Widget opponentBar;
   final Widget board;
   final Widget myBar;
 
-  /// 상차림 창. null이면 막과 창 없이 판만 보여준다.
-  final Widget? dialog;
-
   /// 창을 닫은 뒤 판 가운데에 띄우는 안내.
   final Widget? notice;
 
-  const _SetupLayout({
-    required this.opponentBar,
-    required this.board,
-    required this.myBar,
-    required this.dialog,
-    this.notice,
-  });
+  const _SetupLayout({required this.opponentBar, required this.board, required this.myBar, this.notice});
 
   @override
   Widget build(BuildContext context) {
-    final dialog = this.dialog;
     final notice = this.notice;
     return CustomMultiChildLayout(
       delegate: _SetupLayoutDelegate(),
@@ -430,29 +440,16 @@ class _SetupLayout extends StatelessWidget {
         LayoutId(id: _SetupSlot.opponentBar, child: opponentBar),
         LayoutId(id: _SetupSlot.board, child: board),
         LayoutId(id: _SetupSlot.myBar, child: myBar),
-        if (dialog != null) ...[
-          LayoutId(
-            id: _SetupSlot.scrim,
-            child: const ColoredBox(color: GameColors.scrim),
-          ),
-          LayoutId(id: _SetupSlot.dialog, child: dialog),
-        ],
         if (notice != null) LayoutId(id: _SetupSlot.notice, child: notice),
       ],
     );
   }
 }
 
-enum _SetupSlot { opponentBar, board, myBar, scrim, dialog, notice }
+enum _SetupSlot { opponentBar, board, myBar, notice }
 
-/// 정보 줄 사이에 판을 가장 크게 놓고, 판 아래쪽 내 마·상 줄 위까지만 막과 상차림 창을 놓는다.
+/// 정보 줄 사이에 판을 가장 크게 놓는다.
 class _SetupLayoutDelegate extends MultiChildLayoutDelegate {
-  /// 판 아래 끝에서 이만큼(칸 크기의 배수) 위까지는 막과 창으로 덮지 않는다. 내 쪽 마·상 줄과 금빛 표시가 들어간다.
-  static const _uncoveredCells = 2.0;
-
-  /// 상차림 창의 가장 넓은 너비.
-  static const _dialogMaxWidth = 440.0;
-
   static const _gap = 8.0;
 
   @override
@@ -467,27 +464,6 @@ class _SetupLayoutDelegate extends MultiChildLayoutDelegate {
     positionChild(_SetupSlot.opponentBar, Offset.zero);
     positionChild(_SetupSlot.board, Offset((size.width - boardSize.width) / 2, opponentBarHeight));
     positionChild(_SetupSlot.myBar, Offset(0, opponentBarHeight + boardSize.height));
-
-    final cell = boardSize.width / BoardGeometry.widthCells;
-    final coveredHeight = max(0.0, opponentBarHeight + boardSize.height - cell * _uncoveredCells);
-    if (hasChild(_SetupSlot.scrim)) {
-      layoutChild(_SetupSlot.scrim, BoxConstraints.tight(Size(size.width, coveredHeight)));
-      positionChild(_SetupSlot.scrim, Offset.zero);
-    }
-    if (hasChild(_SetupSlot.dialog)) {
-      final dialogSize = layoutChild(
-        _SetupSlot.dialog,
-        BoxConstraints(
-          maxWidth: max(0.0, min(size.width - _gap * 2, _dialogMaxWidth)),
-          maxHeight: max(0.0, coveredHeight - _gap * 2),
-        ),
-      );
-      // 창을 내 쪽 마·상 줄 바로 위에 붙여 고른 상차림이 판에 놓이는 모습을 가까이 보여준다.
-      positionChild(
-        _SetupSlot.dialog,
-        Offset((size.width - dialogSize.width) / 2, max(_gap, coveredHeight - _gap - dialogSize.height)),
-      );
-    }
     if (hasChild(_SetupSlot.notice)) {
       final noticeSize = layoutChild(
         _SetupSlot.notice,
@@ -502,6 +478,116 @@ class _SetupLayoutDelegate extends MultiChildLayoutDelegate {
 
   @override
   bool shouldRelayout(_SetupLayoutDelegate oldDelegate) => false;
+}
+
+/// 화면 전체를 덮는 막 위에 판 자리에 맞춰 띄우는 상차림 창과 상대 연결 끊김 카드.
+///
+/// 판은 화면 틀 안에 있으므로 [boardKey]로 판의 자리를 잰다. 처음 그린 뒤와 화면이 바뀔 때마다 다시 잰다.
+class _BoardOverlay extends StatefulWidget {
+  final GlobalKey boardKey;
+  final Widget? dialog;
+  final Widget? disconnect;
+
+  const _BoardOverlay({required this.boardKey, required this.dialog, required this.disconnect});
+
+  @override
+  State<_BoardOverlay> createState() => _BoardOverlayState();
+}
+
+class _BoardOverlayState extends State<_BoardOverlay> {
+  // 이 위젯 기준의 판 자리. 아직 재지 않았으면 null이다.
+  Rect? _boardRect;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(_measure);
+  }
+
+  @override
+  void didUpdateWidget(_BoardOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback(_measure);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final boardRect = _boardRect;
+    final dialog = widget.dialog;
+    final disconnect = widget.disconnect;
+    if (boardRect == null) {
+      return const SizedBox.shrink();
+    }
+    return CustomMultiChildLayout(
+      delegate: _BoardOverlayDelegate(boardRect),
+      children: [
+        if (dialog != null) LayoutId(id: _OverlaySlot.dialog, child: dialog),
+        if (disconnect != null) LayoutId(id: _OverlaySlot.disconnect, child: disconnect),
+      ],
+    );
+  }
+
+  void _measure(Duration timeStamp) {
+    if (!mounted) {
+      return;
+    }
+    final board = widget.boardKey.currentContext?.findRenderObject() as RenderBox?;
+    final own = context.findRenderObject() as RenderBox?;
+    if (board == null || own == null || !board.hasSize || !own.hasSize) {
+      return;
+    }
+    final rect = own.globalToLocal(board.localToGlobal(Offset.zero)) & board.size;
+    if (rect == _boardRect) {
+      return;
+    }
+    setState(() {
+      _boardRect = rect;
+    });
+  }
+}
+
+enum _OverlaySlot { dialog, disconnect }
+
+/// 상차림 창은 판 아래쪽 내 마·상 줄 바로 위에, 끊김 카드는 판 위에 놓는다.
+class _BoardOverlayDelegate extends MultiChildLayoutDelegate {
+  /// 판 아래 끝에서 이만큼(칸 크기의 배수) 위까지는 창으로 덮지 않는다. 내 쪽 마·상 줄과 금빛 표시가 들어간다.
+  static const _uncoveredCells = 2.0;
+
+  /// 상차림 창의 가장 넓은 너비.
+  static const _dialogMaxWidth = 440.0;
+
+  static const _gap = 8.0;
+
+  final Rect boardRect;
+
+  _BoardOverlayDelegate(this.boardRect);
+
+  @override
+  void performLayout(Size size) {
+    if (hasChild(_OverlaySlot.dialog)) {
+      final cell = boardRect.width / BoardGeometry.widthCells;
+      final coveredBottom = max(0.0, boardRect.bottom - cell * _uncoveredCells);
+      final dialogSize = layoutChild(
+        _OverlaySlot.dialog,
+        BoxConstraints(
+          maxWidth: max(0.0, min(size.width - _gap * 2, _dialogMaxWidth)),
+          maxHeight: max(0.0, coveredBottom - _gap * 2),
+        ),
+      );
+      // 창을 내 쪽 마·상 줄 바로 위에 붙여 고른 상차림이 판에 놓이는 모습을 가까이 보여준다.
+      final left = (boardRect.center.dx - dialogSize.width / 2)
+          .clamp(_gap, max(_gap, size.width - dialogSize.width))
+          .toDouble();
+      positionChild(_OverlaySlot.dialog, Offset(left, max(_gap, coveredBottom - _gap - dialogSize.height)));
+    }
+    if (hasChild(_OverlaySlot.disconnect)) {
+      layoutChild(_OverlaySlot.disconnect, BoxConstraints.tight(boardRect.size));
+      positionChild(_OverlaySlot.disconnect, boardRect.topLeft);
+    }
+  }
+
+  @override
+  bool shouldRelayout(_BoardOverlayDelegate oldDelegate) => oldDelegate.boardRect != boardRect;
 }
 
 /// 상차림 창. 상대 닉네임과 급수, 내 진영, 남은 시간, 상대가 정한 상차림, 상차림 버튼과 정하기 버튼을 둔다.

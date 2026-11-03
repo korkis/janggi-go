@@ -48,6 +48,7 @@ dependencies:
   firebase_database: ^13.0.1
   app_links: ^7.2.2
   share_plus: ^13.3.1
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +80,13 @@ flutter:
     - assets/pieces/aluminum/
     - assets/pieces/plastic/
     - assets/pieces/wood/
+
+  # 장군 도장과 결과 도장의 붓글씨 글자(docs/ui.md의 디자인 방향). SIL Open Font License 1.1이고 라이선스 전문은
+  # assets/fonts/SongMyung-OFL.txt다.
+  fonts:
+    - family: SongMyung
+      fonts:
+        - asset: assets/fonts/SongMyung-Regular.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -12,7 +12,7 @@ class BoardManager extends ChangeNotifier {
   List<Move> _legalMoves;
   Square? _selected;
   Set<Square> _targets = const {};
-  bool _flipped;
+  final bool _flipped;
 
   /// 이 기기가 두는 진영. null이면 한 기기에서 양쪽을 둔다.
   final Side? player;
@@ -58,6 +58,22 @@ class BoardManager extends ChangeNotifier {
 
   /// 장군을 받은 진영. 장군을 받을 수 있는 쪽은 차례인 쪽뿐이다.
   Side? get checkedSide => !isOver && position.isInCheck(turn) ? turn : null;
+
+  /// 지금 장군이 이 대국의 첫 장군인지 여부. 앞선 국면 가운데 장군이었던 것이 없으면 true다. 장군이 아니면 false다.
+  ///
+  /// 지나온 국면으로 정하므로 대국 중에 화면을 다시 열거나 관전하러 들어와도 두 대국자와 관전자가 같은 값을 본다.
+  bool get isFirstCheck {
+    if (checkedSide == null) {
+      return false;
+    }
+    final positions = _game.positions;
+    for (var i = 0; i < positions.length - 1; i++) {
+      if (positions[i].isInCheck(positions[i].turn)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   bool get canPass => isPlayerTurn && _legalMoves.contains(Move.pass);
 
@@ -130,11 +146,6 @@ class BoardManager extends ChangeNotifier {
     if (_game.isOver) {
       _endedAt ??= DateTime.now();
     }
-    notifyListeners();
-  }
-
-  void toggleFlipped() {
-    _flipped = !_flipped;
     notifyListeners();
   }
 

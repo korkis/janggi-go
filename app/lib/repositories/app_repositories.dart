@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config.dart';
 import 'archived_game_repository.dart';
@@ -12,6 +13,7 @@ import 'chat_repository.dart';
 import 'config_repository.dart';
 import 'connection_repository.dart';
 import 'deep_link_repository.dart';
+import 'device_settings_repository.dart';
 import 'game_repository.dart';
 import 'online_user_repository.dart';
 import 'player_state_repository.dart';
@@ -44,6 +46,7 @@ class AppRepositories {
   final SpectatorRepository spectatorRepository;
   final ChatRepository chatRepository;
   final ArchivedGameRepository archivedGameRepository;
+  final DeviceSettingsRepository deviceSettingsRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -63,6 +66,7 @@ class AppRepositories {
     required this.spectatorRepository,
     required this.chatRepository,
     required this.archivedGameRepository,
+    required this.deviceSettingsRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -95,6 +99,7 @@ class AppRepositories {
       spectatorRepository: SpectatorRepository(database: database),
       chatRepository: ChatRepository(database: database, functions: functions),
       archivedGameRepository: ArchivedGameRepository(firestore: firestore),
+      deviceSettingsRepository: DeviceSettingsRepository(preferences: SharedPreferencesAsync()),
     );
   }
 }

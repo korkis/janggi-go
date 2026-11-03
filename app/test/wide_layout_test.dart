@@ -41,7 +41,7 @@ void main() {
     }
   });
 
-  testWidgets('1024 이상은 왼쪽 메뉴를 두고, 대국 화면은 오른쪽 패널에 버튼을 모으고 결과 창을 가운데 띄운다', (tester) async {
+  testWidgets('1024 이상은 왼쪽 메뉴를 두고, 대국 화면은 오른쪽 패널에 버튼을 모으고 끝나면 패널이 복기 버튼으로 바뀐다', (tester) async {
     _useView(tester, const Size(1440, 900));
     setUpFakeApp();
     await tester.pumpWidget(const JanggigoApp());
@@ -62,17 +62,17 @@ void main() {
 
     expect(find.byType(GamePanel), findsOneWidget);
     expect(find.text('개발용 대국 · 0수'), findsOneWidget);
+    // 판 돌리기가 없어 더보기도 두지 않는다.
+    expect(find.text('더보기'), findsNothing);
     await tester.tap(find.text('기권'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('기권하기'));
     await tester.pumpAndSettle();
-    expect(find.text('기권승'), findsOneWidget);
+    // 결과 칩은 패널 제목 아래에 남고, 패널 버튼 줄이 복기 막대와 재대국 신청·나가기로 바뀐다.
+    expect(find.descendant(of: find.byType(GamePanel), matching: find.text('한 승리 · 기권승')), findsOneWidget);
     expect(find.byType(BottomSheet), findsNothing);
-
-    await tester.tap(find.text('복기하기'));
-    await tester.pumpAndSettle();
-    expect(find.text('복기'), findsOneWidget);
-    expect(find.byType(GamePanel), findsOneWidget);
+    expect(find.descendant(of: find.byType(GamePanel), matching: find.text('복기 0 / 0수')), findsOneWidget);
+    expect(find.descendant(of: find.byType(GamePanel), matching: find.text('재대국 신청')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

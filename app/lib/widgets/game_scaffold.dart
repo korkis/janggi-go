@@ -39,15 +39,17 @@ class GameScaffold extends StatelessWidget {
   }
 }
 
-/// 대국 화면 계열 맨 위의 제목 줄. 왼쪽에 뒤로 버튼을 둔다.
+/// 대국 화면 계열 맨 위의 제목 줄. 왼쪽에 뒤로 버튼을 둔다. [chip]이 있으면 제목 대신 가운데에 둔다(대국 결과 칩).
 class GameHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
+  final Widget? chip;
 
-  const GameHeader({super.key, required this.title, required this.onBack});
+  const GameHeader({super.key, required this.title, required this.onBack, this.chip});
 
   @override
   Widget build(BuildContext context) {
+    final chip = this.chip;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -59,17 +61,19 @@ class GameHeader extends StatelessWidget {
             tooltip: AppLocalizations.of(context).back,
           ),
           Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: AppTextSizes.body,
-                fontWeight: FontWeight.w700,
-                color: GameColors.subText,
-              ),
-            ),
+            child: chip != null
+                ? Center(child: chip)
+                : Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: AppTextSizes.body,
+                      fontWeight: FontWeight.w700,
+                      color: GameColors.subText,
+                    ),
+                  ),
           ),
           const SizedBox(width: minTouchSize),
         ],
@@ -289,12 +293,16 @@ class GamePanel extends StatelessWidget {
   /// 맨 아래 버튼 줄. 없으면 두지 않는다.
   final Widget? buttons;
 
-  const GamePanel({super.key, required this.title, this.details = const [], this.body, this.buttons});
+  /// 제목 아래에 두는 대국 결과 칩. 없으면 두지 않는다.
+  final Widget? chip;
+
+  const GamePanel({super.key, required this.title, this.details = const [], this.body, this.buttons, this.chip});
 
   @override
   Widget build(BuildContext context) {
     final body = this.body;
     final buttons = this.buttons;
+    final chip = this.chip;
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: GameColors.panel,
@@ -309,6 +317,7 @@ class GamePanel extends StatelessWidget {
               title,
               style: const TextStyle(fontSize: AppTextSizes.title, fontWeight: FontWeight.w800, color: GameColors.text),
             ),
+            if (chip != null) ...[const SizedBox(height: 12), Align(alignment: Alignment.centerLeft, child: chip)],
             if (details.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: [for (final detail in details) _PanelChip(label: detail)]),

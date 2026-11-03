@@ -8,6 +8,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/active_game.dart';
+import 'package:janggigo/models/app_language.dart';
 import 'package:janggigo/models/archived_game.dart';
 import 'package:janggigo/models/app_config.dart';
 import 'package:janggigo/models/challenge.dart';
@@ -29,6 +30,7 @@ import 'package:janggigo/repositories/chat_repository.dart';
 import 'package:janggigo/repositories/config_repository.dart';
 import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/deep_link_repository.dart';
+import 'package:janggigo/repositories/device_settings_repository.dart';
 import 'package:janggigo/repositories/game_repository.dart';
 import 'package:janggigo/repositories/online_user_repository.dart';
 import 'package:janggigo/repositories/player_state_repository.dart';
@@ -40,6 +42,7 @@ import 'package:janggigo/repositories/user_block_repository.dart';
 import 'package:janggigo/repositories/user_private_repository.dart';
 import 'package:janggigo/repositories/user_repository.dart';
 import 'package:janggigo/utils/app_exception.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Firebase 없이 로그인 흐름을 확인하는 가짜 AuthRepository.
 class FakeAuthRepository implements AuthRepository {
@@ -917,6 +920,22 @@ class FakeArchivedGameRepository implements ArchivedGameRepository {
   }
 }
 
+/// 기기 저장소 없이 언어 설정을 기억하는 가짜 DeviceSettingsRepository.
+class FakeDeviceSettingsRepository implements DeviceSettingsRepository {
+  var language = AppLanguage.system;
+
+  @override
+  SharedPreferencesAsync get preferences => throw UnimplementedError();
+
+  @override
+  Future<AppLanguage> getLanguage() async => language;
+
+  @override
+  Future<void> updateLanguage(AppLanguage language) async {
+    this.language = language;
+  }
+}
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -935,6 +954,7 @@ typedef FakeApp = ({
   FakeSpectatorRepository spectators,
   FakeChatRepository chats,
   FakeArchivedGameRepository archivedGames,
+  FakeDeviceSettingsRepository deviceSettings,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -955,6 +975,7 @@ FakeApp setUpFakeApp() {
   final spectatorRepository = FakeSpectatorRepository();
   final chatRepository = FakeChatRepository();
   final archivedGameRepository = FakeArchivedGameRepository();
+  final deviceSettingsRepository = FakeDeviceSettingsRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -973,6 +994,7 @@ FakeApp setUpFakeApp() {
     spectatorRepository: spectatorRepository,
     chatRepository: chatRepository,
     archivedGameRepository: archivedGameRepository,
+    deviceSettingsRepository: deviceSettingsRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -992,5 +1014,6 @@ FakeApp setUpFakeApp() {
     spectators: spectatorRepository,
     chats: chatRepository,
     archivedGames: archivedGameRepository,
+    deviceSettings: deviceSettingsRepository,
   );
 }

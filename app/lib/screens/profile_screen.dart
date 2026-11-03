@@ -18,11 +18,12 @@ import 'block_list_screen.dart';
 import 'login_flow.dart';
 import 'nickname_screen.dart';
 import 'records_screen.dart';
+import 'settings_screen.dart';
 
 /// 내 정보(`docs/screens.md`의 내 정보). 프로필 카드, 전적, 메뉴를 둔다.
 ///
 /// 프로필 카드에는 닉네임과 닉네임 바꾸기 버튼, 급수, 오늘 전적, 다음 급수까지 진행 막대를 둔다. 전적에는 대국 수, 승, 패, 승률과
-/// 최근 10판의 승패를 두고, 승패를 누르면 그 대국의 복기로 간다. 메뉴에는 차단 목록을 둔다. 설정과 상점은 그 화면이 생기면 넣는다.
+/// 최근 10판의 승패를 두고, 승패를 누르면 그 대국의 복기로 간다. 메뉴에는 차단 목록과 설정을 둔다. 상점은 그 화면이 생기면 넣는다.
 ///
 /// 급수와 진행은 [RankManager]로 듣고, 전적과 최근 대국은 화면을 열 때 한 번 읽는다(`docs/dev_rules.md`의 실시간이 아닌 목록).
 class ProfileScreen extends StatefulWidget {
@@ -271,13 +272,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        minTileHeight: 56,
-        leading: const Icon(Icons.block),
-        // 차단 목록
-        title: Text(l10n.blockListTitle, style: const TextStyle(fontSize: AppTextSizes.body)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: _onBlockList,
+      child: Column(
+        children: [
+          ListTile(
+            minTileHeight: 56,
+            leading: const Icon(Icons.block),
+            // 차단 목록
+            title: Text(l10n.blockListTitle, style: const TextStyle(fontSize: AppTextSizes.body)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _onBlockList,
+          ),
+          ListTile(
+            minTileHeight: 56,
+            leading: const Icon(Icons.settings_outlined),
+            // 설정
+            title: Text(l10n.menuSettings, style: const TextStyle(fontSize: AppTextSizes.body)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _onSettings,
+          ),
+        ],
       ),
     );
   }
@@ -388,6 +401,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _onBlockList() async {
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const BlockListScreen()));
+  }
+
+  Future<void> _onSettings() async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const SettingsScreen()));
   }
 }
 

@@ -218,12 +218,6 @@ abstract class AppLocalizations {
   /// **'더보기'**
   String get more;
 
-  /// 판의 위아래를 바꾸는 메뉴
-  ///
-  /// In ko, this message translates to:
-  /// **'판 돌리기'**
-  String get flipBoard;
-
   /// 기권 메뉴
   ///
   /// In ko, this message translates to:
@@ -266,18 +260,6 @@ abstract class AppLocalizations {
   /// **'{reason, select, checkmate{외통패} resignation{기권패} timeout{시간패} consecutivePasses{점수패} moveLimit{점수패} noLegalMoves{점수패} disconnect{접속 끊김패} other{}}'**
   String resultReasonLoss(String reason);
 
-  /// 대국 결과 창의 제목. 내 진영 기준으로 이겼을 때
-  ///
-  /// In ko, this message translates to:
-  /// **'{side, select, cho{초 승리!} han{한 승리!} other{}}'**
-  String resultMyWin(String side);
-
-  /// 대국 결과 창의 제목. 내 진영 기준으로 졌을 때
-  ///
-  /// In ko, this message translates to:
-  /// **'{side, select, cho{초 패배!} han{한 패배!} other{}}'**
-  String resultMyLoss(String side);
-
   /// 대국 결과 창 가운데 궁 아래의 큰 글자
   ///
   /// In ko, this message translates to:
@@ -296,47 +278,11 @@ abstract class AppLocalizations {
   /// **'{side, select, cho{초 승리} han{한 승리} other{}}'**
   String resultWinner(String side);
 
-  /// 대국 결과 창의 수와 걸린 시간
+  /// 대국이 끝난 화면의 재대국 신청 버튼
   ///
   /// In ko, this message translates to:
-  /// **'{moves}수 · {minutes}분 {seconds}초'**
-  String resultSummary(int moves, int minutes, int seconds);
-
-  /// 양쪽 연속 한수쉼으로 점수 판정했을 때 설명
-  ///
-  /// In ko, this message translates to:
-  /// **'양쪽이 연속으로 한수쉼을 해서 점수로 정했어요'**
-  String get resultConsecutivePasses;
-
-  /// 총 수 제한으로 점수 판정했을 때 설명
-  ///
-  /// In ko, this message translates to:
-  /// **'{limit}수에 닿아서 점수로 정했어요'**
-  String resultMoveLimit(int limit);
-
-  /// 둘 수 있는 수가 없어 점수 판정했을 때 설명
-  ///
-  /// In ko, this message translates to:
-  /// **'둘 수 있는 수가 없어서 점수로 정했어요'**
-  String get resultNoLegalMoves;
-
-  /// 대국 결과 창에서 상차림부터 다시 시작하는 버튼
-  ///
-  /// In ko, this message translates to:
-  /// **'다시 두기'**
+  /// **'재대국 신청'**
   String get resultRematch;
-
-  /// 대국 결과 창에서 홈으로 가는 버튼
-  ///
-  /// In ko, this message translates to:
-  /// **'홈으로'**
-  String get resultHome;
-
-  /// 대국 결과 창에서 방금 둔 대국을 복기하는 버튼
-  ///
-  /// In ko, this message translates to:
-  /// **'복기하기'**
-  String get resultReview;
 
   /// 복기 화면 위쪽 제목
   ///
@@ -920,12 +866,6 @@ abstract class AppLocalizations {
   /// **'이미 끝난 대국이에요'**
   String get errorGameOver;
 
-  /// 대국 화면 상대 정보 줄. 상대 연결이 끊긴 동안 이번 대국에서 남은 끊김 허용 시간(초)
-  ///
-  /// In ko, this message translates to:
-  /// **'연결이 끊겼어요 {seconds}초'**
-  String opponentDisconnected(int seconds);
-
   /// 대국 화면 판 위. 내 기기의 연결이 끊긴 동안
   ///
   /// In ko, this message translates to:
@@ -1001,20 +941,14 @@ abstract class AppLocalizations {
   /// 대국 서버 rematchUnavailable
   ///
   /// In ko, this message translates to:
-  /// **'지금은 다시 두기를 할 수 없어요'**
+  /// **'지금은 재대국을 할 수 없어요'**
   String get errorRematchUnavailable;
 
-  /// 다시 두기 요청 실패
+  /// 재대국 신청 실패
   ///
   /// In ko, this message translates to:
-  /// **'다시 두기를 하지 못했어요. 잠시 후 다시 해 주세요'**
+  /// **'재대국을 신청하지 못했어요. 잠시 후 다시 해 주세요'**
   String get errorRematch;
-
-  /// 대국 결과 가장 큰 버튼. 새 빠른 대국
-  ///
-  /// In ko, this message translates to:
-  /// **'한 판 더'**
-  String get resultPlayAgain;
 
   /// 대국 결과. 내가 다시 두기를 누르고 상대를 기다릴 때 버튼
   ///
@@ -1022,22 +956,22 @@ abstract class AppLocalizations {
   /// **'상대를 기다리는 중'**
   String get resultRematchWaiting;
 
-  /// 대국 결과. 상대가 먼저 다시 두기를 눌렀을 때
+  /// 대국이 끝난 화면. 상대가 먼저 재대국을 신청했다
   ///
   /// In ko, this message translates to:
-  /// **'상대가 다시 두기를 원해요'**
+  /// **'상대가 재대국을 원해요'**
   String get resultRematchRequested;
 
-  /// 대국 결과. 상대가 결과 화면을 나갔을 때
+  /// 대국이 끝난 화면. 상대가 화면을 나갔다
   ///
   /// In ko, this message translates to:
-  /// **'상대가 나가서 다시 둘 수 없어요'**
+  /// **'상대가 나가서 재대국을 할 수 없어요'**
   String get resultRematchCancelled;
 
-  /// 대국 결과. 빠른 대국 다시 두기 횟수에 닿았을 때
+  /// 대국이 끝난 화면. 빠른 대국의 재대국 횟수에 닿았다
   ///
   /// In ko, this message translates to:
-  /// **'같은 상대와는 더 다시 둘 수 없어요'**
+  /// **'같은 상대와는 더 둘 수 없어요'**
   String get resultRematchBlocked;
 
   /// 대국 결과. 급수가 올랐을 때
@@ -1940,48 +1874,6 @@ abstract class AppLocalizations {
   /// **'이용이 제한되어 지금은 채팅할 수 없어요'**
   String get errorChatRestricted;
 
-  /// 자주 쓰는 말. 로비·대국 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'안녕하세요'**
-  String get chatPhraseHello;
-
-  /// 자주 쓰는 말. 로비 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'반갑습니다'**
-  String get chatPhraseNiceToMeet;
-
-  /// 자주 쓰는 말. 로비 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'한 판 두실 분 계세요?'**
-  String get chatPhraseLookingForGame;
-
-  /// 자주 쓰는 말. 대국 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'잘 부탁드립니다'**
-  String get chatPhraseGoodLuck;
-
-  /// 자주 쓰는 말. 대국 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'수고하셨습니다'**
-  String get chatPhraseGoodGame;
-
-  /// 자주 쓰는 말. 관전 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'좋은 수네요'**
-  String get chatPhraseNiceMove;
-
-  /// 자주 쓰는 말. 관전 채팅
-  ///
-  /// In ko, this message translates to:
-  /// **'응원합니다'**
-  String get chatPhraseCheer;
-
   /// 로그인 창 제목. 관전 채팅을 열 때
   ///
   /// In ko, this message translates to:
@@ -2371,6 +2263,126 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'이의가 있으면 {email}로 메일을 보내 주세요'**
   String sanctionAppeal(String email);
+
+  /// 대국이 끝난 화면. 상대가 먼저 재대국을 신청했을 때의 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'재대국 수락'**
+  String get resultRematchAccept;
+
+  /// 대국 결과 도장의 글자(이겼을 때). 붓글씨 글꼴로 크게 찍는다
+  ///
+  /// In ko, this message translates to:
+  /// **'승'**
+  String get resultStampWin;
+
+  /// 대국 결과 도장의 글자(졌을 때)
+  ///
+  /// In ko, this message translates to:
+  /// **'패'**
+  String get resultStampLoss;
+
+  /// 대국이 끝난 화면 머리줄의 결과 칩. 예: 승리 · 외통승
+  ///
+  /// In ko, this message translates to:
+  /// **'{outcome} · {reason}'**
+  String resultHeadline(String outcome, String reason);
+
+  /// 결과 도장 아래 칩. 결과 종류, 수, 걸린 시간
+  ///
+  /// In ko, this message translates to:
+  /// **'{reason} · {moves}수 · {minutes}분 {seconds}초'**
+  String resultStampDetail(String reason, int moves, int minutes, int seconds);
+
+  /// 대국이 끝난 화면 내 정보 줄. 급수 진행이 늘었다
+  ///
+  /// In ko, this message translates to:
+  /// **'+1칸'**
+  String get resultRankGain;
+
+  /// 대국이 끝난 화면 내 정보 줄. 급수 진행이 줄었다
+  ///
+  /// In ko, this message translates to:
+  /// **'−1칸'**
+  String get resultRankLoss;
+
+  /// 대국이 끝난 화면 내 정보 줄. 져서 진행이 줄었지만 급수는 그대로다
+  ///
+  /// In ko, this message translates to:
+  /// **'{rank} 유지'**
+  String resultRankKept(String rank);
+
+  /// 대국이 끝난 화면의 복기 막대 가운데. 지금 보는 수와 전체 수
+  ///
+  /// In ko, this message translates to:
+  /// **'복기 {current} / {total}수'**
+  String reviewBarCounter(int current, int total);
+
+  /// 대국이 끝난 뒤 상대가 대국 화면을 나가 대국 채팅을 더 할 수 없다
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}님이 나갔어요'**
+  String chatOpponentLeft(String nickname);
+
+  /// 채팅. 보내지 못한 내 메시지 옆 표시
+  ///
+  /// In ko, this message translates to:
+  /// **'안 보냄'**
+  String get chatNotSent;
+
+  /// 대국 화면 채팅 미리보기 줄. 메시지가 아직 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'채팅'**
+  String get chatPreviewHint;
+
+  /// 대국 화면 판 가운데 카드. 대국자의 연결이 끊겼다
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}님 연결이 끊겼어요'**
+  String disconnectCardTitle(String nickname);
+
+  /// 대국 화면 판 가운데 카드. 끊긴 쪽이 남은 끊김 허용 시간 안에 돌아오지 않으면 진다
+  ///
+  /// In ko, this message translates to:
+  /// **'{seconds}초 안에 돌아오지 않으면 {winner}님의 승리로 끝나요'**
+  String disconnectCardBody(int seconds, String winner);
+
+  /// 내 정보 메뉴와 설정 화면 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'설정'**
+  String get menuSettings;
+
+  /// 설정 화면의 언어 묶음 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'언어'**
+  String get settingsLanguage;
+
+  /// 설정의 언어 선택지. 기기 언어를 따른다
+  ///
+  /// In ko, this message translates to:
+  /// **'기기 설정 따름'**
+  String get languageSystem;
+
+  /// 설정의 언어 선택지. 언어 이름은 그 언어로 쓴다
+  ///
+  /// In ko, this message translates to:
+  /// **'한국어'**
+  String get languageKorean;
+
+  /// 설정의 언어 선택지. 언어 이름은 그 언어로 쓴다
+  ///
+  /// In ko, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// 설정 저장 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'설정을 저장하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorSaveSettings;
 }
 
 class _AppLocalizationsDelegate

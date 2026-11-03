@@ -155,7 +155,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('빠른 대국 결과 창은 급수 변동과 한 판 더를 보여주고, 두 사람이 다시 두기를 누르면 새 대국으로 간다', (tester) async {
+  testWidgets('빠른 대국이 끝나면 내 정보 줄에 급수 변동을 보여주고, 두 사람이 재대국을 신청하면 새 대국으로 간다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();
     await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
@@ -175,20 +175,21 @@ void main() {
     );
     await tester.pumpWidget(_buildGameScreen());
     fakes.games.emit('g1', _finishedQuickGame());
-    await _pumpFor(tester);
+    await _pumpFor(tester, const Duration(seconds: 3));
 
-    expect(find.text('기권승'), findsOneWidget);
-    expect(find.text('한 승리!'), findsOneWidget);
+    expect(find.text('승리 · 기권승'), findsOneWidget);
     expect(find.text('17급으로 올랐어요'), findsOneWidget);
     expect(find.text('16급까지 약 1승'), findsOneWidget);
-    expect(find.text('한 판 더'), findsOneWidget);
+    // 결과 창의 한 판 더는 없앴다. 홈의 빠른 대국으로 다시 찾는다.
+    expect(find.text('한 판 더'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '재대국 신청'), findsOneWidget);
 
     // 상대가 먼저 눌렀다.
     fakes.games.emit('g1', _finishedQuickGame(rematch: {'cho': true}));
     await _pumpFor(tester);
-    expect(find.text('상대가 다시 두기를 원해요'), findsOneWidget);
+    expect(find.text('상대가 재대국을 원해요'), findsOneWidget);
 
-    await tester.tap(find.text('다시 두기'));
+    await tester.tap(find.widgetWithText(FilledButton, '재대국 수락'));
     await _pumpFor(tester);
     expect(fakes.games.calls, ['requestRematch g1']);
 
@@ -204,21 +205,21 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('상대가 나갔거나 다시 두기 횟수에 닿으면 다시 두기를 끄고, 홈으로 가면 결과 화면을 나간다', (tester) async {
+  testWidgets('상대가 나갔거나 재대국 횟수에 닿으면 재대국 신청을 끄고, 나가면 결과 화면을 나간다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();
     await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
     await tester.pumpWidget(_buildGameScreen());
     fakes.games.emit('g1', _finishedQuickGame(rematch: {'blocked': true}));
     await _pumpFor(tester);
-    expect(find.text('같은 상대와는 더 다시 둘 수 없어요'), findsOneWidget);
-    expect(tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '다시 두기')).onPressed, isNull);
+    expect(find.text('같은 상대와는 더 둘 수 없어요'), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '재대국 신청')).onPressed, isNull);
 
     fakes.games.emit('g1', _finishedQuickGame(rematch: {'cho': true, 'cancelled': true}));
     await _pumpFor(tester);
-    expect(find.text('상대가 나가서 다시 둘 수 없어요'), findsOneWidget);
+    expect(find.text('상대가 나가서 재대국을 할 수 없어요'), findsOneWidget);
 
-    await tester.tap(find.text('홈으로'));
+    await tester.tap(find.text('나가기'));
     await _pumpFor(tester);
     expect(fakes.games.calls, ['leaveResult g1']);
 

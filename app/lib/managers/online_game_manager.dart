@@ -47,6 +47,7 @@ class OnlineGameManager extends ChangeNotifier {
   Timer? _ticker;
 
   ActiveGame? _game;
+  bool _removed = false;
   bool _loaded = false;
   Object? _loadError;
   Duration _serverTimeOffset = Duration.zero;
@@ -93,8 +94,11 @@ class OnlineGameManager extends ChangeNotifier {
     super.dispose();
   }
 
-  /// 대국. 처음 값을 받기 전이거나 대국이 지워졌으면 null이다.
+  /// 대국. 처음 값을 받기 전이거나 대국이 지워졌으면 null이다. 끝난 뒤에 지워졌으면 끝났을 때의 상태다([removed]).
   ActiveGame? get game => _game;
+
+  /// 끝난 대국을 서버가 RTDB에서 지웠다. 재대국을 할 수 없다.
+  bool get removed => _removed;
 
   /// 처음 값을 받았는지 여부.
   bool get loaded => _loaded;
@@ -121,6 +125,20 @@ class OnlineGameManager extends ChangeNotifier {
 
   /// 대국 판. 상차림이 끝나 처음 국면이 생긴 뒤에 있다.
   BoardManager? get board => _board;
+
+  /// 대국이 끝난 뒤 상대가 대국 화면을 나갔는지 여부(`docs/screens.md`의 대국 결과). 상대가 나가기를 눌러 서버가 재대국을
+  /// 취소했거나, 상대 앱이 꺼졌거나 뒤로 갔으면 true다. 대국 중이거나 대국자가 아니면 false다.
+  bool get opponentLeft {
+    final game = _game;
+    if (game == null || mySide == null || game.state.phase != GamePhase.finished) {
+      return false;
+    }
+    final rematch = game.rematch;
+    if (rematch?.cancelled == true && rematch?.gameId == null) {
+      return true;
+    }
+    return _opponentOnline == false;
+  }
 
   /// 서버 시각 어림값(ms).
   int getServerNowMs() => DateTime.now().add(_serverTimeOffset).millisecondsSinceEpoch;
@@ -256,6 +274,12 @@ class OnlineGameManager extends ChangeNotifier {
   }
 
   void _onGameChanged(ActiveGame? game) {
+    // 끝난 대국은 정리 작업이 RTDB에서 지운 뒤에도 같은 화면에서 복기를 이어 가도록 마지막 상태를 남긴다.
+    if (game == null && _game?.state.phase == GamePhase.finished) {
+      _removed = true;
+      notifyListeners();
+      return;
+    }
     _game = game;
     _loaded = true;
     _loadError = null;
@@ -286,6 +310,10 @@ class OnlineGameManager extends ChangeNotifier {
     // 상대가 끊겼다 돌아오기를 반복하면 서버 상태가 같아도 다시 알린다.
     _checkedReason = null;
     _checkGameIfNeeded();
+    // 대국이 끝난 뒤에는 상대가 화면을 나갔는지([opponentLeft])가 바뀐다.
+    if (_game?.state.phase == GamePhase.finished) {
+      notifyListeners();
+    }
   }
 
   void _onOpponentConnectionsError(Object error, StackTrace stackTrace) {

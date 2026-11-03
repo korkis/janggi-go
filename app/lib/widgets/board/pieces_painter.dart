@@ -19,6 +19,9 @@ class PiecesPainter extends CustomPainter {
   static const _liftCells = 0.12;
   static const _liftScale = 1.09;
 
+  /// 둔 수의 기물이 움직이는 동안 커지는 배율. 들렸다가 미끄러져 가서 원래 크기로 내려앉는다(`docs/ui.md`의 연출).
+  static const _moveLiftScale = 1.13;
+
   /// 갈 수 있는 자리 표시의 호 반지름, 굵기, 호 하나가 차지하는 각도.
   static const _markRadiusCells = 0.38;
   static const _markWidthCells = 0.062;
@@ -90,7 +93,7 @@ class PiecesPainter extends CustomPainter {
     final geometry = BoardGeometry(size, flipped: flipped);
     final cell = geometry.cell;
     final pieceSize = cell * _pieceCells;
-    final progress = Curves.easeOutCubic.transform(moveProgress.value);
+    final progress = moveProgress.value;
     final moving = progress < 1 ? lastMove : null;
     final settledMove = progress < 1 ? null : lastMove;
 
@@ -115,6 +118,9 @@ class PiecesPainter extends CustomPainter {
         glowing.add(item);
       }
     }
+    // 움직이는 기물과 그 들린 정도(0~1).
+    _PlacedPiece? flying;
+    var lift = 0.0;
     if (moving != null) {
       final to = geometry.centerOf(moving.to!);
       final captured = this.captured;
@@ -129,13 +135,18 @@ class PiecesPainter extends CustomPainter {
       }
       final piece = position.pieceAt(moving.to!);
       if (piece != null) {
-        final center = Offset.lerp(geometry.centerOf(moving.from!), to, progress)!;
-        placed.add(
-          _PlacedPiece(
-            images.pieces[piece]!,
-            Rect.fromCenter(center: center, width: pieceSize, height: pieceSize),
-            _toneFilter(piece, justMoved: false),
-          ),
+        lift = _getMoveLift(progress);
+        final travel = Curves.easeInOutCubic.transform(((progress - 0.1) / 0.75).clamp(0.0, 1.0));
+        final center = Offset.lerp(
+          geometry.centerOf(moving.from!),
+          to,
+          travel,
+        )!.translate(0, -cell * _liftCells * lift);
+        final flyingSize = pieceSize * (1 + (_moveLiftScale - 1) * lift);
+        flying = _PlacedPiece(
+          images.pieces[piece]!,
+          Rect.fromCenter(center: center, width: flyingSize, height: flyingSize),
+          _toneFilter(piece, justMoved: false),
         );
       }
     }
@@ -154,6 +165,14 @@ class PiecesPainter extends CustomPainter {
     for (final item in placed) {
       _paintPiece(canvas, item);
     }
+    if (flying != null) {
+      // 들린 만큼 그림자를 멀리, 넓게 떨어뜨린다.
+      final shadowColor = Color.lerp(_shadowColor, _liftedShadowColor, lift)!;
+      final sigma = cell * (0.018 + (0.072 - 0.018) * lift);
+      final offset = Offset(0, cell * (0.048 + (0.19 * _moveLiftScale - 0.048) * lift));
+      _paintSilhouettes(canvas, size, [flying], shadowColor, sigma, offset);
+      _paintPiece(canvas, flying);
+    }
 
     final selectedSquare = selected;
     final selectedPiece = selectedSquare == null ? null : position.pieceAt(selectedSquare);
@@ -170,6 +189,17 @@ class PiecesPainter extends CustomPainter {
     }
 
     _paintTargets(canvas, geometry);
+  }
+
+  /// 이동 진행도 [progress](0~1)에서 기물이 들린 정도(0~1). 처음에 빨리 들렸다가 끝에서 내려앉는다.
+  static double _getMoveLift(double progress) {
+    if (progress < 0.2) {
+      return Curves.easeOut.transform(progress / 0.2);
+    }
+    if (progress > 0.78) {
+      return 1 - Curves.easeIn.transform((progress - 0.78) / 0.22);
+    }
+    return 1;
   }
 
   ColorFilter? _toneFilter(Piece piece, {required bool justMoved}) {

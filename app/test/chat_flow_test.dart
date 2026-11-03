@@ -61,7 +61,7 @@ Widget _app(Widget home, {ThemeData? theme}) {
 }
 
 void main() {
-  testWidgets('대국실 채팅에서 보내고, 걸린 메시지는 가운데 안내로 알리고, 길게 눌러 신고·차단한다', (tester) async {
+  testWidgets('대국실 채팅에서 보내자마자 내 메시지를 보여주고, 걸린 메시지는 안 보냄으로 바꾸고, 길게 눌러 신고·차단한다', (tester) async {
     _usePhoneView(tester);
     final fakes = await _signIn('me', '나');
     final otherMessage = fakes.chats.addMessage(ChatChannel.lobby, null, uid: 'other', nickname: '장기왕', text: '반가워요');
@@ -78,23 +78,25 @@ void main() {
     await _tap(tester, find.byTooltip('보내기'));
     expect(fakes.chats.calls, ['send lobby - 잘 부탁합니다']);
     expect(find.text('  잘 부탁합니다 '), findsNothing);
-    // 서버가 저장하면 내 메시지는 닉네임 없이 오른쪽에 보인다.
-    fakes.chats.addMessage(ChatChannel.lobby, null, uid: 'me', nickname: '나', text: '잘 부탁합니다');
-    await _pumpFor(tester);
+    // 서버가 저장하기 전에도 내 메시지는 닉네임 없이 오른쪽에 보낸 것처럼 보인다.
     expect(find.text('잘 부탁합니다'), findsOneWidget);
     expect(find.text('나'), findsNothing);
     expect(tester.getTopRight(find.text('잘 부탁합니다')).dx, greaterThan(tester.getTopRight(find.text('반가워요')).dx));
+    // 서버가 저장한 메시지가 들어와도 한 번만 보인다.
+    fakes.chats.addMessage(ChatChannel.lobby, null, uid: 'me', nickname: '나', text: '잘 부탁합니다');
+    await _pumpFor(tester);
+    expect(find.text('잘 부탁합니다'), findsOneWidget);
+    // 자주 쓰는 말 버튼은 없다.
+    expect(find.text('반갑습니다'), findsNothing);
 
-    // 자주 쓰는 말은 누르면 바로 보낸다.
-    await _tap(tester, find.text('반갑습니다'));
-    expect(fakes.chats.calls.last, 'send lobby - 반갑습니다');
-
-    // 검사에 걸리면 입력을 남기고 가운데 회색 안내로 알린다.
+    // 검사에 걸리면 그 말풍선을 안 보냄으로 바꾸고 아래에 까닭을 붙인다. 입력칸은 이미 비웠다.
     fakes.chats.nextError = const AppException(AppErrorCode.chatMessageBlocked);
     await tester.enterText(find.byType(TextField), '나쁜 말');
     await _tap(tester, find.byTooltip('보내기'));
+    expect(find.text('안 보냄'), findsOneWidget);
     expect(find.text('부적절한 표현이 있어 보내지 않았어요'), findsOneWidget);
     expect(find.text('나쁜 말'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
 
     // 그냥 누르면 아무 일도 하지 않는다.
     await _tap(tester, find.text('반가워요'));
@@ -121,7 +123,7 @@ void main() {
     expect(find.text('장기왕님을 차단했어요'), findsOneWidget);
   });
 
-  testWidgets('대국 채팅은 새 메시지 수를 버튼에 보여주고, 상대 채팅을 끌 수 있고, 끝나면 결과 창에서 관전 채팅도 본다', (tester) async {
+  testWidgets('대국 채팅은 미리보기 줄에 마지막 메시지와 새 메시지 수를 보여주고, 끝난 뒤에도 이어 쓰다가 상대가 나가면 막는다', (tester) async {
     _usePhoneView(tester);
     final fakes = await _signIn('me', '나');
     fakes.chats.addMessage(ChatChannel.game, 'g1', uid: 'opp', nickname: '한opp', text: '안녕하세요');
@@ -138,27 +140,35 @@ void main() {
     );
     await _pumpFor(tester);
 
-    GameBarButton chatButton() => tester.widget<GameBarButton>(find.widgetWithText(GameBarButton, '채팅'));
+    final preview = find.byType(ChatPreviewLine);
     // 화면을 열기 전의 메시지는 새 메시지로 세지 않는다.
-    expect(chatButton().badgeCount, 0);
+    expect(find.descendant(of: preview, matching: find.text('안녕하세요')), findsOneWidget);
+    expect(find.descendant(of: preview, matching: find.text('한opp')), findsOneWidget);
+    expect(tester.widget<Badge>(find.descendant(of: preview, matching: find.byType(Badge))).isLabelVisible, isFalse);
     fakes.chats.addMessage(ChatChannel.game, 'g1', uid: 'opp', nickname: '한opp', text: '빠르시네요');
     fakes.chats.addMessage(ChatChannel.game, 'g1', uid: 'opp', nickname: '한opp', text: '잘 두시네요');
     await _pumpFor(tester);
-    expect(chatButton().badgeCount, 2);
+    expect(find.descendant(of: preview, matching: find.text('잘 두시네요')), findsOneWidget);
+    expect(find.descendant(of: preview, matching: find.text('2')), findsOneWidget);
+    // 버튼 줄에는 한수쉼과 더보기만 둔다.
+    expect(find.widgetWithText(GameBarButton, '채팅'), findsNothing);
+    expect(find.widgetWithText(GameBarButton, '한수쉼'), findsOneWidget);
+    expect(find.widgetWithText(GameBarButton, '더보기'), findsOneWidget);
 
-    await _tap(tester, find.widgetWithText(GameBarButton, '채팅'));
-    expect(find.text('빠르시네요'), findsOneWidget);
-    expect(chatButton().badgeCount, 0);
-    await _tap(tester, find.text('잘 부탁드립니다'));
+    await _tap(tester, preview);
+    expect(find.descendant(of: find.byType(ChatView), matching: find.text('빠르시네요')), findsOneWidget);
+    expect(find.descendant(of: preview, matching: find.text('2')), findsNothing);
+    await tester.enterText(find.byType(TextField), '잘 부탁드립니다');
+    await _tap(tester, find.byTooltip('보내기'));
     expect(fakes.chats.calls, ['send game g1 잘 부탁드립니다']);
 
     await _tap(tester, find.text('상대 채팅 끄기'));
-    expect(find.text('빠르시네요'), findsNothing);
+    expect(find.descendant(of: find.byType(ChatView), matching: find.text('빠르시네요')), findsNothing);
     fakes.chats.addMessage(ChatChannel.game, 'g1', uid: 'opp', nickname: '한opp', text: '또 봐요');
     await _pumpFor(tester);
-    expect(find.text('또 봐요'), findsNothing);
+    expect(find.descendant(of: find.byType(ChatView), matching: find.text('또 봐요')), findsNothing);
     await _tap(tester, find.text('상대 채팅 켜기'));
-    expect(find.text('또 봐요'), findsOneWidget);
+    expect(find.descendant(of: find.byType(ChatView), matching: find.text('또 봐요')), findsOneWidget);
 
     // 대국 중 대국자에게는 관전 채팅을 보여주지 않는다.
     expect(find.text('관전 채팅'), findsNothing);
@@ -177,16 +187,38 @@ void main() {
         endedAt: 1040000,
       ),
     );
-    await _pumpFor(tester);
-    expect(find.text('초 승리!'), findsOneWidget);
+    await _pumpFor(tester, const Duration(seconds: 3));
+    expect(find.text('승리 · 기권승'), findsOneWidget);
 
-    // 결과 창을 닫지 않고 채팅을 연다. 끝난 뒤에는 관전 채팅도 고를 수 있다.
-    await _tap(tester, find.byType(ChatTextButton));
+    // 결과 창 없이 같은 화면에서 채팅을 이어 간다. 끝난 뒤에는 관전 채팅도 고를 수 있다.
+    await _tap(tester, preview);
     expect(find.text('대국 채팅'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '수고하셨습니다');
+    await _tap(tester, find.byTooltip('보내기'));
+    expect(fakes.chats.calls.last, 'send game g1 수고하셨습니다');
     await _tap(tester, find.text('관전 채팅'));
     expect(find.text('좋은 대국이었어요'), findsOneWidget);
-    await _tap(tester, find.text('좋은 수네요'));
-    expect(fakes.chats.calls.last, 'send spectator g1 좋은 수네요');
+    await tester.enterText(find.byType(TextField), '감사합니다');
+    await _tap(tester, find.byTooltip('보내기'));
+    expect(fakes.chats.calls.last, 'send spectator g1 감사합니다');
+    await _tap(tester, find.text('대국 채팅'));
+
+    // 상대가 나가면 대국 채팅 입력을 막는다.
+    fakes.games.emit(
+      'g1',
+      buildGameJson(
+        phase: 'finished',
+        hanFormation: 'horseElephantHorseElephant',
+        choFormation: 'horseElephantHorseElephant',
+        turnStartedAt: 1000000,
+        result: {'winner': 'cho', 'reason': 'resignation', 'choScore': 72, 'hanScore': 73.5},
+        endedAt: 1040000,
+        rematch: {'cancelled': true},
+      ),
+    );
+    await _pumpFor(tester);
+    expect(find.descendant(of: find.byType(ChatView), matching: find.text('한opp님이 나갔어요')), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets('차단 목록에서 닉네임과 날짜를 보고 차단을 푼다', (tester) async {

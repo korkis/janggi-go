@@ -104,9 +104,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get more => '더보기';
 
   @override
-  String get flipBoard => '판 돌리기';
-
-  @override
   String get resign => '기권';
 
   @override
@@ -159,26 +156,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String resultMyWin(String side) {
-    String _temp0 = intl.Intl.selectLogic(side, {
-      'cho': '초 승리!',
-      'han': '한 승리!',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String resultMyLoss(String side) {
-    String _temp0 = intl.Intl.selectLogic(side, {
-      'cho': '초 패배!',
-      'han': '한 패배!',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
   String get resultOutcomeWin => '승리';
 
   @override
@@ -195,29 +172,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String resultSummary(int moves, int minutes, int seconds) {
-    return '$moves수 · $minutes분 $seconds초';
-  }
-
-  @override
-  String get resultConsecutivePasses => '양쪽이 연속으로 한수쉼을 해서 점수로 정했어요';
-
-  @override
-  String resultMoveLimit(int limit) {
-    return '$limit수에 닿아서 점수로 정했어요';
-  }
-
-  @override
-  String get resultNoLegalMoves => '둘 수 있는 수가 없어서 점수로 정했어요';
-
-  @override
-  String get resultRematch => '다시 두기';
-
-  @override
-  String get resultHome => '홈으로';
-
-  @override
-  String get resultReview => '복기하기';
+  String get resultRematch => '재대국 신청';
 
   @override
   String get reviewTitle => '복기';
@@ -551,11 +506,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorGameOver => '이미 끝난 대국이에요';
 
   @override
-  String opponentDisconnected(int seconds) {
-    return '연결이 끊겼어요 $seconds초';
-  }
-
-  @override
   String get reconnecting => '다시 연결하는 중';
 
   @override
@@ -603,25 +553,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorSanctioned => '이용이 제한되어 지금은 대국을 할 수 없어요';
 
   @override
-  String get errorRematchUnavailable => '지금은 다시 두기를 할 수 없어요';
+  String get errorRematchUnavailable => '지금은 재대국을 할 수 없어요';
 
   @override
-  String get errorRematch => '다시 두기를 하지 못했어요. 잠시 후 다시 해 주세요';
-
-  @override
-  String get resultPlayAgain => '한 판 더';
+  String get errorRematch => '재대국을 신청하지 못했어요. 잠시 후 다시 해 주세요';
 
   @override
   String get resultRematchWaiting => '상대를 기다리는 중';
 
   @override
-  String get resultRematchRequested => '상대가 다시 두기를 원해요';
+  String get resultRematchRequested => '상대가 재대국을 원해요';
 
   @override
-  String get resultRematchCancelled => '상대가 나가서 다시 둘 수 없어요';
+  String get resultRematchCancelled => '상대가 나가서 재대국을 할 수 없어요';
 
   @override
-  String get resultRematchBlocked => '같은 상대와는 더 다시 둘 수 없어요';
+  String get resultRematchBlocked => '같은 상대와는 더 둘 수 없어요';
 
   @override
   String resultRankUp(String rank) {
@@ -1170,27 +1117,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorChatRestricted => '이용이 제한되어 지금은 채팅할 수 없어요';
 
   @override
-  String get chatPhraseHello => '안녕하세요';
-
-  @override
-  String get chatPhraseNiceToMeet => '반갑습니다';
-
-  @override
-  String get chatPhraseLookingForGame => '한 판 두실 분 계세요?';
-
-  @override
-  String get chatPhraseGoodLuck => '잘 부탁드립니다';
-
-  @override
-  String get chatPhraseGoodGame => '수고하셨습니다';
-
-  @override
-  String get chatPhraseNiceMove => '좋은 수네요';
-
-  @override
-  String get chatPhraseCheer => '응원합니다';
-
-  @override
   String get loginSheetTitleSpectateChat => '로그인하면 관전하면서\n채팅할 수 있어요';
 
   @override
@@ -1425,4 +1351,78 @@ class AppLocalizationsKo extends AppLocalizations {
   String sanctionAppeal(String email) {
     return '이의가 있으면 $email로 메일을 보내 주세요';
   }
+
+  @override
+  String get resultRematchAccept => '재대국 수락';
+
+  @override
+  String get resultStampWin => '승';
+
+  @override
+  String get resultStampLoss => '패';
+
+  @override
+  String resultHeadline(String outcome, String reason) {
+    return '$outcome · $reason';
+  }
+
+  @override
+  String resultStampDetail(String reason, int moves, int minutes, int seconds) {
+    return '$reason · $moves수 · $minutes분 $seconds초';
+  }
+
+  @override
+  String get resultRankGain => '+1칸';
+
+  @override
+  String get resultRankLoss => '−1칸';
+
+  @override
+  String resultRankKept(String rank) {
+    return '$rank 유지';
+  }
+
+  @override
+  String reviewBarCounter(int current, int total) {
+    return '복기 $current / $total수';
+  }
+
+  @override
+  String chatOpponentLeft(String nickname) {
+    return '$nickname님이 나갔어요';
+  }
+
+  @override
+  String get chatNotSent => '안 보냄';
+
+  @override
+  String get chatPreviewHint => '채팅';
+
+  @override
+  String disconnectCardTitle(String nickname) {
+    return '$nickname님 연결이 끊겼어요';
+  }
+
+  @override
+  String disconnectCardBody(int seconds, String winner) {
+    return '$seconds초 안에 돌아오지 않으면 $winner님의 승리로 끝나요';
+  }
+
+  @override
+  String get menuSettings => '설정';
+
+  @override
+  String get settingsLanguage => '언어';
+
+  @override
+  String get languageSystem => '기기 설정 따름';
+
+  @override
+  String get languageKorean => '한국어';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get errorSaveSettings => '설정을 저장하지 못했어요. 잠시 후 다시 해 주세요';
 }

@@ -15,9 +15,8 @@ class BoardPainter extends CustomPainter {
   /// 선 굵기(칸 크기의 배수).
   static const _lineWidthCells = 0.026;
 
-  /// 포·졸 자리 표시가 교차점에서 떨어진 거리와 한 변의 길이(칸 크기의 배수).
-  static const _markGapCells = 0.08;
-  static const _markArmCells = 0.16;
+  /// 포·졸 자리 × 표시의 폭(칸 크기의 배수). 교차점을 가운데로 한다(`docs/ui.md`의 색과 구분).
+  static const _markWidthCells = 1 / 6;
 
   /// 화면 기준 (열, 행)의 포 자리와 졸·병 자리.
   static const _markPoints = [
@@ -71,24 +70,17 @@ class BoardPainter extends CustomPainter {
     }
   }
 
-  /// 교차점 둘레 네 귀에 ㄱ자 표시를 그린다. 판 가장자리 바깥쪽 귀는 그리지 않는다.
+  /// 교차점을 가운데로 하는 작은 ×를 선과 같은 색·굵기로 끊김 없이 긋는다. 판 가장자리 줄도 같은 모양이다.
   void _paintMarks(Canvas canvas, BoardGeometry geometry, Paint paint) {
-    final gap = geometry.cell * _markGapCells;
-    final arm = geometry.cell * _markArmCells;
+    final half = geometry.cell * _markWidthCells / 2;
     final path = Path();
     for (final (column, row) in _markPoints) {
       final center = geometry.pointAt(column, row);
-      for (final dx in [-1, 1]) {
-        if (column + dx < 0 || column + dx >= Square.fileCount) {
-          continue;
-        }
-        for (final dy in [-1, 1]) {
-          path
-            ..moveTo(center.dx + dx * gap, center.dy + dy * (gap + arm))
-            ..lineTo(center.dx + dx * gap, center.dy + dy * gap)
-            ..lineTo(center.dx + dx * (gap + arm), center.dy + dy * gap);
-        }
-      }
+      path
+        ..moveTo(center.dx - half, center.dy - half)
+        ..lineTo(center.dx + half, center.dy + half)
+        ..moveTo(center.dx - half, center.dy + half)
+        ..lineTo(center.dx + half, center.dy - half);
     }
     canvas.drawPath(path, paint);
   }

@@ -110,9 +110,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get more => 'More';
 
   @override
-  String get flipBoard => 'Flip board';
-
-  @override
   String get resign => 'Resign';
 
   @override
@@ -165,26 +162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String resultMyWin(String side) {
-    String _temp0 = intl.Intl.selectLogic(side, {
-      'cho': 'Cho wins!',
-      'han': 'Han wins!',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String resultMyLoss(String side) {
-    String _temp0 = intl.Intl.selectLogic(side, {
-      'cho': 'Cho loses!',
-      'han': 'Han loses!',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
   String get resultOutcomeWin => 'Victory';
 
   @override
@@ -201,37 +178,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String resultSummary(int moves, int minutes, int seconds) {
-    String _temp0 = intl.Intl.pluralLogic(
-      moves,
-      locale: localeName,
-      other: '$moves moves',
-      one: '1 move',
-    );
-    return '$_temp0 · ${minutes}m ${seconds}s';
-  }
-
-  @override
-  String get resultConsecutivePasses =>
-      'Both sides passed in a row, so points decided the game';
-
-  @override
-  String resultMoveLimit(int limit) {
-    return 'The game reached $limit moves, so points decided it';
-  }
-
-  @override
-  String get resultNoLegalMoves =>
-      'No moves were left, so points decided the game';
-
-  @override
-  String get resultRematch => 'Rematch';
-
-  @override
-  String get resultHome => 'Home';
-
-  @override
-  String get resultReview => 'Review';
+  String get resultRematch => 'Request rematch';
 
   @override
   String get reviewTitle => 'Review';
@@ -585,11 +532,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorGameOver => 'The game is already over.';
 
   @override
-  String opponentDisconnected(int seconds) {
-    return 'Disconnected ${seconds}s';
-  }
-
-  @override
   String get reconnecting => 'Reconnecting';
 
   @override
@@ -654,9 +596,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t request a rematch. Please try again shortly';
 
   @override
-  String get resultPlayAgain => 'Play again';
-
-  @override
   String get resultRematchWaiting => 'Waiting for opponent';
 
   @override
@@ -667,7 +606,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your opponent left, so you can\'t rematch';
 
   @override
-  String get resultRematchBlocked => 'You can\'t rematch this opponent again';
+  String get resultRematchBlocked => 'You can\'t play this opponent again';
 
   @override
   String resultRankUp(String rank) {
@@ -1251,27 +1190,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'You can\'t chat right now because your account is restricted';
 
   @override
-  String get chatPhraseHello => 'Hello';
-
-  @override
-  String get chatPhraseNiceToMeet => 'Nice to meet you';
-
-  @override
-  String get chatPhraseLookingForGame => 'Anyone up for a game?';
-
-  @override
-  String get chatPhraseGoodLuck => 'Have a good game';
-
-  @override
-  String get chatPhraseGoodGame => 'Good game';
-
-  @override
-  String get chatPhraseNiceMove => 'Nice move';
-
-  @override
-  String get chatPhraseCheer => 'Good luck to both';
-
-  @override
   String get loginSheetTitleSpectateChat => 'Sign in to\nchat while watching';
 
   @override
@@ -1515,4 +1433,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String sanctionAppeal(String email) {
     return 'If you disagree, please email $email';
   }
+
+  @override
+  String get resultRematchAccept => 'Accept rematch';
+
+  @override
+  String get resultStampWin => 'Win';
+
+  @override
+  String get resultStampLoss => 'Loss';
+
+  @override
+  String resultHeadline(String outcome, String reason) {
+    return '$outcome · $reason';
+  }
+
+  @override
+  String resultStampDetail(String reason, int moves, int minutes, int seconds) {
+    return '$reason · $moves moves · ${minutes}m ${seconds}s';
+  }
+
+  @override
+  String get resultRankGain => '+1 step';
+
+  @override
+  String get resultRankLoss => '−1 step';
+
+  @override
+  String resultRankKept(String rank) {
+    return 'Stayed at $rank';
+  }
+
+  @override
+  String reviewBarCounter(int current, int total) {
+    return 'Review $current / $total';
+  }
+
+  @override
+  String chatOpponentLeft(String nickname) {
+    return '$nickname left';
+  }
+
+  @override
+  String get chatNotSent => 'Not sent';
+
+  @override
+  String get chatPreviewHint => 'Chat';
+
+  @override
+  String disconnectCardTitle(String nickname) {
+    return '$nickname disconnected';
+  }
+
+  @override
+  String disconnectCardBody(int seconds, String winner) {
+    return 'If they don\'t return within ${seconds}s, $winner wins';
+  }
+
+  @override
+  String get menuSettings => 'Settings';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get languageSystem => 'Use device setting';
+
+  @override
+  String get languageKorean => '한국어';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get errorSaveSettings =>
+      'Couldn\'t save the setting. Please try again shortly';
 }

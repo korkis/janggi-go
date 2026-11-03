@@ -3,6 +3,7 @@ import 'block_manager.dart';
 import 'challenge_manager.dart';
 import 'connection_manager.dart';
 import 'invite_link_manager.dart';
+import 'language_manager.dart';
 import 'lobby_presence_manager.dart';
 import 'player_state_manager.dart';
 import 'rank_manager.dart';
@@ -21,6 +22,7 @@ class AppManagers {
   final ChallengeManager challengeManager;
   final BlockManager blockManager;
   final SanctionManager sanctionManager;
+  final LanguageManager languageManager;
 
   AppManagers({
     required this.authManager,
@@ -32,6 +34,7 @@ class AppManagers {
     required this.challengeManager,
     required this.blockManager,
     required this.sanctionManager,
+    required this.languageManager,
   });
 
   factory AppManagers.createDefault() {
@@ -48,6 +51,7 @@ class AppManagers {
       challengeManager: ChallengeManager(playerStateManager: playerStateManager),
       blockManager: BlockManager(authManager: authManager),
       sanctionManager: SanctionManager(authManager: authManager),
+      languageManager: LanguageManager(),
     );
   }
 }
