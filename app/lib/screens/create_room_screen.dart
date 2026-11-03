@@ -12,6 +12,7 @@ import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../utils/room_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/piece_icon.dart';
 import 'room_screen.dart';
 
@@ -57,37 +58,40 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final canCreate = !_creating && (!_handicapped || _pieces.isNotEmpty);
-    return Scaffold(
-      appBar: AppBar(
-        // 방 만들기
-        title: Text(l10n.createRoomTitle),
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _buildSide(context),
-                  const SizedBox(height: 24),
-                  _buildHandicap(context),
-                  const SizedBox(height: 24),
-                  _buildListed(context),
-                ],
+    return AppPage(
+      layout: PageLayout.form,
+      child: Scaffold(
+        appBar: AppBar(
+          // 방 만들기
+          title: Text(l10n.createRoomTitle),
+        ),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _buildSide(context),
+                    const SizedBox(height: 24),
+                    _buildHandicap(context),
+                    const SizedBox(height: 24),
+                    _buildListed(context),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: FilledButton(
-                onPressed: canCreate ? _onCreate : null,
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-                // 방 만들기
-                child: Text(l10n.createRoomSubmit),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: FilledButton(
+                  onPressed: canCreate ? _onCreate : null,
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+                  // 방 만들기
+                  child: Text(l10n.createRoomSubmit),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

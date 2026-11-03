@@ -670,6 +670,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lobbyTitle => 'Game rooms';
 
   @override
+  String get menuHome => 'Home';
+
+  @override
   String get lobbyRoomList => 'Rooms';
 
   @override

@@ -159,6 +159,7 @@
   "homeCreateRoom": "Create room",
   "homeResumeRoom": "Back to my room",
   "lobbyTitle": "Game rooms",
+  "menuHome": "Home",
   "lobbyRoomList": "Rooms",
   "lobbyEmpty": "No open rooms right now",
   "lobbyEmptyDescription": "Create a room and wait for an opponent",

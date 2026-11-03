@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/adaptive_layout.dart';
+
 /// 일반 화면(밝은 화면)의 색. 기준은 `docs/ui.md`의 디자인 방향이다.
 abstract final class LightColors {
   static const background = Color(0xFFF4F5F7);
@@ -135,6 +137,9 @@ ThemeData _buildTheme({
   const buttonMinimumSize = Size(minTouchSize, 56);
   return base.copyWith(
     scaffoldBackgroundColor: background,
+    pageTransitionsTheme: PageTransitionsTheme(
+      builders: {for (final platform in TargetPlatform.values) platform: AdaptivePageTransitionsBuilder()},
+    ),
     textTheme: textTheme,
     cardTheme: CardThemeData(
       color: surface,

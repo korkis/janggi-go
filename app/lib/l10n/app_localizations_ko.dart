@@ -624,6 +624,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lobbyTitle => '대국실';
 
   @override
+  String get menuHome => '홈';
+
+  @override
   String get lobbyRoomList => '방 목록';
 
   @override

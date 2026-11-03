@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
 import 'create_room_screen.dart';
@@ -26,37 +27,85 @@ import 'setup_screen.dart';
 ///
 /// 앱의 처음 화면이라 초대 링크로 들어온 방도 여기서 받아 방 대기실로 간다.
 ///
+/// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 대국실은 왼쪽 메뉴로 간다.
+/// 오른쪽 칸의 "지금 볼 만한 대국"은 관전이 생기면 넣고, 그전에는 개발용 대국 카드를 둔다.
+///
 /// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              // 장기고
-              l10n.appTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 20),
-            const _InviteLinkHandler(),
-            const _ResumeGameButton(),
-            const _MyCard(),
-            const SizedBox(height: 16),
-            const _QuickMatchButton(),
-            const SizedBox(height: 12),
-            const _RoomButtons(),
-            const SizedBox(height: 16),
-            if (!kReleaseMode) const _DevGameCard(),
-            if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
-          ],
-        ),
+    final expanded = getLayoutSize(context) == LayoutSize.expanded;
+    return AppPage(
+      menu: AppMenu.home,
+      layout: PageLayout.wide,
+      child: Scaffold(
+        body: _InviteLinkHandler(child: SafeArea(child: expanded ? _buildWide(context) : _buildNarrow(context))),
       ),
+    );
+  }
+
+  Widget _buildNarrow(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(
+          // 장기고
+          l10n.appTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 20),
+        const _ResumeGameButton(),
+        const _MyCard(),
+        const SizedBox(height: 16),
+        const _QuickMatchButton(),
+        const SizedBox(height: 12),
+        const _RoomButtons(showLobby: true),
+        const SizedBox(height: 16),
+        if (!kReleaseMode) const _DevGameCard(),
+        if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
+      ],
+    );
+  }
+
+  /// 1024 이상의 두 칸 배치. 제목 "장기고"는 왼쪽 메뉴 맨 위에 있다.
+  Widget _buildWide(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: LayoutWidths.homeLeftColumn,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(32, 32, 12, 32),
+            children: const [
+              _ResumeGameButton(),
+              _MyCard(),
+              SizedBox(height: 16),
+              _QuickMatchButton(),
+              SizedBox(height: 12),
+              _RoomButtons(showLobby: false),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(12, 32, 32, 32),
+            children: [
+              if (!kReleaseMode)
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _DevGameCard()),
+                    SizedBox(width: 16),
+                    Expanded(child: _DevOnlineGameCard()),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -117,9 +166,12 @@ class _ResumeGameButton extends StatelessWidget {
 }
 
 /// 방 만들기 버튼과 대국실 버튼(`docs/screens.md`의 홈). 대국실은 아래쪽 탭이 생기기 전까지 버튼으로 둔다.
+/// 1024 이상은 대국실이 왼쪽 메뉴에 있어 [showLobby]를 끈다.
 /// 로그인과 닉네임을 거친 뒤 간다. 이미 방에 있으면 방 만들기 대신 그 방으로 간다.
 class _RoomButtons extends StatelessWidget {
-  const _RoomButtons();
+  final bool showLobby;
+
+  const _RoomButtons({required this.showLobby});
 
   @override
   Widget build(BuildContext context) {
@@ -135,16 +187,18 @@ class _RoomButtons extends StatelessWidget {
             label: Text(l10n.homeCreateRoom),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: () => _onLobby(context),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-            icon: const Icon(Icons.groups),
-            // 대국실
-            label: Text(l10n.lobbyTitle),
+        if (showLobby) ...[
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton.tonalIcon(
+              onPressed: () => LobbyScreen.open(context),
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+              icon: const Icon(Icons.groups),
+              // 대국실
+              label: Text(l10n.lobbyTitle),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -161,22 +215,18 @@ class _RoomButtons extends StatelessWidget {
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const CreateRoomScreen()));
   }
-
-  Future<void> _onLobby(BuildContext context) async {
-    final ready = await ensureSignedInWithProfile(context, LoginPurpose.lobby);
-    if (!ready || !context.mounted) {
-      return;
-    }
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const LobbyScreen()));
-  }
 }
 
-/// 초대 링크로 들어온 방을 받아 로그인과 닉네임을 거친 뒤 방 대기실로 간다(`docs/game/matching.md`의 링크). 보이는 것은 없다.
+/// 초대 링크로 들어온 방을 받아 로그인과 닉네임을 거친 뒤 방 대기실로 간다(`docs/game/matching.md`의 링크).
 ///
 /// 앱을 연 링크, 앱이 켜져 있는 동안 누른 링크, 안드로이드에서 링크로 설치한 뒤 처음 켠 때가 모두 [InviteLinkManager]로 온다.
 /// 다른 화면 위에서 링크가 와도 홈이 그 위에 로그인 창과 방 대기실을 띄운다.
+///
+/// 창 크기가 바뀌어 홈 배치가 바뀌어도 들어가던 방을 놓치지 않게 [child]를 감싸 배치 바깥에 둔다.
 class _InviteLinkHandler extends StatefulWidget {
-  const _InviteLinkHandler();
+  final Widget child;
+
+  const _InviteLinkHandler({required this.child});
 
   @override
   State<_InviteLinkHandler> createState() => _InviteLinkHandlerState();
@@ -200,7 +250,7 @@ class _InviteLinkHandlerState extends State<_InviteLinkHandler> {
   }
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) => widget.child;
 
   /// 홈이 뜨기 전에 온 링크(앱을 연 링크)를 받는다.
   void _onFirstFrame(Duration timeStamp) {

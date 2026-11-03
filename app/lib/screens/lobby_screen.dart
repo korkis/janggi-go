@@ -7,6 +7,7 @@ import '../models/room.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/rank_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/room_condition_chips.dart';
 import 'create_room_screen.dart';
 import 'login_flow.dart';
@@ -18,6 +19,19 @@ import 'room_join_flow.dart';
 /// 열린 방이 없을 때의 관전 목록과 AI 대국 버튼(`docs/game/matching.md`의 방 목록)은 관전(10번)과 AI 대국(4단계)이 생기면 넣는다.
 class LobbyScreen extends StatefulWidget {
   const LobbyScreen({super.key});
+
+  /// 로그인과 닉네임을 거친 뒤 처음 화면(홈) 위에 대국실을 연다. 홈의 대국실 버튼과 왼쪽 메뉴가 같이 쓴다.
+  static Future<void> open(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final ready = await ensureSignedInWithProfile(context, LoginPurpose.lobby);
+    if (!ready) {
+      return;
+    }
+    navigator.popUntil(_isFirstRoute);
+    await navigator.push(MaterialPageRoute<void>(builder: (context) => const LobbyScreen()));
+  }
+
+  static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
 
   @override
   State<LobbyScreen> createState() => _LobbyScreenState();
@@ -40,21 +54,25 @@ class _LobbyScreenState extends State<LobbyScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        // 대국실
-        title: Text(l10n.lobbyTitle),
-        actions: [
-          IconButton(
-            onPressed: _onCreateRoom,
-            icon: const Icon(Icons.add),
-            // 방 만들기
-            tooltip: l10n.homeCreateRoom,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(onRefresh: _loadRooms, child: _buildList(context)),
+    return AppPage(
+      menu: AppMenu.lobby,
+      layout: PageLayout.wide,
+      child: Scaffold(
+        appBar: AppBar(
+          // 대국실
+          title: Text(l10n.lobbyTitle),
+          actions: [
+            IconButton(
+              onPressed: _onCreateRoom,
+              icon: const Icon(Icons.add),
+              // 방 만들기
+              tooltip: l10n.homeCreateRoom,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: RefreshIndicator(onRefresh: _loadRooms, child: _buildList(context)),
+        ),
       ),
     );
   }
@@ -107,15 +125,35 @@ class _LobbyScreenState extends State<LobbyScreen> {
         ),
       ]);
     } else {
-      for (final entry in rooms) {
-        children.add(_RoomTile(room: entry.room, joining: _joiningRoomId != null, onEnter: () => _onEnter(entry.id)));
-      }
+      final tiles = [
+        for (final entry in rooms)
+          _RoomTile(room: entry.room, joining: _joiningRoomId != null, onEnter: () => _onEnter(entry.id)),
+      ];
+      children.addAll(getLayoutSize(context) == LayoutSize.expanded ? _pairTiles(tiles) : tiles);
     }
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       children: children,
     );
+  }
+
+  /// 1024 이상에서 방 목록을 2열로 놓는다.
+  List<Widget> _pairTiles(List<Widget> tiles) {
+    return [
+      for (var i = 0; i < tiles.length; i += 2)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: tiles[i]),
+              const SizedBox(width: 12),
+              Expanded(child: i + 1 < tiles.length ? tiles[i + 1] : const SizedBox.shrink()),
+            ],
+          ),
+        ),
+    ];
   }
 
   Future<void> _loadRooms() async {

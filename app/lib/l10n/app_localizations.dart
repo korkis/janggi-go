@@ -1052,6 +1052,12 @@ abstract class AppLocalizations {
   /// **'대국실'**
   String get lobbyTitle;
 
+  /// 넓은 화면 왼쪽 메뉴의 홈
+  ///
+  /// In ko, this message translates to:
+  /// **'홈'**
+  String get menuHome;
+
   /// 대국실의 방 목록 제목
   ///
   /// In ko, this message translates to:

@@ -8,6 +8,7 @@ import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
+import '../widgets/adaptive_layout.dart';
 
 /// 이메일 로그인과 이메일 가입 화면(`docs/screens.md`의 이메일 로그인). 로그인하면 true를 돌려주며 닫는다.
 class EmailLoginScreen extends StatefulWidget {
@@ -48,139 +49,143 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final signUp = widget.signUp;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: LightColors.background,
-        surfaceTintColor: Colors.transparent,
-        leading: BackButton(onPressed: _onBack),
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                children: [
-                  Text(
-                    // 이메일로 가입하기 / 이메일로 로그인
-                    signUp ? l10n.emailSignUpTitle : l10n.emailLoginTitle,
-                    style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    // 로그인에 쓸 이메일과 비밀번호를 정해 주세요. / 가입할 때 쓴 이메일과 비밀번호를 넣어 주세요.
-                    signUp ? l10n.emailSignUpDescription : l10n.emailLoginDescription,
-                    style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
-                  ),
-                  const SizedBox(height: 28),
-                  _FieldLabel(
-                    // 이메일
-                    l10n.email,
-                  ),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    autocorrect: false,
-                    textInputAction: TextInputAction.next,
-                    style: const TextStyle(fontSize: AppTextSizes.body),
-                    decoration: _inputDecoration(errorText: _emailError),
-                  ),
-                  const SizedBox(height: 16),
-                  _FieldLabel(
-                    // 비밀번호
-                    l10n.password,
-                  ),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: !_passwordVisible,
-                    autofillHints: [signUp ? AutofillHints.newPassword : AutofillHints.password],
-                    textInputAction: signUp ? TextInputAction.next : TextInputAction.done,
-                    onSubmitted: signUp ? null : _onSubmitted,
-                    style: const TextStyle(fontSize: AppTextSizes.body),
-                    decoration: _inputDecoration(
-                      errorText: _passwordError,
-                      suffixIcon: IconButton(
-                        onPressed: _onTogglePasswordVisible,
-                        // 비밀번호 숨기기 / 비밀번호 보기
-                        tooltip: _passwordVisible ? l10n.hidePassword : l10n.showPassword,
-                        icon: Icon(_passwordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                      ),
+    return AppPage(
+      layout: PageLayout.form,
+      child: Scaffold(
+        appBar: AppBar(
+          // 넓은 화면의 흰 카드 안에서는 흰 바탕이 된다.
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          surfaceTintColor: Colors.transparent,
+          leading: BackButton(onPressed: _onBack),
+        ),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  children: [
+                    Text(
+                      // 이메일로 가입하기 / 이메일로 로그인
+                      signUp ? l10n.emailSignUpTitle : l10n.emailLoginTitle,
+                      style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800),
                     ),
-                  ),
-                  if (signUp) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 6),
+                    Text(
+                      // 로그인에 쓸 이메일과 비밀번호를 정해 주세요. / 가입할 때 쓴 이메일과 비밀번호를 넣어 주세요.
+                      signUp ? l10n.emailSignUpDescription : l10n.emailLoginDescription,
+                      style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+                    ),
+                    const SizedBox(height: 28),
                     _FieldLabel(
-                      // 비밀번호 확인
-                      l10n.passwordConfirm,
+                      // 이메일
+                      l10n.email,
                     ),
                     TextField(
-                      controller: _passwordConfirmController,
-                      obscureText: !_passwordConfirmVisible,
-                      autofillHints: const [AutofillHints.newPassword],
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: _onSubmitted,
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
+                      autocorrect: false,
+                      textInputAction: TextInputAction.next,
+                      style: const TextStyle(fontSize: AppTextSizes.body),
+                      decoration: _inputDecoration(errorText: _emailError),
+                    ),
+                    const SizedBox(height: 16),
+                    _FieldLabel(
+                      // 비밀번호
+                      l10n.password,
+                    ),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: !_passwordVisible,
+                      autofillHints: [signUp ? AutofillHints.newPassword : AutofillHints.password],
+                      textInputAction: signUp ? TextInputAction.next : TextInputAction.done,
+                      onSubmitted: signUp ? null : _onSubmitted,
                       style: const TextStyle(fontSize: AppTextSizes.body),
                       decoration: _inputDecoration(
-                        errorText: _passwordConfirmError,
+                        errorText: _passwordError,
                         suffixIcon: IconButton(
-                          onPressed: _onTogglePasswordConfirmVisible,
-                          // 비밀번호 확인 숨기기 / 비밀번호 확인 보기
-                          tooltip: _passwordConfirmVisible ? l10n.hidePasswordConfirm : l10n.showPasswordConfirm,
-                          icon: Icon(
-                            _passwordConfirmVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          onPressed: _onTogglePasswordVisible,
+                          // 비밀번호 숨기기 / 비밀번호 보기
+                          tooltip: _passwordVisible ? l10n.hidePassword : l10n.showPassword,
+                          icon: Icon(_passwordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                        ),
+                      ),
+                    ),
+                    if (signUp) ...[
+                      const SizedBox(height: 16),
+                      _FieldLabel(
+                        // 비밀번호 확인
+                        l10n.passwordConfirm,
+                      ),
+                      TextField(
+                        controller: _passwordConfirmController,
+                        obscureText: !_passwordConfirmVisible,
+                        autofillHints: const [AutofillHints.newPassword],
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: _onSubmitted,
+                        style: const TextStyle(fontSize: AppTextSizes.body),
+                        decoration: _inputDecoration(
+                          errorText: _passwordConfirmError,
+                          suffixIcon: IconButton(
+                            onPressed: _onTogglePasswordConfirmVisible,
+                            // 비밀번호 확인 숨기기 / 비밀번호 확인 보기
+                            tooltip: _passwordConfirmVisible ? l10n.hidePasswordConfirm : l10n.showPasswordConfirm,
+                            icon: Icon(
+                              _passwordConfirmVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ] else
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _submitting ? null : _onForgotPassword,
-                        // 비밀번호를 잊으셨나요?
-                        child: Text(l10n.forgotPassword),
+                    ] else
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _submitting ? null : _onForgotPassword,
+                          // 비밀번호를 잊으셨나요?
+                          child: Text(l10n.forgotPassword),
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  FilledButton(
-                    onPressed: _submitting ? null : _onSubmit,
-                    child: _submitting
-                        ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                        // 가입하기 / 로그인
-                        : Text(signUp ? l10n.signUp : l10n.login),
-                  ),
-                  if (!signUp) ...[
-                    const SizedBox(height: 4),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          // 처음이신가요?
-                          l10n.emailSignUpPrompt,
-                          style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
-                        ),
-                        TextButton(
-                          onPressed: _submitting ? null : _onSignUp,
-                          // 이메일로 가입하기
-                          child: Text(l10n.emailSignUpTitle),
-                        ),
-                      ],
-                    ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FilledButton(
+                      onPressed: _submitting ? null : _onSubmit,
+                      child: _submitting
+                          ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                          // 가입하기 / 로그인
+                          : Text(signUp ? l10n.signUp : l10n.login),
+                    ),
+                    if (!signUp) ...[
+                      const SizedBox(height: 4),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            // 처음이신가요?
+                            l10n.emailSignUpPrompt,
+                            style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+                          ),
+                          TextButton(
+                            onPressed: _submitting ? null : _onSignUp,
+                            // 이메일로 가입하기
+                            child: Text(l10n.emailSignUpTitle),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

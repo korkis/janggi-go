@@ -815,6 +815,10 @@
   "@lobbyTitle": {
     "description": "대국실 화면 제목과 홈의 대국실 버튼"
   },
+  "menuHome": "홈",
+  "@menuHome": {
+    "description": "넓은 화면 왼쪽 메뉴의 홈"
+  },
   "lobbyRoomList": "방 목록",
   "@lobbyRoomList": {
     "description": "대국실의 방 목록 제목"

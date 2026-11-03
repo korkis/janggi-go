@@ -7,6 +7,7 @@ import '../managers/app_managers.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/brand_logos.dart';
 import 'email_login_screen.dart';
 import 'login_flow.dart';
@@ -14,6 +15,8 @@ import 'login_flow.dart';
 enum _SignInMethod { google, apple }
 
 /// 하던 화면 위에 아래에서 올라오는 로그인 창(`docs/screens.md`의 로그인 창).
+///
+/// 600 이상은 폭 480으로 모으고, 1024 이상은 아래에서 올리지 않고 가운데 카드로 띄운다(`docs/ui.md`의 넓은 화면).
 class LoginSheet extends StatefulWidget {
   final LoginPurpose purpose;
 
@@ -21,10 +24,28 @@ class LoginSheet extends StatefulWidget {
 
   /// 로그인 창을 띄운다. 로그인했으면 true, 닫았으면 false.
   static Future<bool> show(BuildContext context, LoginPurpose purpose) async {
+    if (getLayoutSize(context) == LayoutSize.expanded) {
+      final signedIn = await showDialog<bool>(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: LightColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: LayoutWidths.formCard),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 28),
+              child: LoginSheet(purpose: purpose),
+            ),
+          ),
+        ),
+      );
+      return signedIn ?? false;
+    }
     final signedIn = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      constraints: const BoxConstraints(maxWidth: LayoutWidths.mediumContent),
       builder: (context) => LoginSheet(purpose: purpose),
     );
     return signedIn ?? false;
@@ -174,9 +195,8 @@ class _LoginSheetState extends State<LoginSheet> {
   }
 
   Future<void> _onEmail() async {
-    final signedIn = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (context) => const EmailLoginScreen(signUp: false)));
+    final signedIn = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (context) => const EmailLoginScreen(signUp: false)));
     if (signedIn == true && mounted) {
       Navigator.of(context).pop(true);
     }
@@ -220,10 +240,7 @@ class _SignInButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (loading)
-            SizedBox.square(
-              dimension: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground),
-            )
+            SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground))
           else
             icon,
           const SizedBox(width: 10),

@@ -16,6 +16,7 @@ import '../utils/dialog_utils.dart';
 import '../utils/invite_link.dart';
 import '../utils/rank_format.dart';
 import '../utils/room_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/room_condition_chips.dart';
 import 'setup_screen.dart';
@@ -95,9 +96,12 @@ class _RoomScreenState extends State<RoomScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: _onPopInvoked,
-      child: ListenableBuilder(
-        listenable: Listenable.merge([_room, managers.playerStateManager]),
-        builder: _buildContent,
+      child: AppPage(
+        layout: PageLayout.form,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([_room, managers.playerStateManager]),
+          builder: _buildContent,
+        ),
       ),
     );
   }

@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/player_bar.dart';
 import 'login_flow.dart';
 
@@ -77,100 +78,103 @@ class _NicknameScreenState extends State<NicknameScreen> {
     final startHint = _getStartHint(l10n);
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
-                  children: [
-                    Text(
-                      // 장기판에서 쓸\n이름을 정해 주세요
-                      l10n.nicknameTitle,
-                      style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800, height: 1.35),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      // 대국 상대와 관전하는 사람에게 보여요.
-                      l10n.nicknameDescription,
-                      style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      // 닉네임
-                      l10n.nickname,
-                      style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      maxLength: NicknameRules.maxLength,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: _onSubmitted,
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: LightColors.surface,
-                        counterText: '',
-                        // 3/10
-                        suffixText: l10n.nicknameLength(nickname.length, NicknameRules.maxLength),
-                        suffixStyle: const TextStyle(fontSize: 15, color: LightColors.subText),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: LightColors.outline, width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: LightColors.accent, width: 2),
+      child: AppPage(
+        layout: PageLayout.form,
+        child: Scaffold(
+          body: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+                    children: [
+                      Text(
+                        // 장기판에서 쓸\n이름을 정해 주세요
+                        l10n.nicknameTitle,
+                        style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800, height: 1.35),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        // 대국 상대와 관전하는 사람에게 보여요.
+                        l10n.nicknameDescription,
+                        style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        // 닉네임
+                        l10n.nickname,
+                        style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        maxLength: NicknameRules.maxLength,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: _onSubmitted,
+                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: LightColors.surface,
+                          counterText: '',
+                          // 3/10
+                          suffixText: l10n.nicknameLength(nickname.length, NicknameRules.maxLength),
+                          suffixStyle: const TextStyle(fontSize: 15, color: LightColors.subText),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: LightColors.outline, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: LightColors.accent, width: 2),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildStatus(l10n),
-                    Text(
-                      // 한글, 영문, 숫자로 2~10자
-                      l10n.nicknameRule(NicknameRules.minLength, NicknameRules.maxLength),
-                      style: const TextStyle(fontSize: 15, color: LightColors.subText),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      // 대국 화면에서는 이렇게 보여요
-                      l10n.nicknamePreviewLabel,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: LightColors.subText),
-                    ),
-                    const SizedBox(height: 10),
-                    _NicknamePreview(nickname: nickname, rankLevel: _initialRankLevel),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (startHint != null) ...[
+                      const SizedBox(height: 8),
+                      _buildStatus(l10n),
                       Text(
-                        startHint,
-                        textAlign: TextAlign.center,
+                        // 한글, 영문, 숫자로 2~10자
+                        l10n.nicknameRule(NicknameRules.minLength, NicknameRules.maxLength),
                         style: const TextStyle(fontSize: 15, color: LightColors.subText),
                       ),
+                      const SizedBox(height: 28),
+                      Text(
+                        // 대국 화면에서는 이렇게 보여요
+                        l10n.nicknamePreviewLabel,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: LightColors.subText),
+                      ),
                       const SizedBox(height: 10),
+                      _NicknamePreview(nickname: nickname, rankLevel: _initialRankLevel),
                     ],
-                    FilledButton(
-                      onPressed: _canSubmit ? _onSubmit : null,
-                      child: _submitting
-                          ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                          // 시작하기
-                          : Text(l10n.nicknameStart),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (startHint != null) ...[
+                        Text(
+                          startHint,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 15, color: LightColors.subText),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      FilledButton(
+                        onPressed: _canSubmit ? _onSubmit : null,
+                        child: _submitting
+                            ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                            // 시작하기
+                            : Text(l10n.nicknameStart),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -215,7 +219,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
         return _StatusLine(
           icon: Icon(Icons.error_outline, size: 18, color: Theme.of(context).colorScheme.error),
           // 쓸 수 없는 닉네임이에요
-          text: reason == null ? l10n.nicknameUnavailable : AppException.fromNicknameRejectReason(reason).getMessage(l10n),
+          text: reason == null
+              ? l10n.nicknameUnavailable
+              : AppException.fromNicknameRejectReason(reason).getMessage(l10n),
           color: Theme.of(context).colorScheme.error,
         );
       case _NicknameStatus.checkFailed:
@@ -369,7 +375,11 @@ class _NicknamePreview extends StatelessWidget {
                   nickname,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700, color: GameColors.text),
+                  style: const TextStyle(
+                    fontSize: AppTextSizes.body,
+                    fontWeight: FontWeight.w700,
+                    color: GameColors.text,
+                  ),
                 ),
                 Text(
                   // 18급 · 첫 대국
