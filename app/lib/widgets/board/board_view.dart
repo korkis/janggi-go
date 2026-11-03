@@ -14,7 +14,7 @@ import 'pieces_painter.dart';
 /// 장기판. 판과 기물을 [CustomPainter]로 그리고, 누른 교차점을 [onSquareTap]으로 알린다.
 ///
 /// 판은 주어진 공간 안에서 비율을 지키며 가장 크게 그리고, 높이는 판 높이만큼만 차지한다.
-/// 장군이면([checkedSide]) 장군 연출을 판 위에 띄운다(`docs/ui.md`의 연출). 장군을 건 수가 판에 들어올 때마다 장군 받은 궁 위에 작은 도장을 찍고,
+/// 장군이면([checkedSide]) 장군 연출을 판 위에 띄운다(`docs/ui.md`의 연출). 장군을 건 수가 판에 들어올 때마다 큰 도장을 찍고,
 /// 장군이 풀릴 때까지 장군을 건 기물에 빨간 테두리를 둔다.
 class BoardView extends StatefulWidget {
   /// 기물 이동 애니메이션 시간(`docs/ui.md`의 연출). 수를 놓치지 않을 만큼 길고 대국 흐름을 늦추지 않을 만큼 짧다.
@@ -63,7 +63,7 @@ class BoardView extends StatefulWidget {
 class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
   late final AnimationController _moveController;
 
-  // 궁 위 작은 장군 도장 연출. 이동 애니메이션과 같은 때 시작한다. 연출 중이 아니면 0이다.
+  // 장군의 큰 도장 연출. 이동 애니메이션과 같은 때 시작한다. 연출 중이 아니면 0이다.
   late final AnimationController _checkController;
   BoardImages? _images;
 
@@ -74,7 +74,7 @@ class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _moveController = AnimationController(vsync: this, duration: BoardView.moveDuration, value: 1);
-    _checkController = AnimationController(vsync: this, duration: CheckStampPop.duration);
+    _checkController = AnimationController(vsync: this, duration: BigCheckStamp.duration);
     _images = BoardImages.getLoaded(widget.material);
     if (_images == null) {
       _loadImages();
@@ -177,14 +177,7 @@ class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
                 ),
                 IgnorePointer(
                   // 장군
-                  child: CheckStampPop(
-                    progress: _checkController,
-                    label: l10n.check,
-                    position: widget.position,
-                    side: checkedSide,
-                    flipped: widget.flipped,
-                    boardSize: size,
-                  ),
+                  child: BigCheckStamp(progress: _checkController, label: l10n.check, boardSize: size),
                 ),
               ],
             ],
