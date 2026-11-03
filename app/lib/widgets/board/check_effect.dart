@@ -112,7 +112,7 @@ class CheckStamp extends StatelessWidget {
   }
 }
 
-/// 장군을 걸 때마다 띄우는 연출. 판 가운데에 큰 도장이 위에서 떨어지며 쿵 찍히고, 붉은 원이 한 번 퍼지고, 머문 뒤 먹이 번지듯
+/// 장군을 걸 때마다 띄우는 연출. 판 가운데에 큰 도장이 살짝 크게 나타나며 제자리에 차분히 내려앉고, 머문 뒤 먹이 번지듯
 /// 흐려지며 사라진다. 판은 어둡게 하지 않는다. [progress]는 이동 애니메이션이 시작한 때부터의 진행도(0~1)다.
 class BigCheckStamp extends StatelessWidget {
   /// 연출 전체 시간. 처음 0.35초는 기물이 움직여 내려앉는 시간이다.
@@ -136,30 +136,23 @@ class BigCheckStamp extends StatelessWidget {
     if (t <= 0 || t >= 1) {
       return const SizedBox.shrink();
     }
-    final drop = Curves.easeIn.transform(_interval(t, 400, 650));
-    final ring = _interval(t, 650, 1250);
+    final appear = Curves.easeOutCubic.transform(_interval(t, 400, 700));
     final fade = Curves.easeIn.transform(_interval(t, 2150, 2650));
+    if (appear <= 0) {
+      return const SizedBox.shrink();
+    }
     final size = boardSize.shortestSide * 0.5;
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        if (ring > 0 && ring < 1)
-          CustomPaint(
-            size: Size.square(size * (0.7 + ring * 1.3)),
-            painter: _RingPainter(opacity: (1 - ring) * 0.9, width: size * 0.05),
+    return Center(
+      child: Opacity(
+        opacity: appear * (1 - fade),
+        child: ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: fade * size * 0.06, sigmaY: fade * size * 0.06),
+          child: Transform.scale(
+            scale: (1.15 - 0.15 * appear) * (1 + fade * 0.08),
+            child: CheckStamp(size: size, label: label),
           ),
-        if (drop > 0)
-          Opacity(
-            opacity: drop * (1 - fade),
-            child: ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(sigmaX: fade * size * 0.06, sigmaY: fade * size * 0.06),
-              child: Transform.scale(
-                scale: (2.4 - 1.4 * drop) * (1 + fade * 0.08),
-                child: CheckStamp(size: size, label: label),
-              ),
-            ),
-          ),
-      ],
+        ),
+      ),
     );
   }
 
@@ -168,27 +161,4 @@ class BigCheckStamp extends StatelessWidget {
     final ms = t * duration.inMilliseconds;
     return ((ms - startMs) / (endMs - startMs)).clamp(0.0, 1.0);
   }
-}
-
-/// 도장이 찍힐 때 한 번 퍼지는 붉은 원.
-class _RingPainter extends CustomPainter {
-  final double opacity;
-  final double width;
-
-  const _RingPainter({required this.opacity, required this.width});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(
-      size.center(Offset.zero),
-      size.shortestSide / 2,
-      Paint()
-        ..color = CheckColors.stamp.withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter oldDelegate) => oldDelegate.opacity != opacity || oldDelegate.width != width;
 }
