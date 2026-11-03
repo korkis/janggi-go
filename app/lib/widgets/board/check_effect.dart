@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:janggi_core/janggi_core.dart';
@@ -112,19 +111,35 @@ class CheckStamp extends StatelessWidget {
   }
 }
 
-/// 장군을 걸 때마다 띄우는 연출. 판 가운데에 큰 도장이 위에서 떨어지며 쿵 찍히고, 붉은 원이 한 번 퍼지고, 머문 뒤 먹이 번지듯
-/// 흐려지며 사라진다. 판은 어둡게 하지 않는다. [progress]는 이동 애니메이션이 시작한 때부터의 진행도(0~1)다.
-class BigCheckStamp extends StatelessWidget {
+/// 장군을 걸 때마다 장군 받은 궁 바로 위에 작은 "장군" 도장을 찍는다(`docs/ui.md`의 연출). 기물이 내려앉은 뒤 조금 크게
+/// 나타나 제자리로 톡 찍히고, 잠시 머문 뒤 흐려지며 사라진다. 판을 가리지 않도록 칸 크기만 하다.
+/// [progress]는 이동 애니메이션이 시작한 때부터의 진행도(0~1)다.
+class CheckStampPop extends StatelessWidget {
   /// 연출 전체 시간. 처음 0.35초는 기물이 움직여 내려앉는 시간이다.
-  static const duration = Duration(milliseconds: 2650);
+  static const duration = Duration(milliseconds: 1850);
+
+  /// 도장 한 변(칸 크기의 배수)과 궁 가운데에서 도장 가운데까지의 높이.
+  static const _sizeCells = 1.1;
+  static const _liftCells = 0.95;
 
   final Animation<double> progress;
   final String label;
+  final Position position;
 
-  /// 판 크기. 도장은 판 짧은 변의 절반이다.
+  /// 장군 받은 진영.
+  final Side side;
+  final bool flipped;
   final Size boardSize;
 
-  const BigCheckStamp({super.key, required this.progress, required this.label, required this.boardSize});
+  const CheckStampPop({
+    super.key,
+    required this.progress,
+    required this.label,
+    required this.position,
+    required this.side,
+    required this.flipped,
+    required this.boardSize,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -133,34 +148,42 @@ class BigCheckStamp extends StatelessWidget {
 
   Widget _buildStamp(BuildContext context, Widget? child) {
     final t = progress.value;
-    if (t <= 0 || t >= 1) {
+    final king = _getKingSquare();
+    if (t <= 0 || t >= 1 || king == null) {
       return const SizedBox.shrink();
     }
-    final drop = Curves.easeIn.transform(_interval(t, 400, 650));
-    final ring = _interval(t, 650, 1250);
-    final fade = Curves.easeIn.transform(_interval(t, 2150, 2650));
-    final size = boardSize.shortestSide * 0.5;
+    final pop = Curves.easeOut.transform(_interval(t, 350, 550));
+    final fade = Curves.easeIn.transform(_interval(t, 1550, 1850));
+    if (pop <= 0) {
+      return const SizedBox.shrink();
+    }
+    final geometry = BoardGeometry(boardSize, flipped: flipped);
+    final size = geometry.cell * _sizeCells;
+    final center = geometry.centerOf(king).translate(0, -geometry.cell * _liftCells);
     return Stack(
-      alignment: Alignment.center,
       children: [
-        if (ring > 0 && ring < 1)
-          CustomPaint(
-            size: Size.square(size * (0.7 + ring * 1.3)),
-            painter: _RingPainter(opacity: (1 - ring) * 0.9, width: size * 0.05),
-          ),
-        if (drop > 0)
-          Opacity(
-            opacity: drop * (1 - fade),
-            child: ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(sigmaX: fade * size * 0.06, sigmaY: fade * size * 0.06),
-              child: Transform.scale(
-                scale: (2.4 - 1.4 * drop) * (1 + fade * 0.08),
-                child: CheckStamp(size: size, label: label),
-              ),
+        Positioned(
+          left: center.dx - size / 2,
+          top: center.dy - size * 0.31,
+          child: Opacity(
+            opacity: pop * (1 - fade),
+            child: Transform.scale(
+              scale: 1.3 - 0.3 * pop,
+              child: CheckStamp(size: size, label: label),
             ),
           ),
+        ),
       ],
     );
+  }
+
+  Square? _getKingSquare() {
+    for (final MapEntry(key: square, value: piece) in position.pieces.entries) {
+      if (piece == Piece(side, PieceType.king)) {
+        return square;
+      }
+    }
+    return null;
   }
 
   /// 전체 진행도 [t]가 [startMs]~[endMs] 구간에서 어디쯤인지(0~1).
@@ -168,27 +191,4 @@ class BigCheckStamp extends StatelessWidget {
     final ms = t * duration.inMilliseconds;
     return ((ms - startMs) / (endMs - startMs)).clamp(0.0, 1.0);
   }
-}
-
-/// 도장이 찍힐 때 한 번 퍼지는 붉은 원.
-class _RingPainter extends CustomPainter {
-  final double opacity;
-  final double width;
-
-  const _RingPainter({required this.opacity, required this.width});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(
-      size.center(Offset.zero),
-      size.shortestSide / 2,
-      Paint()
-        ..color = CheckColors.stamp.withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter oldDelegate) => oldDelegate.opacity != opacity || oldDelegate.width != width;
 }
