@@ -142,6 +142,51 @@ void main() {
       expect(second.state.result?.winner.name, 'cho');
     });
 
+    test('공개 대국은 상차림이 끝나면 관전 목록에 올리고 관전자를 세고 끝나면 지운다', () async {
+      final cho = await createEmulatorAccount(client, server.firestore);
+      final han = await createEmulatorAccount(client, server.firestore);
+      final gameId = await createGame(cho, han);
+      final spectateList = server.repositories.spectateList;
+
+      // 상차림 중에는 국면이 없어 올리지 않는다.
+      expect(await spectateList.getEntry(gameId), isNull);
+      await callOk(han, 'setFormation', {
+        'gameId': gameId,
+        'formation': 'horseElephantHorseElephant',
+        'confirmed': true,
+      });
+      await callOk(cho, 'setFormation', {
+        'gameId': gameId,
+        'formation': 'horseElephantHorseElephant',
+        'confirmed': true,
+      });
+      var entry = await spectateList.getEntry(gameId);
+      final game = await getGame(gameId);
+      expect(entry?.players.cho.nickname, cho.nickname);
+      expect(entry?.players.han.rankLevel, game.meta.players.han.rankLevel);
+      expect(entry?.fen, game.state.initialFen);
+      expect(entry?.moveCount, 0);
+      expect(entry?.handicapped, false);
+      expect(entry?.spectatorCount, 0);
+      expect(entry?.startedAt, game.state.setup.startsAt);
+
+      // 관전 화면을 연 앱 대신 테스트가 관전자 표시를 쓴다. 수를 받을 때 센다.
+      await server.rtdb.put('spectators/$gameId/${randomId(20)}', {'.sv': 'timestamp'});
+      await server.rtdb.put('spectators/$gameId/${randomId(20)}', {'.sv': 'timestamp'});
+      await callOk(cho, 'playMove', {'gameId': gameId, 'moveIndex': 0, 'move': 'a4b4'});
+      entry = await spectateList.getEntry(gameId);
+      expect(entry?.moveCount, 1);
+      expect(entry?.spectatorCount, 2);
+      expect(entry?.fen, isNot(game.state.initialFen));
+
+      await callOk(han, 'resign', {'gameId': gameId});
+      expect(await spectateList.getEntry(gameId), isNull);
+
+      // RTDB에서 대국을 지울 때 관전자 표시도 지운다.
+      await server.gameService.cleanupGame(gameId, now: DateTime.now().toUtc().add(const Duration(hours: 1)));
+      expect(await server.rtdb.get('spectators/$gameId'), isNull);
+    });
+
     test('상차림 마감과 시간패를 예약 작업이 판정한다', () async {
       final cho = await createEmulatorAccount(client, server.firestore);
       final han = await createEmulatorAccount(client, server.firestore);
