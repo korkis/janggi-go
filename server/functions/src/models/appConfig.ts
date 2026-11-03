@@ -9,3 +9,12 @@ export interface AppConfig {
   autoSanctionEnabled: boolean;
   heartbeatSeconds: number;
 }
+
+/** configs/app의 처음 값(docs/server.md의 "configs/app"). */
+export const INITIAL_APP_CONFIG: AppConfig = {
+  disconnectLimitSeconds: 30,
+  quickRematchLimit: 5,
+  onlineUsersVisible: false,
+  autoSanctionEnabled: false,
+  heartbeatSeconds: 5,
+};

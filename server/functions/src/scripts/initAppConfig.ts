@@ -1,15 +1,6 @@
 import {initializeApp} from "firebase-admin/app";
-import {AppConfig} from "../models/appConfig";
+import {INITIAL_APP_CONFIG} from "../models/appConfig";
 import {createAppConfigIfAbsent} from "../repositories/configsRepository";
-
-// configs/app의 처음 값(docs/server.md의 "configs/app").
-const INITIAL_APP_CONFIG: AppConfig = {
-  disconnectLimitSeconds: 30,
-  quickRematchLimit: 5,
-  onlineUsersVisible: false,
-  autoSanctionEnabled: false,
-  heartbeatSeconds: 5,
-};
 
 /**
  * configs/app이 없으면 처음 값으로 만든다. 이미 있으면 바꾸지 않는다.

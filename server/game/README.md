@@ -74,6 +74,12 @@ Cloud Run(`K_SERVICE`가 있는 곳)에서 `GAME_ENV=production` 없이 켜지�
    npm run emulators
    ```
 
+   에뮬레이터는 끄면 데이터가 모두 지워진다. 띄울 때마다 다른 터미널에서 `configs/app`과 테스트 계정 네 개(닉네임까지 정한 상태, 첫 계정은 관리자)를 만든다. 계정과 비밀번호는 [seedEmulator.ts](../functions/src/scripts/seedEmulator.ts)에 있다. `emulators:export`·`--export-on-exit`는 이 PC(Windows)에서 내보낸 폴더를 옮기는 단계가 실패해서 쓰지 않는다.
+
+   ```bash
+   npm run seed
+   ```
+
 2. 대국 서버를 띄운다. `server/game`에서:
 
    ```bash
@@ -94,11 +100,7 @@ Cloud Run(`K_SERVICE`가 있는 곳)에서 `GAME_ENV=production` 없이 켜지�
 
    3초 뒤 서버 로그에 `devPing task 실행`이 찍힌다.
 
-`devPing`, `devCreateGame`, `/tasks/devPing`은 에뮬레이터에서만 열린다. `devCreateGame`은 `configs/app`을 읽으므로 에뮬레이터에 없으면 `server/functions`에서 먼저 만든다.
-
-   ```bash
-   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-janggi-go npm run init-app-config
-   ```
+`devPing`, `devCreateGame`, `/tasks/devPing`은 에뮬레이터에서만 열린다. `devCreateGame`은 `configs/app`을 읽으므로 1번의 `npm run seed`를 먼저 한다.
 
  `GET /health`는 어디서나 `ok`를 돌려준다.
 

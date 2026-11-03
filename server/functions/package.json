@@ -14,7 +14,8 @@
     "test": "firebase emulators:exec --project demo-janggi-go --only auth,firestore,database \"jest --runInBand\"",
     "emulators": "npm run build && firebase emulators:start --project demo-janggi-go",
     "init-app-config": "node lib/scripts/initAppConfig.js",
-    "set-admin": "node lib/scripts/setAdmin.js"
+    "set-admin": "node lib/scripts/setAdmin.js",
+    "seed": "npm run build && node lib/scripts/seedEmulator.js"
   },
   "engines": {
     "node": "24"
