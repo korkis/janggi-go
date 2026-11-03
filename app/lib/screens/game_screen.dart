@@ -244,7 +244,6 @@ class _GameScreenState extends State<GameScreen> {
           lastMove: board.lastMove,
           dimmedSide: board.dimmedSide,
           checkedSide: board.checkedSide,
-          firstCheck: board.isFirstCheck,
           onSquareTap: _onSquareTap,
         ),
         if (online != null && mySide != null)

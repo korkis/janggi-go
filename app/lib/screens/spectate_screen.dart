@@ -208,7 +208,6 @@ class _SpectateScreenState extends State<SpectateScreen> {
           flipped: board.flipped,
           lastMove: board.lastMove,
           checkedSide: board.checkedSide,
-          firstCheck: board.isFirstCheck,
         ),
         if (disconnectedSide != null)
           Positioned.fill(

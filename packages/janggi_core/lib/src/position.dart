@@ -84,14 +84,8 @@ final class Position {
   /// [side]가 장군을 받은 상태인지 판단한다.
   bool isInCheck(Side side) => isKingAttacked(board, side);
 
-  /// [side]에게 장군을 건 상대 기물의 칸. 장군이 아니면 비어 있다. 장군 연출이 공격 길을 그리는 데 쓴다.
+  /// [side]에게 장군을 건 상대 기물의 칸. 장군이 아니면 비어 있다. 장군 연출이 장군을 건 기물을 표시하는 데 쓴다.
   List<Square> checkingSquares(Side side) => getKingAttackers(board, side);
-
-  /// [side] 궁의 칸. 궁이 없으면 null이다.
-  Square? kingSquare(Side side) {
-    final index = board.indexOf(Piece(side, PieceType.king));
-    return index < 0 ? null : Square.all[index];
-  }
 
   /// 지금 차례가 둘 수 있는 수. 장군이 아니면 한수쉼([Move.pass])도 들어간다.
   ///

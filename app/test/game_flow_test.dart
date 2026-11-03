@@ -111,34 +111,48 @@ void main() {
     expect(find.text('초 승리 · 외통승'), findsOneWidget);
   });
 
-  testWidgets('장군을 걸면 첫 장군은 큰 도장을 찍고, 그 뒤에는 궁 위에 작은 도장을 둔다', (tester) async {
+  testWidgets('장군을 걸 때마다 판을 어둡게 하지 않고 큰 도장을 찍고, 장군을 건 기물에 빨간 테두리를 둔다', (tester) async {
     _usePhoneView(tester);
     // 초 차 a1, 초 궁 f1, 한 궁 d10.
     await tester.pumpWidget(_gameApp(Position.fromFen('3k5/9/9/9/9/9/9/9/9/R4K3 w')));
+    final bigStamp = find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군'));
+    final scrim = find.descendant(
+      of: find.byType(BoardView),
+      matching: find.byWidgetPredicate((widget) => widget is ColoredBox),
+    );
+    List<Square>? checkers() {
+      for (final paint in tester.widgetList<CustomPaint>(find.byType(CustomPaint))) {
+        final painter = paint.painter;
+        if (painter is CheckerRingPainter) {
+          return painter.checkers;
+        }
+      }
+      return null;
+    }
 
     await _tapSquare(tester, 'a1');
     await _tapSquareOnly(tester, 'd1');
     await tester.pump(const Duration(milliseconds: 1000));
-    expect(find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군')), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-    expect(find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군')), findsNothing);
-    // 큰 도장이 사라지면 궁 위 작은 도장과 한 정보 줄의 장군 표시가 남는다.
-    expect(find.byType(CheckStamp), findsOneWidget);
+    expect(bigStamp, findsOneWidget);
+    expect(scrim, findsNothing);
+    expect(checkers(), [Square.parse('d1')]);
     expect(find.widgetWithText(PlayerBadge, '장군'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(bigStamp, findsNothing);
+    // 도장이 사라져도 장군이 풀릴 때까지 장군을 건 기물의 테두리는 남는다.
+    expect(checkers(), [Square.parse('d1')]);
 
-    await _tapSquareOnly(tester, 'd10');
-    await tester.pump(const Duration(milliseconds: 500));
-    await _tapSquareOnly(tester, 'e10');
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byType(CheckStamp), findsNothing);
+    await _tapSquare(tester, 'd10');
+    await _tapSquare(tester, 'e10');
+    expect(checkers(), isNull);
 
-    await _tapSquareOnly(tester, 'd1');
-    await tester.pump(const Duration(milliseconds: 500));
+    // 두 번째 장군도 큰 도장을 찍는다.
+    await _tapSquare(tester, 'd1');
     await _tapSquareOnly(tester, 'e1');
     await tester.pump(const Duration(milliseconds: 1000));
-    // 두 번째 장군부터는 큰 도장 없이 궁 위 작은 도장만 둔다.
-    expect(find.byType(CheckStamp), findsOneWidget);
-    expect(find.descendant(of: find.byType(BigCheckStamp), matching: find.text('장군')), findsNothing);
+    expect(bigStamp, findsOneWidget);
+    expect(checkers(), [Square.parse('e1')]);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('대국이 끝나면 같은 화면에서 마지막 수부터 복기한다', (tester) async {

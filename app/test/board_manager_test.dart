@@ -90,25 +90,5 @@ void main() {
       expect(board.checkedSide, Side.han);
       expect(board.canPass, isFalse);
     });
-
-    test('대국의 첫 장군인지 알려준다', () {
-      // 초 차 a1, 초 궁 f1, 한 궁 d10. 차가 d1로 가면 첫 장군이고, 궁이 피한 뒤 e1로 가면 두 번째 장군이다.
-      final board = BoardManager(initialPosition: Position.fromFen('3k5/9/9/9/9/9/9/9/9/R4K3 w'));
-      expect(board.isFirstCheck, isFalse);
-
-      board
-        ..tapSquare(Square.parse('a1'))
-        ..tapSquare(Square.parse('d1'));
-      expect(board.checkedSide, Side.han);
-      expect(board.isFirstCheck, isTrue);
-
-      board
-        ..tapSquare(Square.parse('d10'))
-        ..tapSquare(Square.parse('e10'))
-        ..tapSquare(Square.parse('d1'))
-        ..tapSquare(Square.parse('e1'));
-      expect(board.checkedSide, Side.han);
-      expect(board.isFirstCheck, isFalse);
-    });
   });
 }
