@@ -12,6 +12,12 @@ export const NICKNAME_MAX_LENGTH = 10;
 // 닉네임에 쓸 수 있는 글자. 완성된 한글, 영문, 숫자만 허용한다.
 export const NICKNAME_PATTERN = /^[가-힣A-Za-z0-9]+$/;
 
+// 닉네임을 바꾼 뒤 다시 바꿀 수 없는 날 수(docs/screens.md의 내 정보).
+export const NICKNAME_CHANGE_COOLDOWN_DAYS = 7;
+
+// 엽전 없이 닉네임을 바꿀 수 있는 횟수. 첫 변경만 무료다(docs/monetization.md). 그 뒤의 변경은 엽전이 생기면(3단계) 연다.
+export const NICKNAME_FREE_CHANGE_COUNT = 1;
+
 // 운영진을 사칭하는 단어. 닉네임에 들어 있으면(영문은 대소문자 무시) 쓸 수 없다.
 export const NICKNAME_IMPERSONATION_WORDS = [
   "운영자",

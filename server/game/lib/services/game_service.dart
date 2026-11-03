@@ -12,6 +12,7 @@ import '../models/game_enums.dart';
 import '../models/player_state.dart';
 import '../models/rating.dart';
 import '../models/spectate_list_entry.dart';
+import '../models/user.dart';
 import '../models/user_private.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
@@ -204,8 +205,8 @@ class GameService {
   ///
   /// 한 트랜잭션에서 하며 `games_archived/{gameId}`가 이미 있으면 아무것도 하지 않는다. 여러 번 불려도 결과가 같다.
   /// 급수 대국(`meta.rated`)이면 레이팅과 급수도 반영한다. 방 대국이면 방을 `waiting`으로 돌린다. 두 사람의 `roomId`는 그대로
-  /// 두므로 결과 화면을 나가면 방 대기실로 돌아온다. `users.stats`는 셀 대국이 정해진 뒤(`docs/database.md`의 미정)에
-  /// 붙인다.
+  /// 두므로 결과 화면을 나가면 방 대기실로 돌아온다. 두 사람의 `users.stats`에 이 대국을 더한다. 온라인 대국은 종류와 급수 대국
+  /// 여부에 상관없이 모두 센다(`docs/database.md`의 `users`).
   Future<void> finalizeGame(String gameId, {required DateTime now}) async {
     final game = await activeGames.getGame(gameId);
     if (game == null) {
@@ -223,9 +224,10 @@ class GameService {
         return false;
       }
       final roomId = game.meta.roomId;
-      final (states, room) = await (
+      final (states, room, profiles) = await (
         playerStates.getPlayerStatesInTransaction(transaction, uids),
         roomId == null ? Future.value(null) : rooms.getRoomInTransaction(transaction, roomId),
+        users.getUsersInTransaction(transaction, uids),
       ).wait;
       if (roomId != null && room != null && room.gameId == gameId && room.status == RoomStatus.playing) {
         rooms.updateStatusInTransaction(transaction, roomId, status: RoomStatus.waiting, now: now);
@@ -234,6 +236,7 @@ class GameService {
           ? await _applyRatingsInTransaction(transaction, gameId, game, now)
           : const <String, RankChange>{};
       archivedGames.createArchivedGameInTransaction(transaction, gameId, _buildArchivedGame(game));
+      _updateRecordsInTransaction(transaction, gameId, game, profiles, rankChanges);
       for (final uid in uids) {
         final state = states[uid];
         final draft = state?.setupDraft;
@@ -264,8 +267,39 @@ class GameService {
     });
   }
 
-  /// 급수 대국의 결과로 두 대국자의 레이팅, 급수, 급수 진행을 바꾼다(`docs/server.md`의 결과와 레이팅). 트랜잭션의 읽기를 먼저
-  /// 하고 쓰기를 모은다. uid별 급수 변동을 돌려준다.
+  /// 두 대국자의 `users`에 전적과, 급수 대국이면 바뀐 급수를 쓴다. 프로필이 없는 사용자는 건너뛴다.
+  void _updateRecordsInTransaction(
+    FirestoreTransaction transaction,
+    String gameId,
+    ActiveGame game,
+    Map<String, User?> profiles,
+    Map<String, RankChange> rankChanges,
+  ) {
+    final winner = game.state.result!.winner;
+    for (final side in Side.values) {
+      final uid = game.meta.players.get(side).uid;
+      final profile = profiles[uid];
+      if (profile == null) {
+        logger.warning('users가 없어 전적을 쓰지 않습니다', {'uid': uid, 'gameId': gameId});
+        continue;
+      }
+      final won = side == winner;
+      final stats = profile.stats;
+      users.updateRecordInTransaction(
+        transaction,
+        uid,
+        stats: UserStats(
+          games: stats.games + 1,
+          wins: stats.wins + (won ? 1 : 0),
+          losses: stats.losses + (won ? 0 : 1),
+        ),
+        rankLevel: rankChanges[uid]?.rankLevelAfter,
+      );
+    }
+  }
+
+  /// 급수 대국의 결과로 두 대국자의 레이팅과 급수 진행을 바꾼다(`docs/server.md`의 결과와 레이팅). 바뀐 급수는
+  /// [_updateRecordsInTransaction]이 전적과 함께 쓴다. 트랜잭션의 읽기를 먼저 하고 쓰기를 모은다. uid별 급수 변동을 돌려준다.
   Future<Map<String, RankChange>> _applyRatingsInTransaction(
     FirestoreTransaction transaction,
     String gameId,
@@ -295,7 +329,6 @@ class GameService {
         uid,
         Rating(rating: outcome.rating, ratedGames: outcome.ratedGames, updatedAt: now),
       );
-      users.updateRankLevelInTransaction(transaction, uid, outcome.rankLevel);
       if (privateExists[uid] == true) {
         usersPrivate.updateRankProgressInTransaction(
           transaction,

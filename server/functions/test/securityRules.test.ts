@@ -8,6 +8,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -153,9 +154,69 @@ describe("서버 전용 컬렉션", () => {
     await assertFails(setDoc(doc(userDb(ALICE), "chat_checks/m2"), {bannedWordMatched: false}));
   });
 
+  test("닉네임 변경 기록은 본인도 읽거나 쓰지 못한다", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "nickname_changes/c1"), {uid: ALICE, before: "앨리", after: "앨리스"});
+    });
+    await assertFails(getDoc(doc(userDb(ALICE), "nickname_changes/c1")));
+    await assertFails(getDocs(query(collection(userDb(ALICE), "nickname_changes"), where("uid", "==", ALICE))));
+    await assertFails(setDoc(doc(userDb(ALICE), "nickname_changes/c2"), {uid: ALICE}));
+  });
+
   test("규칙에 없는 컬렉션은 막는다", async () => {
     await assertFails(getDoc(doc(userDb(ALICE), `ratings/${ALICE}`)));
-    await assertFails(setDoc(doc(userDb(ALICE), "games_archived/g1"), {mode: "quick"}));
+  });
+});
+
+describe("games_archived", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "games_archived/g1"), {
+        playerUids: [ALICE, BOB],
+        pairKey: `${ALICE}_${BOB}`,
+        players: {cho: {uid: ALICE}, han: {uid: BOB}},
+        result: {winner: "han"},
+        endedAt: new Date("2026-11-03T00:00:00Z"),
+      });
+    });
+  });
+
+  test("로그인한 사용자는 기보를 읽고 내 기보 목록과 나와의 전적을 조회한다", async () => {
+    const db = userDb(BOB);
+    await assertSucceeds(getDoc(doc(db, "games_archived/g1")));
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, "games_archived"),
+          where("playerUids", "array-contains", BOB),
+          orderBy("endedAt", "desc"),
+          limit(20),
+        ),
+      ),
+    );
+    await assertSucceeds(getDocs(query(collection(db, "games_archived"), where("pairKey", "==", `${ALICE}_${BOB}`))));
+    // 나와의 전적은 세기 쿼리로 센다(앱의 ArchivedGameRepository.getPairRecord).
+    const wins = await assertSucceeds(
+      getCountFromServer(
+        query(
+          collection(db, "games_archived"),
+          where("pairKey", "==", `${ALICE}_${BOB}`),
+          where("players.han.uid", "==", BOB),
+          where("result.winner", "==", "han"),
+        ),
+      ),
+    );
+    expect(wins.data().count).toBe(1);
+  });
+
+  test("로그인하지 않으면 읽지 못한다", async () => {
+    await assertFails(getDoc(doc(guestDb(), "games_archived/g1")));
+  });
+
+  test("대국자도 쓰거나 지우지 못한다", async () => {
+    await assertFails(setDoc(doc(userDb(ALICE), "games_archived/g2"), {mode: "quick"}));
+    await assertFails(updateDoc(doc(userDb(ALICE), "games_archived/g1"), {moves: []}));
+    await assertFails(deleteDoc(doc(userDb(ALICE), "games_archived/g1")));
   });
 });
 

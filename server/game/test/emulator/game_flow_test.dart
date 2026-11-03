@@ -134,12 +134,29 @@ void main() {
       expect(choState?.lastGameId, gameId);
       expect((await server.repositories.playerStates.getPlayerState(han.uid))?.setupDraft, isNull);
 
+      // 급수 대국이 아니어도 두 사람의 전적에 더한다.
+      final firstWinnerIsCho = (archived?['result'] as Map)['winner'] == 'cho';
+      var choStats = (await server.repositories.users.getUser(cho.uid))!.stats;
+      var hanStats = (await server.repositories.users.getUser(han.uid))!.stats;
+      expect([choStats.games, choStats.wins, choStats.losses], [1, firstWinnerIsCho ? 1 : 0, firstWinnerIsCho ? 0 : 1]);
+      expect([hanStats.games, hanStats.wins, hanStats.losses], [1, firstWinnerIsCho ? 0 : 1, firstWinnerIsCho ? 1 : 0]);
+      expect((await server.repositories.users.getUser(cho.uid))!.rankLevel, 1);
+
       // 대국에서 풀렸으므로 다시 만들 수 있다.
       final secondGameId = await createGame(han, cho);
       await callOk(cho, 'resign', {'gameId': secondGameId});
       final second = await getGame(secondGameId);
       expect(second.state.result?.reason.name, 'resignation');
       expect(second.state.result?.winner.name, 'cho');
+
+      // 두 번째 대국은 han 계정이 초로 두어 이겼다. 같은 대국을 다시 마무리해도 두 번 세지 않는다.
+      await server.gameService.finalizeGame(secondGameId, now: DateTime.now().toUtc());
+      choStats = (await server.repositories.users.getUser(cho.uid))!.stats;
+      hanStats = (await server.repositories.users.getUser(han.uid))!.stats;
+      expect(choStats.games, 2);
+      expect(choStats.losses, firstWinnerIsCho ? 1 : 2);
+      expect(hanStats.games, 2);
+      expect(hanStats.wins, firstWinnerIsCho ? 1 : 2);
     });
 
     test('공개 대국은 상차림이 끝나면 관전 목록에 올리고 관전자를 세고 끝나면 지운다', () async {

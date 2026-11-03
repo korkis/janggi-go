@@ -13,9 +13,16 @@ export async function getNickname(nicknameKey: string): Promise<Nickname | null>
   return snapshot.data() ?? null;
 }
 
-export async function getNicknameInTransaction(transaction: Transaction, nicknameKey: string): Promise<Nickname | null> {
+export async function getNicknameInTransaction(
+  transaction: Transaction,
+  nicknameKey: string,
+): Promise<Nickname | null> {
   const snapshot = await transaction.get(nicknameRef(nicknameKey));
   return snapshot.data() ?? null;
+}
+
+export function deleteNicknameInTransaction(transaction: Transaction, nicknameKey: string): void {
+  transaction.delete(nicknameRef(nicknameKey));
 }
 
 export function createNicknameInTransaction(transaction: Transaction, nicknameKey: string, nickname: Nickname): void {

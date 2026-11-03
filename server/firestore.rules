@@ -54,6 +54,11 @@ service cloud.firestore {
       allow list: if signedIn() && resource.data.listed == true && resource.data.status == 'waiting';
     }
 
+    // 끝난 대국의 기보와 결과. 로그인한 사용자가 읽는다(내 기보 목록, 나와의 전적). 대국 서버만 쓴다.
+    match /games_archived/{gameId} {
+      allow read: if signedIn();
+    }
+
     // 대국 신청. 보낸 사람과 받는 사람만 ID로 읽는다. 대국 서버만 쓴다.
     match /challenges/{challengeId} {
       allow get: if signedIn()

@@ -30,8 +30,29 @@ class UsersRepository {
     };
   }
 
-  /// 급수만 바꾼다. 닉네임 등 Functions가 쓰는 필드는 건드리지 않는다.
-  void updateRankLevelInTransaction(FirestoreTransaction transaction, String uid, int rankLevel) {
-    transaction.update('$collection/$uid', {'rankLevel': rankLevel});
+  /// [uids]의 공개 프로필을 트랜잭션 안에서 읽는다. 프로필이 없는 사용자는 null.
+  Future<Map<String, User?>> getUsersInTransaction(FirestoreTransaction transaction, List<String> uids) async {
+    final documents = await transaction.getAll([for (final uid in uids) '$collection/$uid']);
+    return {
+      for (final uid in uids)
+        uid: switch (documents['$collection/$uid']) {
+          final data? => User.fromJson(data),
+          null => null,
+        },
+    };
+  }
+
+  /// 대국이 끝난 뒤의 전적과, 급수 대국이면 급수를 한 번에 바꾼다. 닉네임 등 Functions가 쓰는 필드는 건드리지 않는다.
+  /// [rankLevel]이 null이면 급수는 그대로 둔다.
+  void updateRecordInTransaction(
+    FirestoreTransaction transaction,
+    String uid, {
+    required UserStats stats,
+    required int? rankLevel,
+  }) {
+    transaction.update('$collection/$uid', {
+      'stats': {'games': stats.games, 'wins': stats.wins, 'losses': stats.losses},
+      'rankLevel': ?rankLevel,
+    });
   }
 }

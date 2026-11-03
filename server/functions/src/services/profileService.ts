@@ -1,11 +1,26 @@
+import dayjs from "dayjs";
 import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
-import {NicknameRejectReason} from "../models/nickname";
+import {NICKNAME_CHANGE_COOLDOWN_DAYS, NICKNAME_FREE_CHANGE_COUNT} from "../config";
+import {NicknameChangeErrorCode, NicknameRejectReason} from "../models/nickname";
 import {runTransaction} from "../repositories/firestore";
-import {createNicknameInTransaction, getNicknameInTransaction} from "../repositories/nicknamesRepository";
-import {createUserInTransaction, getUserInTransaction} from "../repositories/usersRepository";
-import {createUserPrivateInTransaction} from "../repositories/usersPrivateRepository";
+import {createNicknameChangeInTransaction} from "../repositories/nicknameChangesRepository";
+import {
+  createNicknameInTransaction,
+  deleteNicknameInTransaction,
+  getNicknameInTransaction,
+} from "../repositories/nicknamesRepository";
+import {
+  createUserInTransaction,
+  getUserInTransaction,
+  updateNicknameInTransaction,
+} from "../repositories/usersRepository";
+import {
+  createUserPrivateInTransaction,
+  getUserPrivateInTransaction,
+  updateNicknameChangeInTransaction,
+} from "../repositories/usersPrivateRepository";
 import {getNicknameKey} from "./nicknameService";
 
 // 처음 가입한 사용자의 급수. 18급이다(docs/screens.md의 닉네임 정하기).
@@ -49,4 +64,55 @@ export async function createProfile(uid: string, nickname: string): Promise<void
     return true;
   });
   logger.info("createProfile 완료", {uid, created});
+}
+
+/**
+ * 닉네임을 바꾼다. `nicknames` 예약을 옮기고 `users.nickname`, `users_private`의 변경 횟수·시각, `nickname_changes` 기록을
+ * 한 트랜잭션으로 쓴다. 이전 닉네임은 다른 사용자에게 보이는 곳에 남기지 않는다(docs/screens.md의 내 정보).
+ *
+ * 지금 닉네임과 같으면(응답을 못 받고 다시 누른 경우) 바꾸지 않고 성공으로 본다. 바꾼 지 7일이 지나지 않았거나 무료 변경을 이미
+ * 썼으면 거절한다. 영문 대소문자만 바꾸는 것은 같은 예약을 그대로 쓴다.
+ */
+export async function changeNickname(uid: string, nickname: string): Promise<void> {
+  const nicknameKey = getNicknameKey(nickname);
+  const changed = await runTransaction(async (transaction) => {
+    const user = await getUserInTransaction(transaction, uid);
+    const userPrivate = await getUserPrivateInTransaction(transaction, uid);
+    const reservation = await getNicknameInTransaction(transaction, nicknameKey);
+    if (user === null || userPrivate === null) {
+      throw new HttpsError("failed-precondition", "닉네임을 먼저 정해야 합니다", {
+        code: NicknameChangeErrorCode.profileRequired,
+      });
+    }
+    if (user.nickname === nickname) {
+      return false;
+    }
+    const now = dayjs();
+    const changedAt = userPrivate.nicknameChangedAt;
+    if (changedAt !== null && now.isBefore(dayjs(changedAt.toDate()).add(NICKNAME_CHANGE_COOLDOWN_DAYS, "day"))) {
+      throw new HttpsError("failed-precondition", "닉네임을 바꾼 지 얼마 되지 않았습니다", {
+        code: NicknameChangeErrorCode.nicknameChangeCooldown,
+      });
+    }
+    if (userPrivate.nicknameChangeCount >= NICKNAME_FREE_CHANGE_COUNT) {
+      throw new HttpsError("failed-precondition", "무료 변경을 이미 썼습니다", {
+        code: NicknameChangeErrorCode.nicknameChangeNotFree,
+      });
+    }
+    if (reservation !== null && reservation.uid !== uid) {
+      throw new HttpsError("already-exists", "이미 쓰는 닉네임입니다", {code: NicknameRejectReason.taken});
+    }
+
+    const timestamp = Timestamp.fromMillis(now.valueOf());
+    const beforeKey = getNicknameKey(user.nickname);
+    if (beforeKey !== nicknameKey) {
+      deleteNicknameInTransaction(transaction, beforeKey);
+      createNicknameInTransaction(transaction, nicknameKey, {uid, createdAt: timestamp});
+    }
+    updateNicknameInTransaction(transaction, uid, nickname);
+    updateNicknameChangeInTransaction(transaction, uid, userPrivate.nicknameChangeCount + 1, timestamp);
+    createNicknameChangeInTransaction(transaction, {uid, before: user.nickname, after: nickname, changedAt: timestamp});
+    return true;
+  });
+  logger.info("changeNickname 완료", {uid, changed});
 }
