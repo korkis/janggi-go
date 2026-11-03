@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../managers/room_manager.dart';
 import '../models/game_enums.dart';
+import '../models/online_user.dart';
 import '../models/room.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
@@ -19,6 +20,8 @@ import '../utils/room_format.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/room_condition_chips.dart';
+import 'online_users_tab.dart';
+import 'send_challenge_sheet.dart';
 import 'setup_screen.dart';
 
 /// 방 대기실(`docs/screens.md`의 방 대기실). 밝은 화면이다.
@@ -74,9 +77,13 @@ class _RoomScreenState extends State<RoomScreen> {
   // 이미 연 대국. 같은 대국을 두 번 열지 않는다.
   String? _openedGameId;
 
+  // `configs/app.onlineUsersVisible`. 켜져 있으면 접속자 초대하기를 보여준다. 읽기 전과 읽지 못했을 때는 숨긴다.
+  var _onlineUsersVisible = false;
+
   @override
   void initState() {
     super.initState();
+    _loadConfig();
     _room = RoomManager(roomId: widget.roomId);
     _room.addListener(_onRoomChanged);
     _openedGameId = managers.playerStateManager.gameId;
@@ -179,6 +186,10 @@ class _RoomScreenState extends State<RoomScreen> {
                       : null,
                 ),
               if (guest == null) ...[const SizedBox(height: 20), _buildInvite(context)],
+              if (guest == null && host && _onlineUsersVisible) ...[
+                const SizedBox(height: 12),
+                _buildInviteUsers(context),
+              ],
             ],
           ),
         ),
@@ -227,6 +238,39 @@ class _RoomScreenState extends State<RoomScreen> {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 접속자 초대하기(`docs/screens.md`의 방 대기실). 대국실 접속자 목록에서 고른 사람에게 이 방으로 신청을 보낸다.
+  Widget _buildInviteUsers(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              // 접속자 초대하기
+              l10n.roomInviteUsers,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              // 대국실에 있는 사람을 골라 이 방으로 불러요
+              l10n.roomInviteUsersDescription,
+              style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: _onInviteUsers,
+              icon: const Icon(Icons.person_add),
+              // 접속자 초대하기
+              label: Text(l10n.roomInviteUsers),
             ),
           ],
         ),
@@ -451,6 +495,32 @@ class _RoomScreenState extends State<RoomScreen> {
     }
   }
 
+  Future<void> _loadConfig() async {
+    try {
+      final config = await repositories.configRepository.getAppConfig();
+      if (mounted) {
+        setState(() {
+          _onlineUsersVisible = config.onlineUsersVisible;
+        });
+      }
+    } catch (error, stackTrace) {
+      // 접속자 초대하기를 숨기고 초대 링크만 보여준다.
+      developer.log('ConfigRepository.getAppConfig 실패', error: error, stackTrace: stackTrace);
+    }
+  }
+
+  /// 접속자 목록에서 사람을 고르면 이 방으로 초대를 보내고 응답을 기다린다. 수락하면 상대 자리에 그 사람이 들어온다.
+  Future<void> _onInviteUsers() async {
+    final picked = await showFormSheet<({String uid, OnlineUser user})>(
+      context,
+      builder: (context) => const _OnlineUserPickerSheet(),
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    await SendChallengeSheet.show(context, toUid: picked.uid, user: picked.user, roomId: widget.roomId);
+  }
+
   Future<void> _onCopyLink(String link) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -545,6 +615,19 @@ class _EmptySeat extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 접속자 초대하기의 고르기 창. 대국실 접속자 목록에서 기다리는 사람을 고르면 그 사람을 돌려주며 닫는다.
+class _OnlineUserPickerSheet extends StatelessWidget {
+  const _OnlineUserPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.7,
+      child: OnlineUsersTab(onPick: (uid, user) => Navigator.of(context).pop((uid: uid, user: user))),
     );
   }
 }

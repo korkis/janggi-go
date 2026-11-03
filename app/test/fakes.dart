@@ -9,22 +9,27 @@ import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/active_game.dart';
 import 'package:janggigo/models/app_config.dart';
+import 'package:janggigo/models/challenge.dart';
 import 'package:janggigo/models/connection.dart';
 import 'package:janggigo/models/game_enums.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
+import 'package:janggigo/models/online_user.dart';
 import 'package:janggigo/models/player_state.dart';
 import 'package:janggigo/models/room.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
+import 'package:janggigo/repositories/challenge_repository.dart';
 import 'package:janggigo/repositories/config_repository.dart';
 import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/deep_link_repository.dart';
 import 'package:janggigo/repositories/game_repository.dart';
+import 'package:janggigo/repositories/online_user_repository.dart';
 import 'package:janggigo/repositories/player_state_repository.dart';
 import 'package:janggigo/repositories/room_repository.dart';
 import 'package:janggigo/repositories/server_time_repository.dart';
+import 'package:janggigo/repositories/user_block_repository.dart';
 import 'package:janggigo/repositories/user_private_repository.dart';
 import 'package:janggigo/repositories/user_repository.dart';
 import 'package:janggigo/utils/app_exception.dart';
@@ -130,14 +135,17 @@ class FakeUserRepository implements UserRepository {
 }
 
 class FakeConfigRepository implements ConfigRepository {
+  /// `configs/app.onlineUsersVisible`.
+  var onlineUsersVisible = false;
+
   @override
   FirebaseFirestore get firestore => throw UnimplementedError();
 
   @override
-  Future<AppConfig> getAppConfig() async => const AppConfig(
+  Future<AppConfig> getAppConfig() async => AppConfig(
     disconnectLimitSeconds: 30,
     quickRematchLimit: 5,
-    onlineUsersVisible: false,
+    onlineUsersVisible: onlineUsersVisible,
     autoSanctionEnabled: false,
     heartbeatSeconds: 5,
   );
@@ -322,6 +330,12 @@ class FakeUserPrivateRepository implements UserPrivateRepository {
     yield* _getController(uid).stream;
   }
 
+  /// `challengesEnabled` 쓰기. 예: `me false`.
+  final challengesEnabledWrites = <String>[];
+
+  @override
+  Future<void> updateChallengesEnabled(String uid, bool enabled) async => challengesEnabledWrites.add('$uid $enabled');
+
   /// 대국 서버가 [uid]의 급수 진행을 바꾼 것처럼 보낸다.
   void emit(String uid, UserPrivate? userPrivate) {
     _latest[uid] = userPrivate;
@@ -454,6 +468,194 @@ class FakeDeepLinkRepository implements DeepLinkRepository {
   }
 }
 
+/// 대국실 접속자 목록을 테스트가 직접 보내고, 내 항목 쓰기와 `enterLobby` 호출을 기록하는 가짜 OnlineUserRepository.
+class FakeOnlineUserRepository implements OnlineUserRepository {
+  final _usersController = StreamController<Map<String, OnlineUser>>.broadcast();
+  final _entryControllers = <String, StreamController<OnlineUser?>>{};
+  Map<String, OnlineUser>? _latestUsers;
+  final _latestEntries = <String, OnlineUser?>{};
+
+  /// 부른 것. 예: `onDisconnect me`, `enterLobby`, `remove me`, `challengesEnabled me false`.
+  final calls = <String>[];
+
+  /// `enterLobby`를 받으면 [enteringUid]의 항목으로 보낼 값. null이면 보내지 않는다(서버가 아직 쓰지 않았다).
+  OnlineUser? entryOnEnter;
+
+  /// `enterLobby`가 항목을 쓸 사용자.
+  String? enteringUid;
+
+  @override
+  FirebaseDatabase get database => throw UnimplementedError();
+
+  @override
+  FirebaseFunctions get functions => throw UnimplementedError();
+
+  @override
+  Uri Function() get getServerUrl => throw UnimplementedError();
+
+  @override
+  Stream<Map<String, OnlineUser>> watchOnlineUsers() async* {
+    final latest = _latestUsers;
+    if (latest != null) {
+      yield latest;
+    }
+    yield* _usersController.stream;
+  }
+
+  /// 접속자 목록이 바뀐 것처럼 보낸다.
+  void emitUsers(Map<String, OnlineUser> users) {
+    _latestUsers = users;
+    _usersController.add(users);
+  }
+
+  @override
+  Stream<OnlineUser?> watchOnlineUser(String uid) async* {
+    if (_latestEntries.containsKey(uid)) {
+      yield _latestEntries[uid];
+    }
+    yield* _getEntryController(uid).stream;
+  }
+
+  /// [uid]의 항목이 바뀐 것처럼 보낸다.
+  void emitEntry(String uid, OnlineUser? entry) {
+    _latestEntries[uid] = entry;
+    _getEntryController(uid).add(entry);
+  }
+
+  @override
+  Future<void> setRemoveOnDisconnect(String uid) async => calls.add('onDisconnect $uid');
+
+  @override
+  Future<void> enterLobby() async {
+    calls.add('enterLobby');
+    final uid = enteringUid;
+    final entry = entryOnEnter;
+    if (uid != null && entry != null) {
+      emitEntry(uid, entry);
+    }
+  }
+
+  @override
+  Future<void> removeOnlineUser(String uid) async {
+    calls.add('remove $uid');
+    emitEntry(uid, null);
+  }
+
+  @override
+  Future<void> updateChallengesEnabled(String uid, bool enabled) async => calls.add('challengesEnabled $uid $enabled');
+
+  StreamController<OnlineUser?> _getEntryController(String uid) =>
+      _entryControllers.putIfAbsent(uid, StreamController<OnlineUser?>.broadcast);
+}
+
+/// 대국 서버의 신청 API 호출을 기록하고, 테스트가 `challenges` 문서를 직접 보내는 가짜 ChallengeRepository.
+class FakeChallengeRepository implements ChallengeRepository {
+  final _controllers = <String, StreamController<Challenge?>>{};
+  final _latest = <String, Challenge?>{};
+
+  /// 부른 API와 파라미터. 예: `sendChallenge opp random null null`, `respondChallenge c1 true`.
+  final calls = <String>[];
+
+  /// 다음 대국 서버 호출이 이 오류로 실패한다.
+  Object? nextError;
+
+  /// 보낸 신청이 받을 ID.
+  var sentChallengeId = 'challenge1';
+
+  /// `respondChallenge`가 돌려줄 결과.
+  ({String? gameId, String? roomId}) respondResult = (gameId: null, roomId: null);
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  FirebaseFunctions get functions => throw UnimplementedError();
+
+  @override
+  Uri Function() get getServerUrl => throw UnimplementedError();
+
+  @override
+  Stream<Challenge?> watchChallenge(String challengeId) async* {
+    if (_latest.containsKey(challengeId)) {
+      yield _latest[challengeId];
+    }
+    yield* _getController(challengeId).stream;
+  }
+
+  /// 대국 서버가 신청을 바꾼 것처럼 보낸다.
+  void emit(String challengeId, Challenge? challenge) {
+    _latest[challengeId] = challenge;
+    _getController(challengeId).add(challenge);
+  }
+
+  @override
+  Future<String> sendChallenge({
+    required String toUid,
+    required SideChoice? senderSide,
+    required HandicapRemover? handicapRemover,
+    required List<HandicapPiece>? handicapPieces,
+  }) async {
+    final pieces = handicapPieces?.map((piece) => piece.name).join(',');
+    await _record('sendChallenge $toUid ${senderSide?.name} ${handicapRemover?.name} $pieces');
+    return sentChallengeId;
+  }
+
+  @override
+  Future<String> sendRoomInvite({required String toUid, required String roomId}) async {
+    await _record('sendRoomInvite $toUid $roomId');
+    return sentChallengeId;
+  }
+
+  @override
+  Future<void> cancelChallenge(String challengeId) => _record('cancelChallenge $challengeId');
+
+  @override
+  Future<({String? gameId, String? roomId})> respondChallenge(String challengeId, {required bool accepted}) async {
+    await _record('respondChallenge $challengeId $accepted');
+    return respondResult;
+  }
+
+  Future<void> _record(String call) async {
+    calls.add(call);
+    final error = nextError;
+    if (error != null) {
+      nextError = null;
+      throw error;
+    }
+  }
+
+  StreamController<Challenge?> _getController(String challengeId) =>
+      _controllers.putIfAbsent(challengeId, StreamController<Challenge?>.broadcast);
+}
+
+/// 차단 쓰기를 기록하고 내 차단 목록을 바로 보내는 가짜 UserBlockRepository.
+class FakeUserBlockRepository implements UserBlockRepository {
+  final _controllers = <String, StreamController<Set<String>>>{};
+  final _blocked = <String, Set<String>>{};
+
+  /// 쓴 차단. 예: `me opp`.
+  final writes = <String>[];
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  Stream<Set<String>> watchBlockedUids(String uid) async* {
+    yield {...?_blocked[uid]};
+    yield* _getController(uid).stream;
+  }
+
+  @override
+  Future<void> createBlock(String uid, String blockedUid) async {
+    writes.add('$uid $blockedUid');
+    final blocked = _blocked.putIfAbsent(uid, () => <String>{})..add(blockedUid);
+    _getController(uid).add({...blocked});
+  }
+
+  StreamController<Set<String>> _getController(String uid) =>
+      _controllers.putIfAbsent(uid, StreamController<Set<String>>.broadcast);
+}
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -464,6 +666,10 @@ typedef FakeApp = ({
   FakeConnectionRepository connections,
   FakeRoomRepository rooms,
   FakeDeepLinkRepository deepLinks,
+  FakeConfigRepository configs,
+  FakeOnlineUserRepository onlineUsers,
+  FakeChallengeRepository challenges,
+  FakeUserBlockRepository blocks,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -476,9 +682,13 @@ FakeApp setUpFakeApp() {
   final connectionRepository = FakeConnectionRepository();
   final roomRepository = FakeRoomRepository();
   final deepLinkRepository = FakeDeepLinkRepository();
+  final configRepository = FakeConfigRepository();
+  final onlineUserRepository = FakeOnlineUserRepository();
+  final challengeRepository = FakeChallengeRepository();
+  final userBlockRepository = FakeUserBlockRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
-    configRepository: FakeConfigRepository(),
+    configRepository: configRepository,
     userRepository: userRepository,
     userPrivateRepository: userPrivateRepository,
     playerStateRepository: playerStateRepository,
@@ -487,6 +697,9 @@ FakeApp setUpFakeApp() {
     connectionRepository: connectionRepository,
     roomRepository: roomRepository,
     deepLinkRepository: deepLinkRepository,
+    onlineUserRepository: onlineUserRepository,
+    challengeRepository: challengeRepository,
+    userBlockRepository: userBlockRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -498,5 +711,9 @@ FakeApp setUpFakeApp() {
     connections: connectionRepository,
     rooms: roomRepository,
     deepLinks: deepLinkRepository,
+    configs: configRepository,
+    onlineUsers: onlineUserRepository,
+    challenges: challengeRepository,
+    blocks: userBlockRepository,
   );
 }

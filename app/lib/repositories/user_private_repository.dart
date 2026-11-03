@@ -12,6 +12,11 @@ class UserPrivateRepository {
   Stream<UserPrivate?> watchUserPrivate(String uid) =>
       firestore.collection('users_private').doc(uid).snapshots().map(_decode);
 
+  /// 설정의 "대국 신청 받기"를 바꾼다. 보안 규칙이 본인의 이 필드만 허용한다.
+  Future<void> updateChallengesEnabled(String uid, bool enabled) async {
+    await firestore.collection('users_private').doc(uid).update({'challengesEnabled': enabled});
+  }
+
   static UserPrivate? _decode(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data();
     return data == null ? null : UserPrivate.fromJson(data);

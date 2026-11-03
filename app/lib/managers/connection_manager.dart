@@ -72,6 +72,9 @@ class ConnectionManager extends ChangeNotifier {
   /// 이 기기가 RTDB 서버에 연결되어 있는지. 끊기면 대국 화면이 "다시 연결하는 중"을 보여준다.
   bool get connected => _connected;
 
+  /// 앱이 화면에 떠 있는지.
+  bool get foreground => _foreground;
+
   /// 서버가 연결된 것으로 볼 상태를 쓰고 있는지. 연결을 만들었고 앱이 화면에 떠 있다.
   bool get active => _connectionId != null && _foreground;
 

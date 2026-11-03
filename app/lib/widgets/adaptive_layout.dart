@@ -132,6 +132,37 @@ class AppPage extends StatelessWidget {
   }
 }
 
+/// 일반 화면 위에 입력 창을 띄운다. 1024 미만은 아래에서 올리고(폭 최대 480), 1024 이상은 가운데 폭 480 카드로 띄운다
+/// (`docs/ui.md`의 넓은 화면). [dismissible]이 false면 바깥을 눌러 닫지 않는다.
+Future<T?> showFormSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dismissible = true}) {
+  if (getLayoutSize(context) == LayoutSize.expanded) {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: dismissible,
+      builder: (context) => Dialog(
+        backgroundColor: LightColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: LayoutWidths.formCard),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 28),
+            child: Builder(builder: builder),
+          ),
+        ),
+      ),
+    );
+  }
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    isDismissible: dismissible,
+    enableDrag: dismissible,
+    showDragHandle: true,
+    constraints: const BoxConstraints(maxWidth: LayoutWidths.mediumContent),
+    builder: builder,
+  );
+}
+
 /// 화면 전환. 1024 이상은 왼쪽 메뉴가 화면과 같이 움직이지 않도록 새 화면을 겹쳐 나타내기만 하고, 그 밖에는 플랫폼 기본 전환을 쓴다.
 class AdaptivePageTransitionsBuilder extends PageTransitionsBuilder {
   const AdaptivePageTransitionsBuilder();

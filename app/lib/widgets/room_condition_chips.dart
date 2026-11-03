@@ -23,40 +23,46 @@ class RoomConditionChips extends StatelessWidget {
       runSpacing: 6,
       children: [
         if (handicap != null) ...[
-          _Chip(
+          ConditionChip(
             // 접장기
             label: l10n.roomChipHandicap,
             color: LightColors.handicap,
             background: LightColors.handicapSurface,
           ),
-          _Chip(
+          ConditionChip(
             // 방장이 떼요 / 상대가 떼요
             label: l10n.roomChipRemover(handicap.remover.name),
             color: LightColors.handicap,
             background: LightColors.handicapSurface,
           ),
         ] else
-          _Chip(
+          ConditionChip(
             // 방장 초 / 방장 한 / 진영 무작위
             label: l10n.roomChipSide(room.hostSide.name),
           ),
         if (showListed)
-          _Chip(
+          ConditionChip(
             // 공개 / 비공개
             label: room.listed ? l10n.roomChipListed : l10n.roomChipUnlisted,
           ),
-        if (room.listed) _Chip(label: getRankRangeLabel(l10n, room.rankRange)),
+        if (room.listed) ConditionChip(label: getRankRangeLabel(l10n, room.rankRange)),
       ],
     );
   }
 }
 
-class _Chip extends StatelessWidget {
+/// 조건 칩 하나. 접장기는 [color]와 [background]를 접장기 색으로 준다. 방 조건과 대국 신청 조건이 같이 쓴다.
+class ConditionChip extends StatelessWidget {
   final String label;
   final Color color;
   final Color background;
 
-  const _Chip({required this.label, this.color = LightColors.accent, this.background = LightColors.accentSurface});
+  const ConditionChip({
+    super.key,
+    required this.label,
+    this.color = LightColors.accent,
+    this.background = LightColors.accentSurface,
+  });
 
   @override
   Widget build(BuildContext context) {

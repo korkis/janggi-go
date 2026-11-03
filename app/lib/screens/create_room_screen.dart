@@ -13,7 +13,7 @@ import '../utils/dialog_utils.dart';
 import '../utils/rank_format.dart';
 import '../utils/room_format.dart';
 import '../widgets/adaptive_layout.dart';
-import '../widgets/piece_icon.dart';
+import '../widgets/handicap_piece_picker.dart';
 import 'room_screen.dart';
 
 /// 방 만들기(`docs/screens.md`의 방 만들기). 밝은 화면이다. 조건은 `docs/game/matching.md`의 방 만들기를 따른다.
@@ -28,21 +28,6 @@ class CreateRoomScreen extends StatefulWidget {
 }
 
 class _CreateRoomScreenState extends State<CreateRoomScreen> {
-  /// 뗄 기물의 윗줄. 떼는 쪽이 자기 쪽에서 판을 볼 때 놓이는 순서(차·마·상·상·마·차)다(`docs/screens.md`의 방 만들기).
-  static const _backRowPieces = [
-    HandicapPiece.leftChariot,
-    HandicapPiece.leftHorse,
-    HandicapPiece.leftElephant,
-    HandicapPiece.rightElephant,
-    HandicapPiece.rightHorse,
-    HandicapPiece.rightChariot,
-  ];
-
-  /// 뗄 기물의 아랫줄. 포 두 개.
-  static const _cannonPieces = [HandicapPiece.leftCannon, HandicapPiece.rightCannon];
-
-  static const _pieceSize = 44.0;
-
   var _side = SideChoice.random;
   var _handicapped = false;
   var _remover = HandicapRemover.creator;
@@ -178,35 +163,8 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          _buildPieceRow(_backRowPieces),
-          const SizedBox(height: 8),
-          _buildPieceRow(_cannonPieces),
-          const SizedBox(height: 12),
-          Text(
-            // 차, 포 떼기 · 20점 적게 시작 / 뗄 기물을 골라 주세요
-            _pieces.isEmpty ? l10n.createRoomPiecesHint : getHandicapSummary(l10n, _getSelectedPieces()),
-            style: TextStyle(
-              fontSize: AppTextSizes.body,
-              fontWeight: FontWeight.w700,
-              color: _pieces.isEmpty ? LightColors.subText : LightColors.handicap,
-            ),
-          ),
+          HandicapPiecePicker(selected: _pieces, onToggled: _onPieceToggled),
         ],
-      ],
-    );
-  }
-
-  Widget _buildPieceRow(List<HandicapPiece> pieces) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (final piece in pieces)
-          _HandicapPieceButton(
-            piece: piece,
-            size: _pieceSize,
-            selected: _pieces.contains(piece),
-            onPressed: () => _onPieceToggled(piece),
-          ),
       ],
     );
   }
@@ -257,12 +215,6 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       ],
     );
   }
-
-  /// 고른 기물을 판에 놓이는 순서대로.
-  List<HandicapPiece> _getSelectedPieces() => [
-    for (final piece in [..._backRowPieces, ..._cannonPieces])
-      if (_pieces.contains(piece)) piece,
-  ];
 
   /// 고른 급수 범위. 모든 급수면 null.
   RankRange? _getRankRange() {
@@ -320,7 +272,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       final roomId = await repositories.roomRepository.createRoom(
         hostSide: _side,
         handicapRemover: _handicapped ? _remover : null,
-        handicapPieces: _handicapped ? _getSelectedPieces() : null,
+        handicapPieces: _handicapped ? HandicapPiecePicker.getOrderedPieces(_pieces) : null,
         listed: _listed,
         rankRange: _listed ? _getRankRange() : null,
       );
@@ -342,53 +294,5 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         });
       }
     }
-  }
-}
-
-/// 뗄 기물 하나. 고르면 회색과 X 표시로 바뀐다(`docs/game/handicap.md`). 떼는 쪽이 한이므로 한의 기물 그림을 쓴다.
-class _HandicapPieceButton extends StatelessWidget {
-  final HandicapPiece piece;
-  final double size;
-  final bool selected;
-  final VoidCallback onPressed;
-
-  const _HandicapPieceButton({
-    required this.piece,
-    required this.size,
-    required this.selected,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Semantics(
-      button: true,
-      selected: selected,
-      // 왼쪽 차 / 오른쪽 포
-      label: l10n.handicapPieceLabel(l10n.boardSideName(piece.side.name), l10n.pieceName(piece.type.name)),
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Opacity(
-                opacity: selected ? 0.35 : 1,
-                child: ColorFiltered(
-                  colorFilter: selected
-                      ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
-                      : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
-                  child: PieceIcon(piece: Piece(Side.han, piece.type), size: size),
-                ),
-              ),
-              if (selected) Icon(Icons.close, size: size * 0.8, color: LightColors.handicap),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

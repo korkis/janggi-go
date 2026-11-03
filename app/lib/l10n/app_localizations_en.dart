@@ -965,4 +965,165 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resultBackToRoom => 'Back to room';
+
+  @override
+  String get lobbyTabUsers => 'Players online';
+
+  @override
+  String get onlineUsersSearch => 'Search nicknames';
+
+  @override
+  String onlineUsersCount(int count) {
+    return '$count online';
+  }
+
+  @override
+  String get onlineUsersChallengesEnabled => 'Accept challenges';
+
+  @override
+  String onlineStatus(String status) {
+    String _temp0 = intl.Intl.selectLogic(status, {
+      'waiting': 'Waiting',
+      'playing': 'In a game',
+      'notAccepting': 'Not accepting',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get onlineUsersChallenge => 'Challenge';
+
+  @override
+  String get onlineUsersEmpty => 'No one else is online right now';
+
+  @override
+  String get onlineUsersNoMatch => 'No matching nickname';
+
+  @override
+  String get errorLoadOnlineUsers => 'Couldn\'t load players online';
+
+  @override
+  String get errorChallengesEnabled =>
+      'Couldn\'t change this setting. Please try again later';
+
+  @override
+  String get userInfoChallenge => 'Challenge';
+
+  @override
+  String get userInfoBlock => 'Block';
+
+  @override
+  String blockConfirm(String nickname) {
+    return 'Block $nickname? You won\'t see their messages or challenges';
+  }
+
+  @override
+  String get blockAction => 'Block';
+
+  @override
+  String blockDone(String nickname) {
+    return 'You blocked $nickname';
+  }
+
+  @override
+  String get errorBlock => 'Couldn\'t block. Please try again later';
+
+  @override
+  String get challengeTitle => 'Challenge';
+
+  @override
+  String get challengeSide => 'My side';
+
+  @override
+  String get challengeSubmit => 'Send challenge';
+
+  @override
+  String get challengeWaiting => 'Waiting for a response';
+
+  @override
+  String get challengeCancel => 'Cancel challenge';
+
+  @override
+  String get challengeDeclined => 'Your challenge was declined';
+
+  @override
+  String get challengeExpired => 'No response';
+
+  @override
+  String get challengeCancelled => 'The challenge was cancelled';
+
+  @override
+  String get errorSendChallenge =>
+      'Couldn\'t send the challenge. Please try again later';
+
+  @override
+  String get errorCancelChallenge =>
+      'Couldn\'t cancel the challenge. Please try again later';
+
+  @override
+  String get errorChallengeLimited =>
+      'You can\'t challenge this player for a while after several declines';
+
+  @override
+  String get errorTargetUnavailable =>
+      'This player can\'t take a challenge right now';
+
+  @override
+  String get roomInviteUsers => 'Invite a player online';
+
+  @override
+  String get roomInviteUsersDescription =>
+      'Pick someone online and invite them to this room';
+
+  @override
+  String roomInviteConfirm(String nickname) {
+    return 'Invite $nickname to this room';
+  }
+
+  @override
+  String get roomInviteSubmit => 'Send invite';
+
+  @override
+  String get incomingChallenge => 'You\'ve been challenged';
+
+  @override
+  String get incomingRoomInvite => 'You\'ve been invited to a room';
+
+  @override
+  String challengeChipMySide(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': 'I play Cho',
+      'han': 'I play Han',
+      'random': 'Random sides',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String challengeChipRemover(String remover) {
+    String _temp0 = intl.Intl.selectLogic(remover, {
+      'me': 'I remove',
+      'opponent': 'Opponent removes',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeAccept => 'Accept';
+
+  @override
+  String get challengeDecline => 'Decline';
+
+  @override
+  String get challengeEnded => 'This challenge has already ended';
+
+  @override
+  String get errorRespondChallenge =>
+      'Couldn\'t respond to the challenge. Please try again later';
+
+  @override
+  String get onlineUsersInvite => 'Invite';
 }

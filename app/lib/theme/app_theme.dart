@@ -22,6 +22,9 @@ abstract final class LightColors {
 
   /// 방 조건 칩 같은 강조색 면.
   static const accentSurface = Color(0xFFE3F1EA);
+
+  /// 대국실 접속자의 "대국 중" 점. 기다리는 중은 [accent], 신청 받지 않음은 [subText]다.
+  static const playingStatus = Color(0xFFC07A12);
 }
 
 /// 대국 화면(어두운 화면)의 색. 기준은 `docs/ui.md`의 디자인 방향이고, 표에 없는 색은 시안을 따른다.

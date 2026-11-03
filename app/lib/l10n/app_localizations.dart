@@ -1495,6 +1495,252 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'방 대기실로'**
   String get resultBackToRoom;
+
+  /// 대국실 탭. 접속자 목록
+  ///
+  /// In ko, this message translates to:
+  /// **'접속자'**
+  String get lobbyTabUsers;
+
+  /// 대국실 접속자 탭. 닉네임 검색 칸
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임 검색'**
+  String get onlineUsersSearch;
+
+  /// 대국실 접속자 탭. 나를 뺀 접속자 수
+  ///
+  /// In ko, this message translates to:
+  /// **'접속자 {count}명'**
+  String onlineUsersCount(int count);
+
+  /// 대국실 접속자 탭. 내 대국 신청 받기 스위치
+  ///
+  /// In ko, this message translates to:
+  /// **'신청 받기'**
+  String get onlineUsersChallengesEnabled;
+
+  /// 접속자의 상태
+  ///
+  /// In ko, this message translates to:
+  /// **'{status, select, waiting{기다리는 중} playing{대국 중} notAccepting{신청 받지 않음} other{}}'**
+  String onlineStatus(String status);
+
+  /// 대국실 접속자 탭. 기다리는 사람의 신청 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'신청'**
+  String get onlineUsersChallenge;
+
+  /// 대국실 접속자 탭. 나 말고 접속자가 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 접속한 사람이 없어요'**
+  String get onlineUsersEmpty;
+
+  /// 대국실 접속자 탭. 검색 결과가 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'찾는 닉네임이 없어요'**
+  String get onlineUsersNoMatch;
+
+  /// 대국실 접속자 탭. 목록 읽기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'접속자를 불러오지 못했어요'**
+  String get errorLoadOnlineUsers;
+
+  /// 신청 받기 스위치 쓰기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'신청 받기를 바꾸지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorChallengesEnabled;
+
+  /// 다른 사용자 정보. 대국 신청 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 신청'**
+  String get userInfoChallenge;
+
+  /// 다른 사용자 정보. 차단 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'차단'**
+  String get userInfoBlock;
+
+  /// 차단 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}님을 차단할까요? 이 사람의 메시지와 대국 신청이 보이지 않아요'**
+  String blockConfirm(String nickname);
+
+  /// 차단 확인 창의 차단 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'차단하기'**
+  String get blockAction;
+
+  /// 차단한 뒤 알림
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}님을 차단했어요'**
+  String blockDone(String nickname);
+
+  /// 차단 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'차단하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorBlock;
+
+  /// 신청 보내기 창 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 신청'**
+  String get challengeTitle;
+
+  /// 신청 보내기. 내 진영 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'내 진영'**
+  String get challengeSide;
+
+  /// 신청 보내기 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'신청 보내기'**
+  String get challengeSubmit;
+
+  /// 신청 보내기. 응답을 기다리는 중
+  ///
+  /// In ko, this message translates to:
+  /// **'상대의 응답을 기다리고 있어요'**
+  String get challengeWaiting;
+
+  /// 신청 보내기. 기다리는 동안의 취소 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'신청 취소'**
+  String get challengeCancel;
+
+  /// 신청 보내기. 거절됐을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 신청을 거절했어요'**
+  String get challengeDeclined;
+
+  /// 신청 보내기. 응답 시간이 지났을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 응답하지 않았어요'**
+  String get challengeExpired;
+
+  /// 신청 보내기. 취소됐을 때(방 초대에서 방이 찼을 때 등)
+  ///
+  /// In ko, this message translates to:
+  /// **'신청이 취소됐어요'**
+  String get challengeCancelled;
+
+  /// 신청 보내기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'신청을 보내지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorSendChallenge;
+
+  /// 신청 취소 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'신청을 취소하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorCancelChallenge;
+
+  /// 연속 거절 제한
+  ///
+  /// In ko, this message translates to:
+  /// **'이 상대에게 여러 번 거절되어 잠시 신청할 수 없어요'**
+  String get errorChallengeLimited;
+
+  /// 상대가 대국실에 없거나, 대국 중이거나, 신청을 받지 않거나, 다른 신청을 받고 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 지금은 신청을 받을 수 없어요'**
+  String get errorTargetUnavailable;
+
+  /// 방 대기실. 접속자 초대 카드 제목과 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'접속자 초대하기'**
+  String get roomInviteUsers;
+
+  /// 방 대기실. 접속자 초대 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'대국실에 있는 사람을 골라 이 방으로 불러요'**
+  String get roomInviteUsersDescription;
+
+  /// 방 초대 보내기 창 설명
+  ///
+  /// In ko, this message translates to:
+  /// **'{nickname}님을 이 방에 초대해요'**
+  String roomInviteConfirm(String nickname);
+
+  /// 방 초대 보내기 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'초대 보내기'**
+  String get roomInviteSubmit;
+
+  /// 신청 받음 팝업 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 신청이 왔어요'**
+  String get incomingChallenge;
+
+  /// 신청 받음 팝업 제목. 방 초대
+  ///
+  /// In ko, this message translates to:
+  /// **'방 초대가 왔어요'**
+  String get incomingRoomInvite;
+
+  /// 신청 조건 칩. 받는 사람 기준 내 진영
+  ///
+  /// In ko, this message translates to:
+  /// **'{side, select, cho{나는 초} han{나는 한} random{진영 무작위} other{}}'**
+  String challengeChipMySide(String side);
+
+  /// 신청 조건 칩. 받는 사람 기준 떼는 쪽
+  ///
+  /// In ko, this message translates to:
+  /// **'{remover, select, me{내가 떼요} opponent{상대가 떼요} other{}}'**
+  String challengeChipRemover(String remover);
+
+  /// 신청 받음 팝업. 수락 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'수락'**
+  String get challengeAccept;
+
+  /// 신청 받음 팝업. 거절 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'거절'**
+  String get challengeDecline;
+
+  /// 응답하려던 신청이 마감됐거나 취소됐을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 끝난 신청이에요'**
+  String get challengeEnded;
+
+  /// 신청 응답 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'신청에 응답하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorRespondChallenge;
+
+  /// 방 대기실의 접속자 초대하기. 기다리는 사람의 초대 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'초대'**
+  String get onlineUsersInvite;
 }
 
 class _AppLocalizationsDelegate

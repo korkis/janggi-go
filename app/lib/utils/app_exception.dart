@@ -30,6 +30,8 @@ enum AppErrorCode {
   kicked,
   rankOutOfRange,
   notHost,
+  challengeLimited,
+  targetUnavailable,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -63,6 +65,8 @@ class AppException implements Exception {
       GameErrorCode.kicked => AppErrorCode.kicked,
       GameErrorCode.rankOutOfRange => AppErrorCode.rankOutOfRange,
       GameErrorCode.notHost => AppErrorCode.notHost,
+      GameErrorCode.challengeLimited => AppErrorCode.challengeLimited,
+      GameErrorCode.targetUnavailable => AppErrorCode.targetUnavailable,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -119,5 +123,9 @@ class AppException implements Exception {
     AppErrorCode.rankOutOfRange => l10n.errorRankOutOfRange,
     // 방장만 할 수 있어요
     AppErrorCode.notHost => l10n.errorNotHost,
+    // 이 상대에게 여러 번 거절되어 잠시 신청할 수 없어요
+    AppErrorCode.challengeLimited => l10n.errorChallengeLimited,
+    // 상대가 지금은 신청을 받을 수 없어요
+    AppErrorCode.targetUnavailable => l10n.errorTargetUnavailable,
   };
 }

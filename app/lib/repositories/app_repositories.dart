@@ -6,13 +6,16 @@ import 'package:firebase_database/firebase_database.dart';
 
 import '../config.dart';
 import 'auth_repository.dart';
+import 'challenge_repository.dart';
 import 'config_repository.dart';
 import 'connection_repository.dart';
 import 'deep_link_repository.dart';
 import 'game_repository.dart';
+import 'online_user_repository.dart';
 import 'player_state_repository.dart';
 import 'room_repository.dart';
 import 'server_time_repository.dart';
+import 'user_block_repository.dart';
 import 'user_private_repository.dart';
 import 'user_repository.dart';
 
@@ -30,6 +33,9 @@ class AppRepositories {
   final ConnectionRepository connectionRepository;
   final RoomRepository roomRepository;
   final DeepLinkRepository deepLinkRepository;
+  final OnlineUserRepository onlineUserRepository;
+  final ChallengeRepository challengeRepository;
+  final UserBlockRepository userBlockRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -42,6 +48,9 @@ class AppRepositories {
     required this.connectionRepository,
     required this.roomRepository,
     required this.deepLinkRepository,
+    required this.onlineUserRepository,
+    required this.challengeRepository,
+    required this.userBlockRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -59,6 +68,17 @@ class AppRepositories {
       connectionRepository: ConnectionRepository(database: database),
       roomRepository: RoomRepository(firestore: firestore, functions: functions, getServerUrl: getGameServerUrl),
       deepLinkRepository: DeepLinkRepository(appLinks: AppLinks()),
+      onlineUserRepository: OnlineUserRepository(
+        database: database,
+        functions: functions,
+        getServerUrl: getGameServerUrl,
+      ),
+      challengeRepository: ChallengeRepository(
+        firestore: firestore,
+        functions: functions,
+        getServerUrl: getGameServerUrl,
+      ),
+      userBlockRepository: UserBlockRepository(firestore: firestore),
     );
   }
 }

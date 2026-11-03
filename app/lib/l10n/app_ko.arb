@@ -1190,5 +1190,204 @@
   "resultBackToRoom": "방 대기실로",
   "@resultBackToRoom": {
     "description": "대국 결과. 방 대국에서 홈으로 대신 보여주는 버튼"
+  },
+  "lobbyTabUsers": "접속자",
+  "@lobbyTabUsers": {
+    "description": "대국실 탭. 접속자 목록"
+  },
+  "onlineUsersSearch": "닉네임 검색",
+  "@onlineUsersSearch": {
+    "description": "대국실 접속자 탭. 닉네임 검색 칸"
+  },
+  "onlineUsersCount": "접속자 {count}명",
+  "@onlineUsersCount": {
+    "description": "대국실 접속자 탭. 나를 뺀 접속자 수",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onlineUsersChallengesEnabled": "신청 받기",
+  "@onlineUsersChallengesEnabled": {
+    "description": "대국실 접속자 탭. 내 대국 신청 받기 스위치"
+  },
+  "onlineStatus": "{status, select, waiting{기다리는 중} playing{대국 중} notAccepting{신청 받지 않음} other{}}",
+  "@onlineStatus": {
+    "description": "접속자의 상태",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "onlineUsersChallenge": "신청",
+  "@onlineUsersChallenge": {
+    "description": "대국실 접속자 탭. 기다리는 사람의 신청 버튼"
+  },
+  "onlineUsersEmpty": "지금 접속한 사람이 없어요",
+  "@onlineUsersEmpty": {
+    "description": "대국실 접속자 탭. 나 말고 접속자가 없을 때"
+  },
+  "onlineUsersNoMatch": "찾는 닉네임이 없어요",
+  "@onlineUsersNoMatch": {
+    "description": "대국실 접속자 탭. 검색 결과가 없을 때"
+  },
+  "errorLoadOnlineUsers": "접속자를 불러오지 못했어요",
+  "@errorLoadOnlineUsers": {
+    "description": "대국실 접속자 탭. 목록 읽기 실패"
+  },
+  "errorChallengesEnabled": "신청 받기를 바꾸지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorChallengesEnabled": {
+    "description": "신청 받기 스위치 쓰기 실패"
+  },
+  "userInfoChallenge": "대국 신청",
+  "@userInfoChallenge": {
+    "description": "다른 사용자 정보. 대국 신청 버튼"
+  },
+  "userInfoBlock": "차단",
+  "@userInfoBlock": {
+    "description": "다른 사용자 정보. 차단 버튼"
+  },
+  "blockConfirm": "{nickname}님을 차단할까요? 이 사람의 메시지와 대국 신청이 보이지 않아요",
+  "@blockConfirm": {
+    "description": "차단 확인",
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "blockAction": "차단하기",
+  "@blockAction": {
+    "description": "차단 확인 창의 차단 버튼"
+  },
+  "blockDone": "{nickname}님을 차단했어요",
+  "@blockDone": {
+    "description": "차단한 뒤 알림",
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "errorBlock": "차단하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorBlock": {
+    "description": "차단 실패"
+  },
+  "challengeTitle": "대국 신청",
+  "@challengeTitle": {
+    "description": "신청 보내기 창 제목"
+  },
+  "challengeSide": "내 진영",
+  "@challengeSide": {
+    "description": "신청 보내기. 내 진영 제목"
+  },
+  "challengeSubmit": "신청 보내기",
+  "@challengeSubmit": {
+    "description": "신청 보내기 버튼"
+  },
+  "challengeWaiting": "상대의 응답을 기다리고 있어요",
+  "@challengeWaiting": {
+    "description": "신청 보내기. 응답을 기다리는 중"
+  },
+  "challengeCancel": "신청 취소",
+  "@challengeCancel": {
+    "description": "신청 보내기. 기다리는 동안의 취소 버튼"
+  },
+  "challengeDeclined": "상대가 신청을 거절했어요",
+  "@challengeDeclined": {
+    "description": "신청 보내기. 거절됐을 때"
+  },
+  "challengeExpired": "상대가 응답하지 않았어요",
+  "@challengeExpired": {
+    "description": "신청 보내기. 응답 시간이 지났을 때"
+  },
+  "challengeCancelled": "신청이 취소됐어요",
+  "@challengeCancelled": {
+    "description": "신청 보내기. 취소됐을 때(방 초대에서 방이 찼을 때 등)"
+  },
+  "errorSendChallenge": "신청을 보내지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorSendChallenge": {
+    "description": "신청 보내기 실패"
+  },
+  "errorCancelChallenge": "신청을 취소하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorCancelChallenge": {
+    "description": "신청 취소 실패"
+  },
+  "errorChallengeLimited": "이 상대에게 여러 번 거절되어 잠시 신청할 수 없어요",
+  "@errorChallengeLimited": {
+    "description": "연속 거절 제한"
+  },
+  "errorTargetUnavailable": "상대가 지금은 신청을 받을 수 없어요",
+  "@errorTargetUnavailable": {
+    "description": "상대가 대국실에 없거나, 대국 중이거나, 신청을 받지 않거나, 다른 신청을 받고 있을 때"
+  },
+  "roomInviteUsers": "접속자 초대하기",
+  "@roomInviteUsers": {
+    "description": "방 대기실. 접속자 초대 카드 제목과 버튼"
+  },
+  "roomInviteUsersDescription": "대국실에 있는 사람을 골라 이 방으로 불러요",
+  "@roomInviteUsersDescription": {
+    "description": "방 대기실. 접속자 초대 설명"
+  },
+  "roomInviteConfirm": "{nickname}님을 이 방에 초대해요",
+  "@roomInviteConfirm": {
+    "description": "방 초대 보내기 창 설명",
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "roomInviteSubmit": "초대 보내기",
+  "@roomInviteSubmit": {
+    "description": "방 초대 보내기 버튼"
+  },
+  "incomingChallenge": "대국 신청이 왔어요",
+  "@incomingChallenge": {
+    "description": "신청 받음 팝업 제목"
+  },
+  "incomingRoomInvite": "방 초대가 왔어요",
+  "@incomingRoomInvite": {
+    "description": "신청 받음 팝업 제목. 방 초대"
+  },
+  "challengeChipMySide": "{side, select, cho{나는 초} han{나는 한} random{진영 무작위} other{}}",
+  "@challengeChipMySide": {
+    "description": "신청 조건 칩. 받는 사람 기준 내 진영",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeChipRemover": "{remover, select, me{내가 떼요} opponent{상대가 떼요} other{}}",
+  "@challengeChipRemover": {
+    "description": "신청 조건 칩. 받는 사람 기준 떼는 쪽",
+    "placeholders": {
+      "remover": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeAccept": "수락",
+  "@challengeAccept": {
+    "description": "신청 받음 팝업. 수락 버튼"
+  },
+  "challengeDecline": "거절",
+  "@challengeDecline": {
+    "description": "신청 받음 팝업. 거절 버튼"
+  },
+  "challengeEnded": "이미 끝난 신청이에요",
+  "@challengeEnded": {
+    "description": "응답하려던 신청이 마감됐거나 취소됐을 때"
+  },
+  "errorRespondChallenge": "신청에 응답하지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorRespondChallenge": {
+    "description": "신청 응답 실패"
+  },
+  "onlineUsersInvite": "초대",
+  "@onlineUsersInvite": {
+    "description": "방 대기실의 접속자 초대하기. 기다리는 사람의 초대 버튼"
   }
 }

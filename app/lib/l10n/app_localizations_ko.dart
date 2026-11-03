@@ -907,4 +907,158 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get resultBackToRoom => '방 대기실로';
+
+  @override
+  String get lobbyTabUsers => '접속자';
+
+  @override
+  String get onlineUsersSearch => '닉네임 검색';
+
+  @override
+  String onlineUsersCount(int count) {
+    return '접속자 $count명';
+  }
+
+  @override
+  String get onlineUsersChallengesEnabled => '신청 받기';
+
+  @override
+  String onlineStatus(String status) {
+    String _temp0 = intl.Intl.selectLogic(status, {
+      'waiting': '기다리는 중',
+      'playing': '대국 중',
+      'notAccepting': '신청 받지 않음',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get onlineUsersChallenge => '신청';
+
+  @override
+  String get onlineUsersEmpty => '지금 접속한 사람이 없어요';
+
+  @override
+  String get onlineUsersNoMatch => '찾는 닉네임이 없어요';
+
+  @override
+  String get errorLoadOnlineUsers => '접속자를 불러오지 못했어요';
+
+  @override
+  String get errorChallengesEnabled => '신청 받기를 바꾸지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get userInfoChallenge => '대국 신청';
+
+  @override
+  String get userInfoBlock => '차단';
+
+  @override
+  String blockConfirm(String nickname) {
+    return '$nickname님을 차단할까요? 이 사람의 메시지와 대국 신청이 보이지 않아요';
+  }
+
+  @override
+  String get blockAction => '차단하기';
+
+  @override
+  String blockDone(String nickname) {
+    return '$nickname님을 차단했어요';
+  }
+
+  @override
+  String get errorBlock => '차단하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get challengeTitle => '대국 신청';
+
+  @override
+  String get challengeSide => '내 진영';
+
+  @override
+  String get challengeSubmit => '신청 보내기';
+
+  @override
+  String get challengeWaiting => '상대의 응답을 기다리고 있어요';
+
+  @override
+  String get challengeCancel => '신청 취소';
+
+  @override
+  String get challengeDeclined => '상대가 신청을 거절했어요';
+
+  @override
+  String get challengeExpired => '상대가 응답하지 않았어요';
+
+  @override
+  String get challengeCancelled => '신청이 취소됐어요';
+
+  @override
+  String get errorSendChallenge => '신청을 보내지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorCancelChallenge => '신청을 취소하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorChallengeLimited => '이 상대에게 여러 번 거절되어 잠시 신청할 수 없어요';
+
+  @override
+  String get errorTargetUnavailable => '상대가 지금은 신청을 받을 수 없어요';
+
+  @override
+  String get roomInviteUsers => '접속자 초대하기';
+
+  @override
+  String get roomInviteUsersDescription => '대국실에 있는 사람을 골라 이 방으로 불러요';
+
+  @override
+  String roomInviteConfirm(String nickname) {
+    return '$nickname님을 이 방에 초대해요';
+  }
+
+  @override
+  String get roomInviteSubmit => '초대 보내기';
+
+  @override
+  String get incomingChallenge => '대국 신청이 왔어요';
+
+  @override
+  String get incomingRoomInvite => '방 초대가 왔어요';
+
+  @override
+  String challengeChipMySide(String side) {
+    String _temp0 = intl.Intl.selectLogic(side, {
+      'cho': '나는 초',
+      'han': '나는 한',
+      'random': '진영 무작위',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String challengeChipRemover(String remover) {
+    String _temp0 = intl.Intl.selectLogic(remover, {
+      'me': '내가 떼요',
+      'opponent': '상대가 떼요',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeAccept => '수락';
+
+  @override
+  String get challengeDecline => '거절';
+
+  @override
+  String get challengeEnded => '이미 끝난 신청이에요';
+
+  @override
+  String get errorRespondChallenge => '신청에 응답하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get onlineUsersInvite => '초대';
 }

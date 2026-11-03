@@ -1,6 +1,9 @@
 import 'auth_manager.dart';
+import 'block_manager.dart';
+import 'challenge_manager.dart';
 import 'connection_manager.dart';
 import 'invite_link_manager.dart';
+import 'lobby_presence_manager.dart';
 import 'player_state_manager.dart';
 import 'rank_manager.dart';
 
@@ -13,6 +16,9 @@ class AppManagers {
   final ConnectionManager connectionManager;
   final RankManager rankManager;
   final InviteLinkManager inviteLinkManager;
+  final LobbyPresenceManager lobbyPresenceManager;
+  final ChallengeManager challengeManager;
+  final BlockManager blockManager;
 
   AppManagers({
     required this.authManager,
@@ -20,17 +26,24 @@ class AppManagers {
     required this.connectionManager,
     required this.rankManager,
     required this.inviteLinkManager,
+    required this.lobbyPresenceManager,
+    required this.challengeManager,
+    required this.blockManager,
   });
 
   factory AppManagers.createDefault() {
     final authManager = AuthManager();
     final playerStateManager = PlayerStateManager(authManager: authManager);
+    final connectionManager = ConnectionManager(authManager: authManager, playerStateManager: playerStateManager);
     return AppManagers(
       authManager: authManager,
       playerStateManager: playerStateManager,
-      connectionManager: ConnectionManager(authManager: authManager, playerStateManager: playerStateManager),
+      connectionManager: connectionManager,
       rankManager: RankManager(authManager: authManager),
       inviteLinkManager: InviteLinkManager(),
+      lobbyPresenceManager: LobbyPresenceManager(authManager: authManager, connectionManager: connectionManager),
+      challengeManager: ChallengeManager(playerStateManager: playerStateManager),
+      blockManager: BlockManager(authManager: authManager),
     );
   }
 }

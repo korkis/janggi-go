@@ -208,8 +208,10 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> with SingleTickerPr
   }
 
   /// 대국이 만들어졌다. 바로 상차림 화면으로 넘어간다. 상차림 화면이 대국을 듣고 아직 없으면 생길 때까지 기다린다.
+  ///
+  /// 이 화면이 맨 위가 아니면 넘어가지 않는다. 기다리는 중에 받은 대국 신청을 수락하면 신청 팝업이 이 화면을 닫고 그 대국을 연다.
   void _onMatched(String gameId) {
-    if (_gameId != null || !mounted) {
+    if (_gameId != null || !mounted || ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
     _gameId = gameId;
