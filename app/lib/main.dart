@@ -11,6 +11,7 @@ import 'config.dart';
 import 'firebase_options.dart';
 import 'managers/app_managers.dart';
 import 'repositories/app_repositories.dart';
+import 'utils/auth_emulator_origin.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +29,9 @@ Future<void> _initializeFirebase() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     return;
   }
-  await Firebase.initializeApp(options: getEmulatorFirebaseOptions());
   final host = getFirebaseEmulatorHost();
+  rememberAuthEmulatorOrigin(defaultFirebaseAppName, 'http://$host:${EmulatorPorts.auth}');
+  await Firebase.initializeApp(options: getEmulatorFirebaseOptions());
   await FirebaseAuth.instance.useAuthEmulator(host, EmulatorPorts.auth);
   FirebaseFirestore.instance.useFirestoreEmulator(host, EmulatorPorts.firestore);
   FirebaseFunctions.instanceFor(region: functionsRegion).useFunctionsEmulator(host, EmulatorPorts.functions);
