@@ -115,8 +115,24 @@ class FakeUserRepository implements UserRepository {
   @override
   Future<UserProfile?> getUser(String uid) async => profiles[uid];
 
+  // [updateProfile]로 바꾼 사용자의 uid.
+  final _profileChanges = StreamController<String>.broadcast();
+
+  /// [uid]의 프로필을 바꾸고 듣고 있는 쪽에 알린다. 대국 서버가 전적을 더한 것처럼 쓸 때 쓴다.
+  void updateProfile(String uid, UserProfile profile) {
+    profiles[uid] = profile;
+    _profileChanges.add(uid);
+  }
+
   @override
-  Stream<UserProfile?> watchUser(String uid) => Stream.value(profiles[uid]);
+  Stream<UserProfile?> watchUser(String uid) async* {
+    yield profiles[uid];
+    await for (final changed in _profileChanges.stream) {
+      if (changed == uid) {
+        yield profiles[uid];
+      }
+    }
+  }
 
   @override
   Future<NicknameAvailability> checkNickname(String nickname) async {

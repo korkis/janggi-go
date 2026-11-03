@@ -1113,6 +1113,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeSpectateAll => '전체 보기';
 
   @override
+  String get homeRecentGamesTitle => '최근 내 대국';
+
+  @override
+  String get homeRecentGamesAll => '전체 보기';
+
+  @override
   String get lobbySpectateTitle => '진행 중인 대국을 구경해 보세요';
 
   @override

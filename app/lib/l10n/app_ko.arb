@@ -1466,6 +1466,14 @@
   "@homeSpectateAll": {
     "description": "홈의 관전 카드에서 관전 목록으로 가는 버튼"
   },
+  "homeRecentGamesTitle": "최근 내 대국",
+  "@homeRecentGamesTitle": {
+    "description": "홈의 최근 내 대국 제목"
+  },
+  "homeRecentGamesAll": "전체 보기",
+  "@homeRecentGamesAll": {
+    "description": "홈의 최근 내 대국에서 내 기보 목록으로 가는 버튼"
+  },
   "lobbySpectateTitle": "진행 중인 대국을 구경해 보세요",
   "@lobbySpectateTitle": {
     "description": "대국실에 열린 방이 없을 때 관전 목록 제목"

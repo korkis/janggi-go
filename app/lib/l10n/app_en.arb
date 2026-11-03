@@ -288,6 +288,8 @@
   "spectateRoomPlaying": "A game is in progress in this room. Watch it?",
   "homeSpectateTitle": "Games worth watching",
   "homeSpectateAll": "See all",
+  "homeRecentGamesTitle": "My recent games",
+  "homeRecentGamesAll": "See all",
   "lobbySpectateTitle": "Watch a game in progress",
   "chat": "Chat",
   "chatLobby": "Lobby chat",

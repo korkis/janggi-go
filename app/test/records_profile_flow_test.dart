@@ -111,6 +111,9 @@ Widget _app(Widget home) {
   );
 }
 
+/// 졸과 병을 옆으로 오가는 수. 앞에서부터 몇 수든 잘라 기보로 쓸 수 있다.
+const _soldierMoves = ['a4b4', 'a7b7', 'b4a4', 'b7a7', 'a4b4'];
+
 void main() {
   testWidgets('내 기보 목록은 날짜별로 묶어 상대, 결과 종류, 수, 승패를 보여주고 누르면 내 진영을 아래로 복기한다', (tester) async {
     _usePhoneView(tester);
@@ -158,6 +161,75 @@ void main() {
     expect(find.text('나 · 18급'), findsOneWidget);
     // 내가 한이었으므로 한이 아래에 오도록 판을 돌린다.
     expect(tester.widget<BoardView>(find.byType(BoardView)).flipped, isTrue);
+  });
+
+  testWidgets('홈의 최근 내 대국은 최근 3판을 보여주고, 대국이 끝나 전적이 늘면 다시 읽는다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = await _signIn('me', '나', stats: const UserStats(games: 4, wins: 2, losses: 2));
+    fakes.users.profiles['opp'] = _profile('상대');
+    final now = DateTime.now().toUtc();
+    fakes.archivedGames.games = [
+      for (var i = 0; i < 4; i++)
+        _archived(
+          'g$i',
+          choUid: i == 0 ? 'opp' : 'me',
+          hanUid: i == 0 ? 'me' : 'opp',
+          winner: Side.cho,
+          reason: GameEndReason.checkmate,
+          endedAt: now.subtract(Duration(hours: i)),
+          moves: _soldierMoves.take(i + 1).toList(),
+        ),
+    ];
+    await tester.pumpWidget(const JanggigoApp());
+    await _pumpFor(tester);
+
+    await tester.scrollUntilVisible(find.text('최근 내 대국'), 200);
+    await _pumpFor(tester);
+    expect(find.text('외통패 · 1수'), findsOneWidget);
+    expect(find.text('외통승 · 2수'), findsOneWidget);
+    expect(find.text('외통승 · 3수'), findsOneWidget);
+    expect(find.text('외통승 · 4수'), findsNothing);
+
+    // 새 대국이 끝나 대국 서버가 기보를 남기고 전적을 더한다.
+    fakes.archivedGames.games = [
+      _archived(
+        'g-new',
+        choUid: 'me',
+        hanUid: 'opp',
+        winner: Side.han,
+        reason: GameEndReason.resignation,
+        endedAt: now.add(const Duration(minutes: 1)),
+        moves: _soldierMoves,
+      ),
+      ...fakes.archivedGames.games,
+    ];
+    fakes.users.updateProfile('me', _profile('나', stats: const UserStats(games: 5, wins: 2, losses: 3)));
+    await _pumpFor(tester);
+    expect(find.text('기권패 · 5수'), findsOneWidget);
+    expect(find.text('외통승 · 3수'), findsNothing);
+
+    // 누르면 내 진영을 아래로 복기한다.
+    await _tap(tester, find.text('외통패 · 1수'));
+    expect(find.text('복기'), findsOneWidget);
+    expect(tester.widget<BoardView>(find.byType(BoardView)).flipped, isTrue);
+  });
+
+  testWidgets('홈의 최근 내 대국은 로그인하지 않으면 숨기고, 전체 보기로 내 기보 목록에 간다', (tester) async {
+    _usePhoneView(tester);
+    setUpFakeApp();
+    await tester.pumpWidget(const JanggigoApp());
+    await _pumpFor(tester);
+    expect(find.text('최근 내 대국'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    await _signIn('me', '나');
+    await tester.pumpWidget(const JanggigoApp());
+    await _pumpFor(tester);
+    await tester.scrollUntilVisible(find.text('최근 내 대국'), 200);
+    await _pumpFor(tester);
+    expect(find.text('아직 끝난 대국이 없어요'), findsOneWidget);
+    await _tap(tester, find.widgetWithText(TextButton, '전체 보기').last);
+    expect(find.text('내 기보'), findsOneWidget);
   });
 
   testWidgets('기보를 읽지 못하면 알리고 다시 불러온다', (tester) async {

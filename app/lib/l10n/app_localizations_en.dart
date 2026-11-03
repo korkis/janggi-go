@@ -1191,6 +1191,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSpectateAll => 'See all';
 
   @override
+  String get homeRecentGamesTitle => 'My recent games';
+
+  @override
+  String get homeRecentGamesAll => 'See all';
+
+  @override
   String get lobbySpectateTitle => 'Watch a game in progress';
 
   @override

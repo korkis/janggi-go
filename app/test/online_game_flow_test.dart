@@ -7,6 +7,7 @@ import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/screens/game_screen.dart';
 import 'package:janggigo/screens/setup_screen.dart';
 import 'package:janggigo/theme/app_theme.dart';
+import 'package:janggigo/widgets/board/board_view.dart';
 
 import 'fakes.dart';
 import 'online_game_fixtures.dart';
@@ -104,8 +105,13 @@ void main() {
     expect(find.text('다시 두기'), findsOneWidget);
     expect(find.text('한 판 더'), findsNothing);
 
-    // 화면을 닫아 시계 타이머를 멈춘다.
-    await tester.pumpWidget(const SizedBox.shrink());
+    // 복기는 대국 화면처럼 내 진영(한)을 아래에 두고 정보 줄에 닉네임을 보여준다.
+    await tester.tap(find.text('복기하기'));
+    await _pumpFor(tester);
+    expect(find.text('복기'), findsOneWidget);
+    expect(tester.widget<BoardView>(find.byType(BoardView)).flipped, isTrue);
+    expect(find.text('한opp · 1단'), findsOneWidget);
+    expect(find.text('초me · 18급'), findsOneWidget);
   });
 
   testWidgets('결과 창은 진 쪽에게 내 진영 기준으로 패배를 보여준다', (tester) async {

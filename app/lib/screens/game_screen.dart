@@ -327,8 +327,17 @@ class _GameScreenState extends State<GameScreen> {
           Navigator.of(context).pushReplacement(createGameRoute<void>((context) => const SetupScreen()));
         }
       case GameResultAction.review:
+        // 복기는 대국 화면에서 아래에 있던 진영(온라인 대국은 처음에 내 진영)을 아래에 두고, 온라인 대국은 정보 줄에 닉네임을 보여준다.
         final record = board.game;
-        Navigator.of(context).pushReplacement(createGameRoute<void>((context) => ReviewScreen(record: record)));
+        final bottomSide = board.flipped ? Side.han : Side.cho;
+        final l10n = AppLocalizations.of(context);
+        final players = online?.game?.meta.players;
+        final names = players == null
+            ? null
+            : (cho: getPlayerName(l10n, players.get(Side.cho)), han: getPlayerName(l10n, players.get(Side.han)));
+        Navigator.of(context).pushReplacement(
+          createGameRoute<void>((context) => ReviewScreen(record: record, bottomSide: bottomSide, names: names)),
+        );
       case GameResultAction.home:
       case null:
         // 방 대국은 결과 창을 나가면 홈 대신 방 대기실로 돌아간다(`docs/game/matching.md`의 방 유지).

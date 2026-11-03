@@ -12,6 +12,7 @@ import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
+import '../utils/game_record.dart';
 import '../utils/rank_format.dart';
 import '../utils/spectate_order.dart';
 import '../widgets/adaptive_layout.dart';
@@ -30,14 +31,15 @@ import 'setup_screen.dart';
 import 'spectate_list_screen.dart';
 import 'spectate_screen.dart';
 
-/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실·기보·내 정보 버튼, 지금 볼 만한 대국과, 개발 빌드에서만 보이는 개발용
-/// 대국 카드들을 보여준다.
+/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실·기보·내 정보 버튼, 지금 볼 만한 대국, 최근 내 대국과, 개발 빌드에서만
+/// 보이는 개발용 대국 카드들을 보여준다.
 ///
 /// 앱의 처음 화면이라 초대 링크로 들어온 방도 여기서 받아 방 대기실로 간다.
 ///
 /// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 대국실·기보·내 정보는 왼쪽 메뉴로
 /// 간다.
-/// 오른쪽 칸에는 "지금 볼 만한 대국"을 2열 카드로 두고, 개발 빌드에서는 그 아래에 개발용 대국 카드를 둔다.
+/// 오른쪽 칸에는 "지금 볼 만한 대국"을 2열 카드로 두고 그 아래에 최근 내 대국을, 개발 빌드에서는 그 아래에 개발용 대국 카드를
+/// 둔다.
 ///
 /// 개발용 대국과 개발용 온라인 대국은 사용자 기능으로 내보내지 않는다(`docs/plan.md`의 로드맵).
 class HomeScreen extends StatelessWidget {
@@ -76,6 +78,7 @@ class HomeScreen extends StatelessWidget {
         const _MenuButtons(),
         const SizedBox(height: 24),
         const _SpectateSection(wide: false),
+        const _RecentGamesSection(),
         const SizedBox(height: 16),
         if (!kReleaseMode) const _DevGameCard(),
         if (!kReleaseMode) ...[const SizedBox(height: 16), const _DevOnlineGameCard()],
@@ -107,6 +110,7 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 32, 32, 32),
             children: [
               const _SpectateSection(wide: true),
+              const _RecentGamesSection(),
               if (!kReleaseMode) ...[
                 const SizedBox(height: 16),
                 const Row(
@@ -299,6 +303,149 @@ class _SpectateSectionState extends State<_SpectateSection> {
     await SpectateListScreen.open(context);
     if (mounted) {
       await _loadEntries();
+    }
+  }
+}
+
+/// 최근 내 대국(`docs/screens.md`의 홈 5번). 로그인하고 프로필이 있을 때만 보인다.
+///
+/// 내 기보 목록과 같은 줄로 최근 [_limit]판을 보여주고, 누르면 그 대국을 복기한다. "전체 보기"는 내 기보 목록으로 간다.
+/// 대국이 끝나면 대국 서버가 전적을 더하므로 [RankManager.gameCount]가 바뀔 때 다시 읽는다.
+class _RecentGamesSection extends StatefulWidget {
+  static const _limit = 3;
+
+  const _RecentGamesSection();
+
+  @override
+  State<_RecentGamesSection> createState() => _RecentGamesSectionState();
+}
+
+class _RecentGamesSectionState extends State<_RecentGamesSection> {
+  // 읽은 기보의 주인과 그때의 대국 수. 둘 중 하나가 바뀌면 다시 읽는다.
+  String? _loadedUid;
+  int? _loadedGameCount;
+  List<MyArchivedGame>? _games;
+  final _nicknames = <String, String?>{};
+  var _failed = false;
+
+  // 프로필이 생기거나 없어지는 것은 [AuthManager]가, 대국 수는 [RankManager]가 알린다.
+  final _listenable = Listenable.merge([managers.authManager, managers.rankManager]);
+
+  @override
+  void initState() {
+    super.initState();
+    _listenable.addListener(_onChanged);
+    _onChanged();
+  }
+
+  @override
+  void dispose() {
+    _listenable.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loadedUid == null) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  // 최근 내 대국
+                  l10n.homeRecentGamesTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              TextButton(
+                onPressed: () => RecordsScreen.open(context),
+                // 전체 보기
+                child: Text(l10n.homeRecentGamesAll),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildContent(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final games = _games;
+    if (games == null && !_failed) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (games == null || games.isEmpty) {
+      return Text(
+        // 기보를 불러오지 못했어요 / 아직 끝난 대국이 없어요
+        games == null ? l10n.errorLoadRecords : l10n.recordsEmpty,
+        style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final item in games)
+          RecordTile(
+            item: item,
+            opponentNickname: _nicknames[item.opponent.uid] ?? l10n.unknownUser,
+            onTap: () => openArchivedReview(context, item, _nicknames),
+          ),
+      ],
+    );
+  }
+
+  /// 로그인한 사용자나 대국 수가 바뀌면 최근 기보를 다시 읽는다. 프로필이 없으면 숨긴다.
+  void _onChanged() {
+    final authManager = managers.authManager;
+    final uid = authManager.profile == null ? null : authManager.uid;
+    final gameCount = managers.rankManager.gameCount;
+    if (uid == _loadedUid && gameCount == _loadedGameCount) {
+      return;
+    }
+    final uidChanged = uid != _loadedUid;
+    _loadedUid = uid;
+    _loadedGameCount = gameCount;
+    if (uidChanged) {
+      _games = null;
+      _nicknames.clear();
+    }
+    if (uid == null) {
+      setState(() {});
+      return;
+    }
+    _loadGames(uid);
+  }
+
+  Future<void> _loadGames(String uid) async {
+    try {
+      setState(() {
+        _failed = false;
+      });
+      final page = await repositories.archivedGameRepository.getArchivedGames(uid, limit: _RecentGamesSection._limit);
+      final games = getMyArchivedGames(uid, page);
+      await loadNicknames(_nicknames, [for (final item in games) item.opponent.uid]);
+      if (mounted && uid == _loadedUid) {
+        setState(() {
+          _games = games;
+        });
+      }
+    } catch (error, stackTrace) {
+      developer.log('최근 내 대국 읽기 실패', error: error, stackTrace: stackTrace);
+      if (mounted && uid == _loadedUid) {
+        setState(() {
+          _failed = true;
+        });
+      }
     }
   }
 }

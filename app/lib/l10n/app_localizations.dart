@@ -1826,6 +1826,18 @@ abstract class AppLocalizations {
   /// **'전체 보기'**
   String get homeSpectateAll;
 
+  /// 홈의 최근 내 대국 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'최근 내 대국'**
+  String get homeRecentGamesTitle;
+
+  /// 홈의 최근 내 대국에서 내 기보 목록으로 가는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'전체 보기'**
+  String get homeRecentGamesAll;
+
   /// 대국실에 열린 방이 없을 때 관전 목록 제목
   ///
   /// In ko, this message translates to:

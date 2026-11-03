@@ -45,6 +45,10 @@ class RankManager extends ChangeNotifier {
   /// 다음 급수까지의 어림 승수. 9단이거나 아직 급수 대국을 두지 않았으면 null.
   int? get winsToNextRank => _private?.winsToNextRank;
 
+  /// 전적의 대국 수(`users.stats.games`). 대국이 끝날 때마다 늘어서 홈의 최근 내 대국이 새 기보를 다시 읽는 데 쓴다.
+  /// 아직 읽지 못했으면 null.
+  int? get gameCount => _profile?.stats.games;
+
   void _onAuthChanged() {
     final uid = authManager.uid;
     if (uid == _uid) {
