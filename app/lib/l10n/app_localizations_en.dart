@@ -1464,4 +1464,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String recordsDetail(String reason, int count) {
     return '$reason · $count moves';
   }
+
+  @override
+  String get sanctionTitleWarning => 'You\'ve received a warning';
+
+  @override
+  String get sanctionTitleChatRestriction => 'Your chat has been restricted';
+
+  @override
+  String get sanctionTitleSuspension => 'Your account has been suspended';
+
+  @override
+  String get sanctionTitlePermanentBan =>
+      'Your account has been permanently banned';
+
+  @override
+  String get sanctionTitleUnknown => 'Your account has been restricted';
+
+  @override
+  String get sanctionDescriptionWarning =>
+      'If this happens again, your chat or account may be restricted';
+
+  @override
+  String get sanctionDescriptionChatRestriction =>
+      'You can\'t chat until the restriction ends';
+
+  @override
+  String get sanctionDescriptionSuspension =>
+      'You can\'t play or chat until the suspension ends';
+
+  @override
+  String get sanctionDescriptionPermanentBan => 'You can\'t play or chat';
+
+  @override
+  String sanctionReason(String reason) {
+    return 'Reason: $reason';
+  }
+
+  @override
+  String sanctionEndsAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.jm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return 'Ends: $dateString $timeString';
+  }
+
+  @override
+  String sanctionAppeal(String email) {
+    return 'If you disagree, please email $email';
+  }
 }

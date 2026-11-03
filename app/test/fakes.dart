@@ -389,6 +389,12 @@ class FakeUserPrivateRepository implements UserPrivateRepository {
   @override
   Future<UserPrivate?> getUserPrivate(String uid) async => _latest[uid];
 
+  /// 경고 지우기. 예: `me`.
+  final clearWarningWrites = <String>[];
+
+  @override
+  Future<void> clearWarning(String uid) async => clearWarningWrites.add(uid);
+
   /// 대국 서버가 [uid]의 급수 진행을 바꾼 것처럼 보낸다.
   void emit(String uid, UserPrivate? userPrivate) {
     _latest[uid] = userPrivate;

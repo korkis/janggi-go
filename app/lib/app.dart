@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'screens/incoming_challenge_dialog.dart';
+import 'screens/sanction_dialog.dart';
 import 'theme/app_theme.dart';
 
 class JanggigoApp extends StatefulWidget {
@@ -13,7 +14,7 @@ class JanggigoApp extends StatefulWidget {
 }
 
 class _JanggigoAppState extends State<JanggigoApp> {
-  // 받은 대국 신청 팝업을 어느 화면 위에든 띄우기 위한 Navigator.
+  // 받은 대국 신청 팝업과 제재 팝업을 어느 화면 위에든 띄우기 위한 Navigator.
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -35,6 +36,9 @@ class _JanggigoAppState extends State<JanggigoApp> {
   }
 
   Widget _buildApp(BuildContext context, Widget? child) {
-    return ChallengeListener(navigatorKey: _navigatorKey, child: child ?? const SizedBox.shrink());
+    return SanctionListener(
+      navigatorKey: _navigatorKey,
+      child: ChallengeListener(navigatorKey: _navigatorKey, child: child ?? const SizedBox.shrink()),
+    );
   }
 }

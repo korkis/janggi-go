@@ -15,6 +15,7 @@ import '../utils/room_format.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/handicap_piece_picker.dart';
 import 'room_screen.dart';
+import 'sanction_dialog.dart';
 
 /// 방 만들기(`docs/screens.md`의 방 만들기). 밝은 화면이다. 조건은 `docs/game/matching.md`의 방 만들기를 따른다.
 ///
@@ -281,7 +282,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       }
     } catch (error, stackTrace) {
       developer.log('RoomRepository.createRoom 실패', error: error, stackTrace: stackTrace);
-      if (mounted) {
+      if (mounted && !await showSanctionDialogForError(context, error) && mounted) {
         final l10n = AppLocalizations.of(context);
         // 방을 만들지 못했어요. 잠시 후 다시 해 주세요
         final message = error is AppException ? error.getMessage(l10n) : l10n.errorCreateRoom;

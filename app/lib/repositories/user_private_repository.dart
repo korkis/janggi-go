@@ -21,6 +21,11 @@ class UserPrivateRepository {
     await firestore.collection('users_private').doc(uid).update({'challengesEnabled': enabled});
   }
 
+  /// 경고 팝업을 확인했으면 경고를 지운다. 보안 규칙이 지금 제재가 경고일 때만 본인이 지우도록 허용한다.
+  Future<void> clearWarning(String uid) async {
+    await firestore.collection('users_private').doc(uid).update({'sanction': null});
+  }
+
   static UserPrivate? _decode(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data();
     return data == null ? null : UserPrivate.fromJson(data);

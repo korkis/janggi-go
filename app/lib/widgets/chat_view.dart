@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:math';
 
@@ -10,6 +11,7 @@ import '../managers/chat_manager.dart';
 import '../models/chat_message.dart';
 import '../repositories/app_repositories.dart';
 import '../screens/login_flow.dart';
+import '../screens/sanction_dialog.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
@@ -410,6 +412,8 @@ class _ChatViewState extends State<ChatView> {
     final l10n = AppLocalizations.of(context);
     // 부적절한 표현이 있어 보내지 않았어요 / 메시지를 보내지 못했어요. 잠시 후 다시 해 주세요
     chat.addNotice(error is AppException ? error.getMessage(l10n) : l10n.errorChatSend);
+    // 채팅 제한이면 사유와 끝나는 때를 팝업으로도 알린다.
+    unawaited(showSanctionDialogForError(context, error));
   }
 
   Future<void> _onMessageLongPress(ChatEntry entry) async {

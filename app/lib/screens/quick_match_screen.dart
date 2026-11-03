@@ -14,6 +14,7 @@ import '../utils/game_clock.dart';
 import '../utils/rank_format.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
+import 'sanction_dialog.dart';
 import 'setup_screen.dart';
 
 /// 빠른 대국 대기 화면(`docs/screens.md`의 빠른 대국 대기). 대국 화면과 같은 어두운 바탕을 쓴다.
@@ -190,10 +191,13 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> with SingleTickerPr
       if (!mounted) {
         return;
       }
-      final l10n = AppLocalizations.of(context);
-      // 상대를 찾지 못했어요. 잠시 후 다시 해 주세요
-      final message = error is AppException ? error.getMessage(l10n) : l10n.errorQuickMatch;
-      await DialogUtils.showMessage(context, message: message);
+      final sanctionShown = await showSanctionDialogForError(context, error);
+      if (!sanctionShown && mounted) {
+        final l10n = AppLocalizations.of(context);
+        // 상대를 찾지 못했어요. 잠시 후 다시 해 주세요
+        final message = error is AppException ? error.getMessage(l10n) : l10n.errorQuickMatch;
+        await DialogUtils.showMessage(context, message: message);
+      }
       if (mounted && _gameId == null) {
         Navigator.of(context).pop();
       }

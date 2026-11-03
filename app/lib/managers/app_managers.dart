@@ -6,6 +6,7 @@ import 'invite_link_manager.dart';
 import 'lobby_presence_manager.dart';
 import 'player_state_manager.dart';
 import 'rank_manager.dart';
+import 'sanction_manager.dart';
 
 /// 앱 수명 동안 유지하는 Manager. `repositories`를 설정한 뒤에 설정한다.
 late AppManagers managers;
@@ -19,6 +20,7 @@ class AppManagers {
   final LobbyPresenceManager lobbyPresenceManager;
   final ChallengeManager challengeManager;
   final BlockManager blockManager;
+  final SanctionManager sanctionManager;
 
   AppManagers({
     required this.authManager,
@@ -29,6 +31,7 @@ class AppManagers {
     required this.lobbyPresenceManager,
     required this.challengeManager,
     required this.blockManager,
+    required this.sanctionManager,
   });
 
   factory AppManagers.createDefault() {
@@ -44,6 +47,7 @@ class AppManagers {
       lobbyPresenceManager: LobbyPresenceManager(authManager: authManager, connectionManager: connectionManager),
       challengeManager: ChallengeManager(playerStateManager: playerStateManager),
       blockManager: BlockManager(authManager: authManager),
+      sanctionManager: SanctionManager(authManager: authManager),
     );
   }
 }

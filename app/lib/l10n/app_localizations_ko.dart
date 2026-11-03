@@ -1378,4 +1378,51 @@ class AppLocalizationsKo extends AppLocalizations {
   String recordsDetail(String reason, int count) {
     return '$reason · $count수';
   }
+
+  @override
+  String get sanctionTitleWarning => '경고를 받았어요';
+
+  @override
+  String get sanctionTitleChatRestriction => '채팅이 제한되었어요';
+
+  @override
+  String get sanctionTitleSuspension => '이용이 정지되었어요';
+
+  @override
+  String get sanctionTitlePermanentBan => '계정 이용이 영구 정지되었어요';
+
+  @override
+  String get sanctionTitleUnknown => '이용이 제한되었어요';
+
+  @override
+  String get sanctionDescriptionWarning => '같은 일이 반복되면 채팅이나 이용이 제한될 수 있어요';
+
+  @override
+  String get sanctionDescriptionChatRestriction => '제한이 끝날 때까지 채팅을 할 수 없어요';
+
+  @override
+  String get sanctionDescriptionSuspension => '정지가 끝날 때까지 대국과 채팅을 할 수 없어요';
+
+  @override
+  String get sanctionDescriptionPermanentBan => '대국과 채팅을 할 수 없어요';
+
+  @override
+  String sanctionReason(String reason) {
+    return '사유: $reason';
+  }
+
+  @override
+  String sanctionEndsAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.jm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '끝나는 때: $dateString $timeString';
+  }
+
+  @override
+  String sanctionAppeal(String email) {
+    return '이의가 있으면 $email로 메일을 보내 주세요';
+  }
 }

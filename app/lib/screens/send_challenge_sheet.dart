@@ -17,6 +17,7 @@ import '../widgets/adaptive_layout.dart';
 import '../widgets/challenge_time_bar.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/handicap_piece_picker.dart';
+import 'sanction_dialog.dart';
 import 'setup_screen.dart';
 
 /// 대국 신청 보내기 창(`docs/screens.md`의 대국 신청). 아래에서 올라오고 1024 이상은 가운데 카드로 띄운다.
@@ -308,7 +309,7 @@ class _SendChallengeSheetState extends State<SendChallengeSheet> {
           .listen(_onChallengeChanged, onError: _onChallengeError);
     } catch (error, stackTrace) {
       developer.log('ChallengeRepository.sendChallenge 실패', error: error, stackTrace: stackTrace);
-      if (mounted) {
+      if (mounted && !await showSanctionDialogForError(context, error) && mounted) {
         final l10n = AppLocalizations.of(context);
         // 신청을 보내지 못했어요. 잠시 후 다시 해 주세요
         final message = error is AppException ? error.getMessage(l10n) : l10n.errorSendChallenge;

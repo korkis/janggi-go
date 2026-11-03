@@ -9,6 +9,7 @@ import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import 'login_flow.dart';
 import 'room_screen.dart';
+import 'sanction_dialog.dart';
 import 'spectate_screen.dart';
 
 /// 로그인과 닉네임을 거쳐 [roomId]의 빈자리에 앉고 방 대기실을 연다. 초대 링크와 방 목록이 같이 쓴다.
@@ -35,6 +36,9 @@ Future<void> joinRoomAndOpen(BuildContext context, String roomId, LoginPurpose p
     }
     if (playingGameId != null) {
       await _offerSpectate(context, playingGameId);
+      return;
+    }
+    if (await showSanctionDialogForError(context, error) || !context.mounted) {
       return;
     }
     await DialogUtils.showMessage(context, message: _getJoinErrorMessage(l10n, error));

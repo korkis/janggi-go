@@ -2299,6 +2299,78 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'{reason} · {count}수'**
   String recordsDetail(String reason, int count);
+
+  /// 제재 팝업 제목. 경고
+  ///
+  /// In ko, this message translates to:
+  /// **'경고를 받았어요'**
+  String get sanctionTitleWarning;
+
+  /// 제재 팝업 제목. 채팅 제한
+  ///
+  /// In ko, this message translates to:
+  /// **'채팅이 제한되었어요'**
+  String get sanctionTitleChatRestriction;
+
+  /// 제재 팝업 제목. 이용 정지
+  ///
+  /// In ko, this message translates to:
+  /// **'이용이 정지되었어요'**
+  String get sanctionTitleSuspension;
+
+  /// 제재 팝업 제목. 영구 정지
+  ///
+  /// In ko, this message translates to:
+  /// **'계정 이용이 영구 정지되었어요'**
+  String get sanctionTitlePermanentBan;
+
+  /// 제재 팝업 제목. 앱이 모르는 제재 종류
+  ///
+  /// In ko, this message translates to:
+  /// **'이용이 제한되었어요'**
+  String get sanctionTitleUnknown;
+
+  /// 제재 팝업 설명. 경고
+  ///
+  /// In ko, this message translates to:
+  /// **'같은 일이 반복되면 채팅이나 이용이 제한될 수 있어요'**
+  String get sanctionDescriptionWarning;
+
+  /// 제재 팝업 설명. 채팅 제한
+  ///
+  /// In ko, this message translates to:
+  /// **'제한이 끝날 때까지 채팅을 할 수 없어요'**
+  String get sanctionDescriptionChatRestriction;
+
+  /// 제재 팝업 설명. 이용 정지
+  ///
+  /// In ko, this message translates to:
+  /// **'정지가 끝날 때까지 대국과 채팅을 할 수 없어요'**
+  String get sanctionDescriptionSuspension;
+
+  /// 제재 팝업 설명. 영구 정지와 모르는 제재
+  ///
+  /// In ko, this message translates to:
+  /// **'대국과 채팅을 할 수 없어요'**
+  String get sanctionDescriptionPermanentBan;
+
+  /// 제재 팝업의 사유. 관리자가 적은 글
+  ///
+  /// In ko, this message translates to:
+  /// **'사유: {reason}'**
+  String sanctionReason(String reason);
+
+  /// 제재 팝업의 끝나는 날과 시각
+  ///
+  /// In ko, this message translates to:
+  /// **'끝나는 때: {date} {time}'**
+  String sanctionEndsAt(DateTime date, DateTime time);
+
+  /// 제재 팝업의 이의 제기 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'이의가 있으면 {email}로 메일을 보내 주세요'**
+  String sanctionAppeal(String email);
 }
 
 class _AppLocalizationsDelegate

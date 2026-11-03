@@ -1846,5 +1846,73 @@
         "type": "int"
       }
     }
+  },
+  "sanctionTitleWarning": "경고를 받았어요",
+  "@sanctionTitleWarning": {
+    "description": "제재 팝업 제목. 경고"
+  },
+  "sanctionTitleChatRestriction": "채팅이 제한되었어요",
+  "@sanctionTitleChatRestriction": {
+    "description": "제재 팝업 제목. 채팅 제한"
+  },
+  "sanctionTitleSuspension": "이용이 정지되었어요",
+  "@sanctionTitleSuspension": {
+    "description": "제재 팝업 제목. 이용 정지"
+  },
+  "sanctionTitlePermanentBan": "계정 이용이 영구 정지되었어요",
+  "@sanctionTitlePermanentBan": {
+    "description": "제재 팝업 제목. 영구 정지"
+  },
+  "sanctionTitleUnknown": "이용이 제한되었어요",
+  "@sanctionTitleUnknown": {
+    "description": "제재 팝업 제목. 앱이 모르는 제재 종류"
+  },
+  "sanctionDescriptionWarning": "같은 일이 반복되면 채팅이나 이용이 제한될 수 있어요",
+  "@sanctionDescriptionWarning": {
+    "description": "제재 팝업 설명. 경고"
+  },
+  "sanctionDescriptionChatRestriction": "제한이 끝날 때까지 채팅을 할 수 없어요",
+  "@sanctionDescriptionChatRestriction": {
+    "description": "제재 팝업 설명. 채팅 제한"
+  },
+  "sanctionDescriptionSuspension": "정지가 끝날 때까지 대국과 채팅을 할 수 없어요",
+  "@sanctionDescriptionSuspension": {
+    "description": "제재 팝업 설명. 이용 정지"
+  },
+  "sanctionDescriptionPermanentBan": "대국과 채팅을 할 수 없어요",
+  "@sanctionDescriptionPermanentBan": {
+    "description": "제재 팝업 설명. 영구 정지와 모르는 제재"
+  },
+  "sanctionReason": "사유: {reason}",
+  "@sanctionReason": {
+    "description": "제재 팝업의 사유. 관리자가 적은 글",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "sanctionEndsAt": "끝나는 때: {date} {time}",
+  "@sanctionEndsAt": {
+    "description": "제재 팝업의 끝나는 날과 시각",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "jm"
+      }
+    }
+  },
+  "sanctionAppeal": "이의가 있으면 {email}로 메일을 보내 주세요",
+  "@sanctionAppeal": {
+    "description": "제재 팝업의 이의 제기 안내",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   }
 }

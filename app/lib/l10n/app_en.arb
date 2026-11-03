@@ -443,5 +443,43 @@
         "type": "int"
       }
     }
+  },
+  "sanctionTitleWarning": "You've received a warning",
+  "sanctionTitleChatRestriction": "Your chat has been restricted",
+  "sanctionTitleSuspension": "Your account has been suspended",
+  "sanctionTitlePermanentBan": "Your account has been permanently banned",
+  "sanctionTitleUnknown": "Your account has been restricted",
+  "sanctionDescriptionWarning": "If this happens again, your chat or account may be restricted",
+  "sanctionDescriptionChatRestriction": "You can't chat until the restriction ends",
+  "sanctionDescriptionSuspension": "You can't play or chat until the suspension ends",
+  "sanctionDescriptionPermanentBan": "You can't play or chat",
+  "sanctionReason": "Reason: {reason}",
+  "sanctionEndsAt": "Ends: {date} {time}",
+  "sanctionAppeal": "If you disagree, please email {email}",
+  "@sanctionReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "@sanctionEndsAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "jm"
+      }
+    }
+  },
+  "@sanctionAppeal": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   }
 }
