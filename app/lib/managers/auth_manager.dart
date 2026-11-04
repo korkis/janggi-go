@@ -111,6 +111,9 @@ class AuthManager extends ChangeNotifier {
     return load;
   }
 
+  /// 프로필을 읽는다. 실패했는데 남아 있는 로그인을 더 쓸 수 없으면(계정이 지워졌거나 토큰이 무효) 로그아웃하고 오류 없이
+  /// 끝낸다. 웹은 지난 로그인을 브라우저에 남겨 두므로 그 로그인으로 읽기가 계속 거절될 수 있다. 네트워크 오류처럼 로그인이
+  /// 멀쩡한 실패는 로그인을 두고 오류를 던진다.
   Future<void> _loadProfile(String uid) async {
     try {
       final profile = await repositories.userRepository.getUser(uid);
@@ -120,10 +123,26 @@ class AuthManager extends ChangeNotifier {
       _profile = profile;
       notifyListeners();
     } catch (_) {
-      if (_uid == uid) {
-        _profileLoad = null;
+      if (_uid != uid) {
+        rethrow;
+      }
+      _profileLoad = null;
+      if (await _isSignInInvalid()) {
+        developer.log('AuthManager 남은 로그인이 무효라 로그아웃');
+        await signOut();
+        return;
       }
       rethrow;
+    }
+  }
+
+  /// 남은 로그인이 무효인지. 확인하다 실패하면(네트워크 오류 등) 무효로 보지 않는다.
+  Future<bool> _isSignInInvalid() async {
+    try {
+      return !await repositories.authRepository.isSignInValid();
+    } catch (error, stackTrace) {
+      developer.log('AuthRepository.isSignInValid 실패', error: error, stackTrace: stackTrace);
+      return false;
     }
   }
 }

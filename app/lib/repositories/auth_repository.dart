@@ -66,7 +66,34 @@ class AuthRepository {
     await auth.signOut();
   }
 
+  /// 남아 있는 로그인이 아직 쓸 수 있는지 토큰을 새로 받아 본다. 계정이 지워졌거나 막혔거나 토큰이 무효가 되었으면 false다.
+  /// 네트워크 오류처럼 로그인과 상관없는 실패는 그대로 던진다.
+  Future<bool> isSignInValid() async {
+    final user = auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+    try {
+      await user.getIdToken(true);
+      return true;
+    } on FirebaseAuthException catch (error) {
+      if (_invalidSignInErrorCodes.contains(error.code)) {
+        return false;
+      }
+      rethrow;
+    }
+  }
+
   String? _getUid(User? user) => user?.uid;
+
+  // 토큰을 새로 받을 때 이 오류가 나면 남은 로그인을 더 쓸 수 없다.
+  static const _invalidSignInErrorCodes = {
+    'user-token-expired',
+    'invalid-user-token',
+    'user-not-found',
+    'user-disabled',
+    'invalid-credential',
+  };
 
   /// Firebase Auth 호출의 오류 중 사용자에게 알릴 수 있는 것을 AppException으로 바꾼다.
   Future<void> _runAuthCall(Future<Object?> Function() call) async {
@@ -82,8 +109,10 @@ class AuthRepository {
   }
 
   AppErrorCode? _getErrorCode(String firebaseCode) => switch (firebaseCode) {
-    'canceled' || 'web-context-canceled' || 'popup-closed-by-user' || 'cancelled-popup-request' =>
-      AppErrorCode.signInCanceled,
+    'canceled' ||
+    'web-context-canceled' ||
+    'popup-closed-by-user' ||
+    'cancelled-popup-request' => AppErrorCode.signInCanceled,
     'invalid-email' => AppErrorCode.invalidEmail,
     'invalid-credential' || 'wrong-password' || 'user-not-found' => AppErrorCode.wrongEmailOrPassword,
     'email-already-in-use' => AppErrorCode.emailAlreadyInUse,

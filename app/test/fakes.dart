@@ -52,6 +52,9 @@ class FakeAuthRepository implements AuthRepository {
   /// 다음 로그인 시도가 이 오류로 실패한다.
   Object? nextSignInError;
 
+  /// [isSignInValid]가 돌려줄 값. 남아 있는 로그인이 무효가 된 경우를 흉내 낸다.
+  bool signInValid = true;
+
   /// 마지막으로 쓴 로그인 방법. 'google', 'apple', 'email', 'emailSignUp'.
   String? lastSignInMethod;
 
@@ -88,6 +91,9 @@ class FakeAuthRepository implements AuthRepository {
     _uidController.add(null);
   }
 
+  @override
+  Future<bool> isSignInValid() async => _uid != null && signInValid;
+
   Future<void> _signIn(String method, String uid) async {
     final error = nextSignInError;
     if (error != null) {
@@ -107,6 +113,9 @@ class FakeUserRepository implements UserRepository {
   /// 다른 사람이 이미 쓰는 닉네임.
   final takenNicknames = <String>{};
 
+  /// 다음 [getUser]가 이 오류로 실패한다.
+  Object? nextGetUserError;
+
   FakeUserRepository(this.authRepository);
 
   @override
@@ -116,7 +125,14 @@ class FakeUserRepository implements UserRepository {
   FirebaseFunctions get functions => throw UnimplementedError();
 
   @override
-  Future<UserProfile?> getUser(String uid) async => profiles[uid];
+  Future<UserProfile?> getUser(String uid) async {
+    final error = nextGetUserError;
+    if (error != null) {
+      nextGetUserError = null;
+      throw error;
+    }
+    return profiles[uid];
+  }
 
   // [updateProfile]로 바꾼 사용자의 uid.
   final _profileChanges = StreamController<String>.broadcast();

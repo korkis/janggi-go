@@ -51,6 +51,13 @@ Future<bool> ensureSignedInWithProfile(BuildContext context, LoginPurpose purpos
     }
     return false;
   }
+  // 남아 있던 로그인이 무효라 로그아웃됐으면 다시 로그인하게 한다.
+  if (!authManager.signedIn) {
+    if (!context.mounted) {
+      return false;
+    }
+    return ensureSignedInWithProfile(context, purpose);
+  }
   if (authManager.profile != null) {
     return true;
   }
