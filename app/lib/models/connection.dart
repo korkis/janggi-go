@@ -20,11 +20,15 @@ class Connection {
   /// 마지막으로 살아 있음을 알린 시각(ms).
   final int lastSeenAt;
 
+  /// 웹 탭이 숨겨져 있다. 웹만 쓰고 앱은 쓰지 않는다(없으면 숨겨지지 않은 것). 웹은 탭이 숨겨져도 `foreground`를 바꾸지 않는다.
+  final bool? tabHidden;
+
   const Connection({
     required this.online,
     required this.foreground,
     required this.activeSince,
     required this.lastSeenAt,
+    this.tabHidden,
   });
 
   factory Connection.fromJson(Map<String, dynamic> json) => _$ConnectionFromJson(json);

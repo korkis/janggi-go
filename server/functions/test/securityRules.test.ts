@@ -28,6 +28,8 @@ import {
   query as databaseQuery,
   orderByKey,
   limitToLast,
+  onDisconnect,
+  goOffline,
 } from "firebase/database";
 import {readFileSync} from "fs";
 import {resolve} from "path";
@@ -556,6 +558,45 @@ describe("Realtime Database connections", () => {
     );
     // onDisconnect로 걸어 두는 쓰기
     await assertSucceeds(update(ref(db, `connections/${ALICE}/c1`), {online: false}));
+  });
+
+  test("웹은 tabHidden을 쓰고 바꾼다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    await assertSucceeds(set(ref(db, `connections/${ALICE}/c1`), {...connection(true), tabHidden: false}));
+    await assertSucceeds(update(ref(db, `connections/${ALICE}/c1`), {tabHidden: true, lastSeenAt: serverTimestamp()}));
+    await assertSucceeds(
+      update(ref(db, `connections/${ALICE}/c1`), {
+        tabHidden: false,
+        activeSince: serverTimestamp(),
+        lastSeenAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(update(ref(db, `connections/${ALICE}/c1`), {tabHidden: "yes"}));
+  });
+
+  test("숨긴 웹 탭의 onDisconnect는 끊긴 시각을 lastSeenAt으로 쓴다", async () => {
+    const db = testEnv.authenticatedContext(ALICE).database();
+    const connectionRef = ref(db, `connections/${ALICE}/c1`);
+    await assertSucceeds(set(connectionRef, {...connection(true), tabHidden: true}));
+    await assertSucceeds(onDisconnect(connectionRef).update({online: false}));
+    await assertSucceeds(onDisconnect(connectionRef).update({online: false, lastSeenAt: serverTimestamp()}));
+    const before = Date.now();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    goOffline(db);
+    const readStored = async () => {
+      let value: unknown = null;
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        value = (await get(ref(context.database(), `connections/${ALICE}/c1`))).val();
+      });
+      return value as {online: boolean; lastSeenAt: number; tabHidden: boolean};
+    };
+    let stored = await readStored();
+    for (let attempt = 0; attempt < 50 && stored.online; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stored = await readStored();
+    }
+    expect(stored).toMatchObject({online: false, tabHidden: true});
+    expect(stored.lastSeenAt).toBeGreaterThan(before);
   });
 
   test("시각은 서버 시각만 받는다", async () => {

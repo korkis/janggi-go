@@ -416,13 +416,14 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `online` | boolean | 연결되어 있다. 앱이 `onDisconnect`로 false를 걸어 둔다 |
-| `foreground` | boolean | 앱이 화면에 떠 있다. 다른 앱으로 넘어가면 false |
+| `online` | boolean | 연결되어 있다. 앱이 `onDisconnect`로 false를 걸어 둔다. 숨긴 웹 탭은 `lastSeenAt`(서버 시각)도 함께 걸어 둔다 |
+| `foreground` | boolean | 앱이 화면에 떠 있다. 다른 앱으로 넘어가면 false. 웹은 탭이 숨겨져도 true다 |
 | `activeSince` | ms | `online`이고 `foreground`가 된 시각 |
 | `lastSeenAt` | ms | 마지막으로 살아 있음을 알린 시각. 대국 중에는 주기적으로 갱신하고, 다른 앱으로 넘어갈 때도 갱신한다 |
+| `tabHidden` | boolean? | 웹 탭이 숨겨져 있다. 웹만 쓰고 앱은 쓰지 않는다(없으면 숨겨지지 않은 것). 웹은 탭이 숨겨져도 `foreground`를 true로 둔다([server.md](./server.md)의 접속 끊김) |
 
 - 읽기: 로그인한 사용자가 `uid`로 읽는다. `connections` 전체 목록은 막는다. 쓰기: 본인.
-- 연결마다 네 필드가 모두 있어야 하고 다른 필드는 막는다. `activeSince`와 `lastSeenAt`은 서버 시각(`now`)이거나 이미 있는 값 그대로여야 한다(`onDisconnect`의 `online: false`처럼 다른 필드만 바꾸는 쓰기).
+- 연결마다 네 필드가 모두 있어야 하고 `tabHidden`(boolean, 선택) 말고 다른 필드는 막는다. `activeSince`와 `lastSeenAt`은 서버 시각(`now`)이거나 이미 있는 값 그대로여야 한다(`onDisconnect`의 `online: false`처럼 다른 필드만 바꾸는 쓰기).
 - 앱은 연결할 때 자기 `uid` 아래의 지난 연결 키를 지운다.
 
 ### `online_users/{uid}`

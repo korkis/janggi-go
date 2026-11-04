@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:janggigo/managers/app_managers.dart';
+import 'package:janggigo/managers/connection_manager.dart';
 import 'package:janggigo/models/player_state.dart';
 
 import 'fakes.dart';
@@ -73,6 +74,50 @@ void main() {
 
     fakes.playerStates.emit('me', _playerState(null));
     managers.connectionManager.dispose();
+  });
+
+  testWidgets('웹은 탭이 숨겨져도 foreground를 바꾸지 않고 tabHidden만 쓰며 heartbeat를 이어 간다', (tester) async {
+    final fakes = setUpFakeApp();
+    // 기본 ConnectionManager는 웹이 아니므로 멈추고 웹으로 하나 만든다.
+    managers.connectionManager.dispose();
+    final connectionManager = ConnectionManager(
+      authManager: managers.authManager,
+      playerStateManager: managers.playerStateManager,
+      web: true,
+    );
+    connectionManager.observeAppLifecycle();
+    await fakes.auth.signInWithEmail(email: 'me', password: 'password');
+    fakes.playerStates.emit('me', _playerState('g1'));
+    await tester.pump();
+    expect(fakes.connections.writes, ['create me true tabHidden false', 'lastSeenAt me c1']);
+    fakes.connections.writes.clear();
+    fakes.games.calls.clear();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    expect(fakes.connections.writes, ['tabHidden me c1']);
+    expect(connectionManager.foreground, isFalse);
+    expect(connectionManager.active, isTrue);
+    await tester.pump(const Duration(seconds: 10));
+    expect(fakes.connections.writes.where((write) => write == 'lastSeenAt me c1'), hasLength(2));
+
+    // 숨겨진 동안 RTDB에 다시 연결되면 숨겨진 채로 연결을 만든다.
+    fakes.connections.setConnected(false);
+    await tester.pump();
+    fakes.connections.setConnected(true);
+    await tester.pump();
+    expect(fakes.connections.writes, contains('create me true tabHidden true'));
+    fakes.connections.writes.clear();
+    fakes.games.calls.clear();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(fakes.connections.writes, ['tabVisible me c2']);
+    expect(fakes.games.calls, ['checkGame g1']);
+
+    fakes.playerStates.emit('me', _playerState(null));
+    connectionManager.dispose();
   });
 
   testWidgets('RTDB 연결이 끊겼다 이어지면 새 연결을 만들고 진행 중 대국의 checkGame을 부른다', (tester) async {

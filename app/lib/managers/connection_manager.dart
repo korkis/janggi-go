@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../models/connection.dart';
@@ -12,6 +13,8 @@ import 'player_state_manager.dart';
 ///
 /// - RTDB에 연결될 때마다 연결을 새로 만들고 `onDisconnect`로 `online: false`를 걸어 둔다.
 /// - 다른 앱으로 넘어가면 `foreground: false`, 돌아오면 `foreground: true`와 `activeSince`를 쓴다.
+/// - 웹은 탭이 숨겨져도 끊긴 것으로 보지 않으므로(`docs/game/rules.md`의 접속 끊김) `foreground`를 true로 두고
+///   `tabHidden`만 바꾸며 heartbeat도 멈추지 않는다. 서버는 숨긴 탭의 `lastSeenAt`이 오래됐는지 보지 않는다.
 /// - 진행 중 대국(`player_states.gameId`)이 있는 동안 `configs/app.heartbeatSeconds`마다 `lastSeenAt`을 갱신한다.
 /// - 대국 중에 다시 연결되거나 화면에 돌아오면 `checkGame`을 불러 서버가 끊긴 시간을 바로 정리하게 한다.
 /// - 로그인한 동안 내 `connections/{uid}`를 들어 RTDB 연결을 유지한다. 안드로이드 RTDB SDK는 서버에서 듣는 경로가 없으면
@@ -19,6 +22,9 @@ import 'player_state_manager.dart';
 class ConnectionManager extends ChangeNotifier {
   final AuthManager authManager;
   final PlayerStateManager playerStateManager;
+
+  // 웹 앱인지. 웹은 탭이 숨겨져도 서버가 연결된 것으로 보게 쓴다. 테스트가 웹 동작을 확인할 수 있게 받는다.
+  final bool web;
 
   StreamSubscription<bool>? _connectedSubscription;
 
@@ -46,7 +52,7 @@ class ConnectionManager extends ChangeNotifier {
   Duration? _heartbeatInterval;
   bool _heartbeatIntervalLoading = false;
 
-  ConnectionManager({required this.authManager, required this.playerStateManager}) {
+  ConnectionManager({required this.authManager, required this.playerStateManager, this.web = kIsWeb}) {
     _uid = authManager.uid;
     _gameId = playerStateManager.gameId;
     authManager.addListener(_onAuthChanged);
@@ -72,11 +78,11 @@ class ConnectionManager extends ChangeNotifier {
   /// 이 기기가 RTDB 서버에 연결되어 있는지. 끊기면 대국 화면이 "다시 연결하는 중"을 보여준다.
   bool get connected => _connected;
 
-  /// 앱이 화면에 떠 있는지.
+  /// 앱이 화면에 떠 있는지. 웹은 탭이 보이는지다.
   bool get foreground => _foreground;
 
-  /// 서버가 연결된 것으로 볼 상태를 쓰고 있는지. 연결을 만들었고 앱이 화면에 떠 있다.
-  bool get active => _connectionId != null && _foreground;
+  /// 서버가 연결된 것으로 볼 상태를 쓰고 있는지. 연결을 만들었고 앱이 화면에 떠 있다. 웹은 탭이 숨겨져도 그렇다.
+  bool get active => _connectionId != null && (web || _foreground);
 
   /// 앱이 화면에 떠 있는지 듣기 시작한다. `main()`이 한 번 부른다.
   void observeAppLifecycle() {
@@ -88,7 +94,7 @@ class ConnectionManager extends ChangeNotifier {
   Future<void> renewActiveSince() async {
     final uid = _uid;
     final connectionId = _connectionId;
-    if (uid == null || connectionId == null || !_foreground) {
+    if (uid == null || connectionId == null || !active) {
       return;
     }
     await repositories.connectionRepository.markForeground(uid, connectionId);
@@ -178,7 +184,11 @@ class ConnectionManager extends ChangeNotifier {
       return;
     }
     try {
-      if (foreground) {
+      if (web && foreground) {
+        await repositories.connectionRepository.markTabVisible(uid, connectionId);
+      } else if (web) {
+        await repositories.connectionRepository.markTabHidden(uid, connectionId);
+      } else if (foreground) {
         await repositories.connectionRepository.markForeground(uid, connectionId);
       } else {
         await repositories.connectionRepository.markBackground(uid, connectionId);
@@ -200,7 +210,11 @@ class ConnectionManager extends ChangeNotifier {
     final version = ++_connectionVersion;
     final String connectionId;
     try {
-      connectionId = await repositories.connectionRepository.createConnection(uid, foreground: _foreground);
+      connectionId = await repositories.connectionRepository.createConnection(
+        uid,
+        foreground: web || _foreground,
+        tabHidden: web ? !_foreground : null,
+      );
     } catch (error, stackTrace) {
       developer.log('ConnectionRepository.createConnection 실패', error: error, stackTrace: stackTrace);
       return;
@@ -227,9 +241,10 @@ class ConnectionManager extends ChangeNotifier {
     }
   }
 
-  /// 연결이 있고, 화면에 떠 있고, 진행 중 대국이 있는 동안만 `lastSeenAt`을 갱신한다. 시작할 때 한 번 바로 쓴다.
+  /// 연결이 있고, 화면에 떠 있고(웹은 탭이 숨겨져도), 진행 중 대국이 있는 동안만 `lastSeenAt`을 갱신한다. 시작할 때 한 번
+  /// 바로 쓴다.
   void _syncHeartbeat() {
-    if (_connectionId == null || !_foreground || _gameId == null) {
+    if (!active || _gameId == null) {
       _heartbeatTimer?.cancel();
       _heartbeatTimer = null;
       return;

@@ -186,6 +186,42 @@ void main() {
       );
     });
 
+    test('숨겨진 웹 탭은 lastSeenAt이 오래돼도 연결된 것으로 보고, 닫히면 onDisconnect가 쓴 lastSeenAt부터 센다', () {
+      // 브라우저가 숨긴 탭의 타이머를 멈춰 heartbeat가 10분 동안 없었다.
+      const hidden = Connection(
+        online: true,
+        foreground: true,
+        activeSince: _createdAt,
+        lastSeenAt: since,
+        tabHidden: true,
+      );
+      expect(update(const SideDisconnect(usedMs: 0, since: null), [hidden], since + 600000).disconnect.since, isNull);
+      // 탭을 닫으면 onDisconnect가 online: false와 닫은 시각을 lastSeenAt으로 쓴다.
+      const closed = Connection(
+        online: false,
+        foreground: true,
+        activeSince: _createdAt,
+        lastSeenAt: since + 600000,
+        tabHidden: true,
+      );
+      final result = update(const SideDisconnect(usedMs: 0, since: null), [closed], since + 601000);
+      expect(result.disconnect.since, since + 600000);
+      expect(result.lossAt, since + 600000 + _limitMs);
+      // 탭이 보이면(tabHidden false) 앱과 같은 기준이다.
+      const visible = Connection(
+        online: true,
+        foreground: true,
+        activeSince: _createdAt,
+        lastSeenAt: since,
+        tabHidden: false,
+      );
+      final staleMs = const Duration(seconds: presenceStaleSeconds).inMilliseconds;
+      expect(
+        update(const SideDisconnect(usedMs: 0, since: null), [visible], since + staleMs + 1).disconnect.since,
+        since,
+      );
+    });
+
     test('연결 기록이 없거나 대국 전 기록이면 대국을 만든 시각부터 센다', () {
       expect(update(const SideDisconnect(usedMs: 0, since: null), [], since).disconnect.since, _createdAt);
       final old = _offline(activeSince: _createdAt - 9000, lastSeenAt: _createdAt - 5000);

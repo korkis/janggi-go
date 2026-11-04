@@ -197,9 +197,15 @@ flowchart LR
   - 로그인한 동안 자기 `connections/{uid}`를 계속 듣는다. 안드로이드 RTDB SDK는 서버에서 듣는 경로가 없으면 60초 뒤 연결을 닫아서, 홈·빠른 대국 대기·방 대기실처럼 Firestore만 듣는 화면에서 끊긴 것으로 보이기 때문이다.
   - RTDB에 연결될 때마다(`.info/connected`) 지난 연결 키를 지우고 새 연결에 `online: true`, `foreground`, `activeSince`·`lastSeenAt`(서버 시각)을 쓴 뒤 `onDisconnect`로 `online: false`를 걸어 둔다. 보안 규칙이 연결의 필드를 모두 요구하므로 연결을 쓴 뒤에 건다.
   - 진행 중 대국(`player_states.gameId`, 상차림 포함)이 있는 동안 `heartbeatSeconds`마다 `lastSeenAt`을 갱신한다. 대국이 생기면 바로 한 번 쓴다.
-  - 웹은 탭이 숨겨져도 `foreground: false`를 쓰지 않는다([rules.md](./game/rules.md)의 접속 끊김). 숨긴 탭은 브라우저가 타이머를 늦춰(크롬은 5분 넘게 숨기면 1분에 한 번) `lastSeenAt` 갱신이 늦어질 수 있으므로, 웹 연결이 `presenceStaleSeconds` 때문에 끊긴 것으로 잘못 보이지 않게 한다. 방법은 구현 때 정해 여기에 적는다.
+  - 웹은 탭이 숨겨져도 `foreground: false`를 쓰지 않는다([rules.md](./game/rules.md)의 접속 끊김). 숨긴 탭은 브라우저가 타이머를 늦춰(크롬은 5분 넘게 숨기면 1분에 한 번) `lastSeenAt` 갱신이 늦어질 수 있으므로, 웹 연결이 `presenceStaleSeconds` 때문에 끊긴 것으로 잘못 보이지 않게 한다(확정, 2026-11-04).
+    - 웹은 연결에 `tabHidden`을 더 쓴다. 탭이 숨겨지면(`hidden`, `paused`) `tabHidden: true`와 `lastSeenAt`을, 다시 보이면 `tabHidden: false`와 `activeSince`·`lastSeenAt`을 쓰고 대국 중이면 `checkGame`을 부른다. 연결을 새로 만들 때도 그때 탭이 숨겨져 있는지 쓴다. `foreground`는 늘 true로 두고 heartbeat도 멈추지 않는다.
+    - 서버는 `tabHidden`이 true인 연결은 `lastSeenAt`이 오래됐는지 보지 않고 `online`만 본다. 숨긴 탭은 브라우저가 타이머를 늦추거나 아예 멈추기 때문이다. 에뮬레이터 확인에서 앱의 내장 브라우저는 숨긴 탭의 heartbeat를 1분도 안 돼 멈췄다. 어떤 기준을 두어도 숨겨 둔 것만으로 끊긴 것으로 볼 수 있어 기준을 두지 않는다. 탭이 보이는 웹과 앱은 `presenceStaleSeconds` 그대로다.
+    - 숨긴 탭은 마지막 heartbeat가 끊긴 시각이 아니므로, 숨겨지면 `onDisconnect`에 `lastSeenAt`(서버 시각)을 더 걸어 둔다. 탭이나 브라우저를 닫거나 RTDB가 네트워크 끊김을 알아채면 `online: false`와 그 시각이 `lastSeenAt`에 쓰여 그때부터 센다. 이미 걸어 둔 `online: false`는 지우지 않고 더 건다. 지운 사이에 끊기면 숨긴 탭이 계속 연결된 것으로 남기 때문이다. 다시 보이면 걸어 둔 것을 지우고 `online: false`만 다시 건다. 그 사이에 끊겨도 보이는 탭은 `presenceStaleSeconds`로 알아챈다.
+    - 그래서 숨긴 탭의 네트워크가 갑자기 끊기면 RTDB 서버가 알아챈 시각부터 센다. 실제로 끊긴 시각보다 늦어 끊긴 쪽에 유리하다. 숨긴 탭이 끊긴 것으로 잘못 판정되는 것보다 낫다고 보았다. 휴대폰 브라우저처럼 숨긴 페이지를 멈추는 브라우저도 RTDB 연결이 살아 있는 동안은 연결된 것으로 본다. 그래도 시계는 흐르므로 오래 비우면 시간패가 난다.
+    - 고르지 않은 방법: 플랫폼만 기록해 웹 연결 전부에 긴 기준을 쓰면 탭을 보고 있는 웹의 네트워크 끊김을 늦게 알아채고, 숨긴 탭의 타이머가 멈추면 그 기준도 넘는다. `onDisconnect`에 늘 `lastSeenAt`을 걸면 앱과 보이는 웹도 RTDB가 알아챈 시각부터 세게 되어 마지막으로 살아 있던 시각부터 센다는 원칙과 어긋난다.
+    - 옛 웹은 `tabHidden`을 쓰지 않으므로 `presenceStaleSeconds` 기준을 그대로 쓴다. 상대 앱의 `checkGame` 계기와 다시 두기·빠른 대국의 "앱에 있는지"는 `online`이고 `foreground`인 연결을 보므로 숨긴 웹 탭은 앱에 있는 것으로 보고 바꾸지 않았다. 로비 접속자 목록(`online_users`)은 지금처럼 탭이 보일 때만 올린다.
   - 다른 앱으로 넘어가면(앱 생명주기 `hidden`, `paused`) `foreground: false`와 `lastSeenAt`을 쓴다. 돌아오면(`resumed`, `inactive`) `foreground: true`와 `activeSince`를 쓴다.
-- 서버는 대국자의 연결 중 `online`이고 `foreground`이며 `lastSeenAt`이 `presenceStaleSeconds` 안인 것이 하나라도 있으면 연결된 것으로 본다.
+- 서버는 대국자의 연결 중 `online`이고 `foreground`이며 `lastSeenAt`이 `presenceStaleSeconds` 안인 것(숨긴 웹 탭은 오래됐는지 보지 않는다)이 하나라도 있으면 연결된 것으로 본다.
 - 판정 다시 보기마다 두 대국자의 `connections`를 읽어 `state.disconnect`를 그 시각에 맞춘다.
   - 끊긴 시각은 그 사람의 가장 최근 `lastSeenAt`이다. 네트워크가 갑자기 끊겨 RTDB가 늦게 알아채도 마지막으로 살아 있던 시각부터 센다. 대국을 만든 시각보다 앞이면(연결 기록이 없을 때 포함) 만든 시각으로 한다.
   - 끊긴 시각보다 뒤의 `activeSince`가 있는 연결이 있으면 그중 가장 이른 `activeSince`에 돌아온 것으로 보고 끊긴 시간(`activeSince` − 끊긴 시각)을 `usedMs`에 더한다. 그 연결이 다시 끊겨 있으면(서버가 돌아온 것을 보지 못한 사이 다시 나간 경우) 가장 최근 `lastSeenAt`부터 다시 센다.
@@ -571,7 +577,7 @@ sequenceDiagram
 | `challengeResponseSeconds` | 20초 | [matching.md](./game/matching.md) |
 | `challengeFailLimit` | 3회 | [matching.md](./game/matching.md) |
 | `challengeBlockMinutes` | 30분 | [matching.md](./game/matching.md) |
-| `presenceStaleSeconds` | 15초 | `lastSeenAt`이 이보다 오래되면 끊긴 것으로 본다. `heartbeatSeconds`(5초)로 세 번 갱신하지 못한 때다. 이 문서 |
+| `presenceStaleSeconds` | 15초 | `lastSeenAt`이 이보다 오래되면 끊긴 것으로 본다. `heartbeatSeconds`(5초)로 세 번 갱신하지 못한 때다. 숨긴 웹 탭은 보지 않는다. 이 문서 |
 | `roomAbsentSeconds` | 60초 | 방장이나 상대의 연결이 이만큼 없으면 방을 닫거나 자리를 비운다. `checkRoom`이 연결 없음을 처음 본 시각부터 센다. 이 문서 |
 | `roomCheckInterval` | 60초 | 방이 열려 있는 동안 `checkRoom`을 부르는 간격. 이 문서 |
 | `finishedGameRetentionMinutes` | 10분 (제안) | 끝난 대국을 RTDB에 남겨 두는 시간. 이 문서 |

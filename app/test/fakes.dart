@@ -320,7 +320,8 @@ class FakeConnectionRepository implements ConnectionRepository {
   var _connected = true;
   var _createdCount = 0;
 
-  /// 쓴 것. 예: `create opp true`, `foreground opp c1`, `background opp c1`, `lastSeenAt opp c1`.
+  /// 쓴 것. 예: `create opp true`, `create opp true tabHidden false`, `foreground opp c1`, `background opp c1`,
+  /// `tabHidden opp c1`, `tabVisible opp c1`, `lastSeenAt opp c1`.
   final writes = <String>[];
 
   @override
@@ -348,14 +349,20 @@ class FakeConnectionRepository implements ConnectionRepository {
   bool isWatchingConnections(String uid) => _getController(uid).hasListener;
 
   @override
-  Future<String> createConnection(String uid, {required bool foreground}) async {
-    writes.add('create $uid $foreground');
+  Future<String> createConnection(String uid, {required bool foreground, bool? tabHidden}) async {
+    writes.add(tabHidden == null ? 'create $uid $foreground' : 'create $uid $foreground tabHidden $tabHidden');
     _createdCount++;
     return 'c$_createdCount';
   }
 
   @override
   Future<void> markForeground(String uid, String connectionId) async => writes.add('foreground $uid $connectionId');
+
+  @override
+  Future<void> markTabHidden(String uid, String connectionId) async => writes.add('tabHidden $uid $connectionId');
+
+  @override
+  Future<void> markTabVisible(String uid, String connectionId) async => writes.add('tabVisible $uid $connectionId');
 
   @override
   Future<void> markBackground(String uid, String connectionId) async => writes.add('background $uid $connectionId');

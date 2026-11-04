@@ -11,4 +11,5 @@ Connection _$ConnectionFromJson(Map<String, dynamic> json) => Connection(
   foreground: json['foreground'] as bool,
   activeSince: (json['activeSince'] as num).toInt(),
   lastSeenAt: (json['lastSeenAt'] as num).toInt(),
+  tabHidden: json['tabHidden'] as bool?,
 );

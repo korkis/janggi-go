@@ -166,10 +166,16 @@ int? getNextEventAt(ActiveGame game) {
 // ---- 접속 끊김 ----
 
 /// 연결이 [now]에 살아 있는지. 연결되어 있고, 앱이 화면에 떠 있고, [presenceStaleSeconds] 안에 살아 있음을 알렸다.
+/// 숨겨진 웹 탭(`tabHidden`)은 브라우저가 타이머를 늦추거나 멈춰 `lastSeenAt`을 믿을 수 없으므로 오래됐는지 보지 않고
+/// `online`만 본다. 탭을 닫거나 네트워크가 끊기면 `onDisconnect`가 `online: false`와 그 시각의 `lastSeenAt`을 쓴다.
 bool isConnectionActive(Connection connection, int now) {
-  return connection.online &&
-      connection.foreground &&
-      now - connection.lastSeenAt <= const Duration(seconds: presenceStaleSeconds).inMilliseconds;
+  if (!connection.online || !connection.foreground) {
+    return false;
+  }
+  if (connection.tabHidden == true) {
+    return true;
+  }
+  return now - connection.lastSeenAt <= const Duration(seconds: presenceStaleSeconds).inMilliseconds;
 }
 
 /// [updateDisconnect]의 결과.

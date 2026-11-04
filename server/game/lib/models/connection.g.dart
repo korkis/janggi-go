@@ -12,6 +12,7 @@ Connection _$ConnectionFromJson(Map<String, dynamic> json) => $checkedCreate('Co
     foreground: $checkedConvert('foreground', (v) => v as bool),
     activeSince: $checkedConvert('activeSince', (v) => (v as num).toInt()),
     lastSeenAt: $checkedConvert('lastSeenAt', (v) => (v as num).toInt()),
+    tabHidden: $checkedConvert('tabHidden', (v) => v as bool?),
   );
   return val;
 });
