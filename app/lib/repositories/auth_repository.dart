@@ -86,8 +86,10 @@ class AuthRepository {
 
   String? _getUid(User? user) => user?.uid;
 
-  // 토큰을 새로 받을 때 이 오류가 나면 남은 로그인을 더 쓸 수 없다.
+  // 토큰을 새로 받을 때 이 오류가 나면 남은 로그인을 더 쓸 수 없다. 웹에서 Auth 에뮬레이터를 다시 띄우면 브라우저에 남은
+  // 로그인은 invalid-refresh-token이 된다.
   static const _invalidSignInErrorCodes = {
+    'invalid-refresh-token',
     'user-token-expired',
     'invalid-user-token',
     'user-not-found',
