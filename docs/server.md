@@ -197,6 +197,7 @@ flowchart LR
   - 로그인한 동안 자기 `connections/{uid}`를 계속 듣는다. 안드로이드 RTDB SDK는 서버에서 듣는 경로가 없으면 60초 뒤 연결을 닫아서, 홈·빠른 대국 대기·방 대기실처럼 Firestore만 듣는 화면에서 끊긴 것으로 보이기 때문이다.
   - RTDB에 연결될 때마다(`.info/connected`) 지난 연결 키를 지우고 새 연결에 `online: true`, `foreground`, `activeSince`·`lastSeenAt`(서버 시각)을 쓴 뒤 `onDisconnect`로 `online: false`를 걸어 둔다. 보안 규칙이 연결의 필드를 모두 요구하므로 연결을 쓴 뒤에 건다.
   - 진행 중 대국(`player_states.gameId`, 상차림 포함)이 있는 동안 `heartbeatSeconds`마다 `lastSeenAt`을 갱신한다. 대국이 생기면 바로 한 번 쓴다.
+  - 웹은 탭이 숨겨져도 `foreground: false`를 쓰지 않는다([rules.md](./game/rules.md)의 접속 끊김). 숨긴 탭은 브라우저가 타이머를 늦춰(크롬은 5분 넘게 숨기면 1분에 한 번) `lastSeenAt` 갱신이 늦어질 수 있으므로, 웹 연결이 `presenceStaleSeconds` 때문에 끊긴 것으로 잘못 보이지 않게 한다. 방법은 구현 때 정해 여기에 적는다.
   - 다른 앱으로 넘어가면(앱 생명주기 `hidden`, `paused`) `foreground: false`와 `lastSeenAt`을 쓴다. 돌아오면(`resumed`, `inactive`) `foreground: true`와 `activeSince`를 쓴다.
 - 서버는 대국자의 연결 중 `online`이고 `foreground`이며 `lastSeenAt`이 `presenceStaleSeconds` 안인 것이 하나라도 있으면 연결된 것으로 본다.
 - 판정 다시 보기마다 두 대국자의 `connections`를 읽어 `state.disconnect`를 그 시각에 맞춘다.
