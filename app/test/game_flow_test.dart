@@ -10,6 +10,7 @@ import 'package:janggigo/theme/app_theme.dart';
 import 'package:janggigo/widgets/board/board_geometry.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
 import 'package:janggigo/widgets/board/check_effect.dart';
+import 'package:janggigo/widgets/game_scaffold.dart';
 import 'package:janggigo/widgets/player_bar.dart';
 
 import 'fakes.dart';
@@ -169,6 +170,21 @@ void main() {
     final board = tester.widget<BoardView>(find.byType(BoardView));
     expect(board.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
     expect(find.text('재대국 신청'), findsOneWidget);
+
+    // 놓아보기를 켜면 판에 직접 두고 수 이동은 끈다. 끄면 원래 기보 위치로 돌아간다.
+    await tester.tap(find.text('놓아보기'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<GameBarButton>(find.widgetWithText(GameBarButton, '다음')).onPressed, isNull);
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i5');
+    final trial = tester.widget<BoardView>(find.byType(BoardView));
+    expect(trial.position.pieceAt(Square.parse('i5')), const Piece(Side.cho, PieceType.chariot));
+
+    await tester.tap(find.text('놓아보기'));
+    await tester.pumpAndSettle();
+    final restored = tester.widget<BoardView>(find.byType(BoardView));
+    expect(restored.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
+    expect(find.text('복기 0 / 1수'), findsOneWidget);
   });
 
   testWidgets('복기 화면에서 수를 넘기고 놓아보기를 켰다 끈다', (tester) async {

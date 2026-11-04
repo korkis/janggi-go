@@ -179,7 +179,14 @@ class _SpectateScreenState extends State<SpectateScreen> {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          BoardView(position: review.position, flipped: board.flipped, lastMove: review.lastMove),
+          BoardView(
+            position: review.position,
+            flipped: board.flipped,
+            lastMove: review.lastMove,
+            selected: review.selected,
+            targets: review.targets,
+            onSquareTap: review.trying ? review.tapSquare : null,
+          ),
           if (!_resultLanded)
             Positioned.fill(
               child: ResultStampOverlay(

@@ -345,7 +345,8 @@ class ResultRankChange extends StatelessWidget {
       change.rankProgressAfter >= _getPrevious(change, up: up, down: down);
 }
 
-/// 대국이 끝난 화면의 복기 막대. 처음·이전·"복기 87 / 87수"·다음·끝이다. 가장 많이 쓰는 이전·다음을 강조한다.
+/// 대국이 끝난 화면의 복기 막대. 처음·이전·"복기 87 / 87수"·다음·끝·놓아보기다. 가장 많이 쓰는 이전·다음을 강조한다.
+/// 놓아보기를 켜면 판에 직접 수를 둘 수 있고 수 이동은 끈다. 끄면 원래 기보 위치로 돌아간다.
 class ReviewBar extends StatelessWidget {
   final ReviewManager review;
 
@@ -358,8 +359,9 @@ class ReviewBar extends StatelessWidget {
 
   Widget _buildBar(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
-    final canGoBack = review.ply > 0;
-    final canGoForward = review.ply < review.totalMoves;
+    final movable = !review.trying;
+    final canGoBack = movable && review.ply > 0;
+    final canGoForward = movable && review.ply < review.totalMoves;
     return GameButtonBar(
       children: [
         GameBarButton(
@@ -400,6 +402,16 @@ class ReviewBar extends StatelessWidget {
           // 끝
           label: l10n.reviewLast,
           onPressed: canGoForward ? review.goLast : null,
+        ),
+        Semantics(
+          toggled: review.trying,
+          child: GameBarButton(
+            icon: Icons.edit_outlined,
+            // 놓아보기
+            label: l10n.reviewTrial,
+            onPressed: review.toggleTrial,
+            emphasized: review.trying,
+          ),
         ),
       ],
     );
