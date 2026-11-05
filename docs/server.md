@@ -131,7 +131,7 @@ flowchart LR
 | `setFormation` | `gameId`, `formation`, `confirmed` | 상차림을 골라 둔다(`confirmed: false`, `player_states.setupDraft`에 저장) 또는 확정한다 |
 | `playMove` | `gameId`, `moveIndex`, `move` | 수 또는 `pass`를 둔다. `moveIndex`는 이 수가 몇 번째 수인지(0부터)다. 같은 수를 다시 보내면 성공으로 본다 |
 | `resign` | `gameId` | 기권한다 |
-| `useTimeExtension` | `gameId` | 시간 연장권을 쓴다. 연장권 보유는 3단계에서 정하므로 2단계에는 만들지 않는다 |
+| `useTimeExtension` | `gameId` | 엽전을 내고 시간 연장을 쓴다. 엽전이 3단계이므로 2단계에는 만들지 않는다 |
 | `checkGame` | `gameId` | 대국 판정을 다시 보게 한다(아래 "판정 다시 보기"). 대국자만 부를 수 있고, 끝난 대국이면 아무것도 하지 않고 성공한다. 앱이 부르는 때는 아래 "접속 끊김" |
 | `requestRematch` | `gameId` | 다시 두기를 누른다. 두 사람이 모두 누르면 새 대국을 만든다. 결과 `gameId`(새 대국이 정해졌으면 그 ID, 상대를 기다리면 null). 끝나지 않은 대국, 상대가 나갔거나 앱에 없을 때, 횟수에 닿았을 때는 `rematchUnavailable` |
 | `leaveResult` | `gameId` | 결과 화면을 나간다. 기다리던 다시 두기를 취소하고, 방 대국이면 방 대기실로 돌린다. 대국이 이미 지워졌으면 그대로 성공한다 |
@@ -635,7 +635,7 @@ OpenAI API 키는 Secret Manager에 둔다.
 ## 미정
 
 - 빠른 대국에서 내가 차단한 사람과 매칭되지 않게 할지.
-- 시간 연장권을 상대 차례에도 쓸 수 있는지(3단계).
+- 시간 연장을 상대 차례에도 쓸 수 있게 하는 초안의 서버 처리(3단계).
 - 프로필 화면의 사용자 신고(채팅 메시지가 아닌 신고)에 무엇을 저장할지([screens.md](./screens.md)의 다른 사용자 정보에 버튼만 있다).
 - 채팅 연속 전송 제한. 길이는 100자로 정했다(2026-11-03).
 - App Check 사용 여부.
