@@ -58,6 +58,8 @@ class ReviewManager extends ChangeNotifier {
 
   Set<Square> get targets => _trial?.targets ?? const {};
 
+  RejectedTap? get rejectedTap => _trial?.rejectedTap;
+
   /// 놓아보기를 시작한 자리에서 지금 보는 자리까지 둔 수의 개수.
   int get trialMoveCount => _trial == null ? 0 : _trial!.moveCount - _ply;
 

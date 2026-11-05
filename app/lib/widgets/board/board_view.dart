@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:janggi_core/janggi_core.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../managers/board_manager.dart';
 import '../../utils/game_sounds.dart';
 import 'board_geometry.dart';
 import 'board_images.dart';
 import 'board_painter.dart';
 import 'check_effect.dart';
 import 'pieces_painter.dart';
+import 'rejection_notice.dart';
 
 /// 장기판. 판과 기물을 [CustomPainter]로 그리고, 누른 교차점을 [onSquareTap]으로 알린다.
 ///
@@ -39,6 +41,9 @@ class BoardView extends StatefulWidget {
   /// 장군을 받은 진영. 장군이 아니면 null이다.
   final Side? checkedSide;
 
+  /// 둘 수 없는 수를 누른 일. 있으면 판 가운데에 이유를 잠깐 띄운다.
+  final RejectedTap? rejectedTap;
+
   final ValueChanged<Square>? onSquareTap;
   final PieceMaterial material;
 
@@ -52,6 +57,7 @@ class BoardView extends StatefulWidget {
     this.dimmedSide,
     this.highlighted = const {},
     this.checkedSide,
+    this.rejectedTap,
     this.onSquareTap,
     this.material = PieceMaterial.plastic,
   });
@@ -180,6 +186,7 @@ class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
                   child: BigCheckStamp(progress: _checkController, label: l10n.check, boardSize: size),
                 ),
               ],
+              IgnorePointer(child: RejectionNotice(rejectedTap: widget.rejectedTap)),
             ],
           ),
         ),

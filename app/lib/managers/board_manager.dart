@@ -1,6 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:janggi_core/janggi_core.dart';
 
+/// 둘 수 없는 자리나 기물을 누른 일. 같은 이유로 다시 눌러도 안내를 새로 띄우도록 누를 때마다 새로 만든다.
+final class RejectedTap {
+  final MoveRejection reason;
+
+  RejectedTap(this.reason);
+}
+
 /// 한 대국의 판 상태. 대국 화면이 만들고 `dispose()`한다.
 ///
 /// 한 기기에서 양쪽을 두는 개발용 대국과, 한 진영([player])만 두는 온라인 대국에 쓴다. 온라인 대국은 수를 먼저 판에 보여주고
@@ -12,6 +19,7 @@ class BoardManager extends ChangeNotifier {
   List<Move> _legalMoves;
   Square? _selected;
   Set<Square> _targets = const {};
+  RejectedTap? _rejectedTap;
   final bool _flipped;
 
   /// 이 기기가 두는 진영. null이면 한 기기에서 양쪽을 둔다.
@@ -48,6 +56,9 @@ class BoardManager extends ChangeNotifier {
   /// 고른 기물이 갈 수 있는 자리.
   Set<Square> get targets => _targets;
 
+  /// 마지막으로 누른 자리가 둘 수 없는 수였으면 그 일. 판 위에 이유를 잠깐 띄우는 데 쓴다. 다른 자리를 누르거나 국면이 바뀌면 null이다.
+  RejectedTap? get rejectedTap => _rejectedTap;
+
   /// true면 한이 아래에 오도록 판을 돌려 보여준다.
   bool get flipped => _flipped;
 
@@ -82,18 +93,30 @@ class BoardManager extends ChangeNotifier {
   Duration getElapsed(DateTime now) => (_endedAt ?? now).difference(_startedAt);
 
   /// 판의 교차점을 눌렀을 때. 차례인 쪽 기물이면 고르고, 고른 기물이 갈 수 있는 자리면 수를 둔다.
+  /// 기물 규칙으로는 갈 수 있지만 금지된 자리면 기물을 고른 채로 두고 [rejectedTap]에 이유를 남긴다.
   void tapSquare(Square square) {
     if (!isPlayerTurn) {
       return;
     }
+    _rejectedTap = null;
     final selected = _selected;
     if (selected != null && _targets.contains(square)) {
       _play(Move(selected, square));
       return;
     }
+    final moveRejection = selected == null ? null : _game.getMoveRejection(Move(selected, square));
+    if (moveRejection != null) {
+      _rejectedTap = RejectedTap(moveRejection);
+      notifyListeners();
+      return;
+    }
     final piece = position.pieceAt(square);
     if (piece != null && piece.side == turn && square != selected) {
       _select(square);
+      final selectionRejection = _game.getSelectionRejection(square);
+      if (selectionRejection != null) {
+        _rejectedTap = RejectedTap(selectionRejection);
+      }
     } else {
       _select(null);
     }
@@ -124,6 +147,7 @@ class BoardManager extends ChangeNotifier {
     _legalMoves = _game.legalMoves();
     if (!samePosition || !isPlayerTurn) {
       _select(null);
+      _rejectedTap = null;
     } else {
       _select(_selected);
     }
@@ -141,6 +165,7 @@ class BoardManager extends ChangeNotifier {
   void _onGameChanged() {
     _legalMoves = _game.legalMoves();
     _select(null);
+    _rejectedTap = null;
     if (_game.isOver) {
       _endedAt ??= DateTime.now();
     }

@@ -117,6 +117,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       targets: _review.targets,
       lastMove: _review.lastMove,
       flipped: widget.bottomSide == Side.han,
+      rejectedTap: _review.rejectedTap,
       onSquareTap: _review.trying ? _review.tapSquare : null,
     );
   }

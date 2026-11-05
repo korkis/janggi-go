@@ -1521,4 +1521,13 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get moveRejectedMustStopCheck => 'You must stop the check';
+
+  @override
+  String get moveRejectedExposesGeneral => 'That leaves your general in check';
+
+  @override
+  String get moveRejectedRepetition => 'Repetition is not allowed';
 }

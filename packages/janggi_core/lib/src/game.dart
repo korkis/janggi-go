@@ -25,6 +25,18 @@ enum GameEndReason {
   bool get isScoreJudgment => this == consecutivePasses || this == moveLimit || this == noLegalMoves;
 }
 
+/// 기물 규칙으로는 갈 수 있지만 둘 수 없는 이유.
+enum MoveRejection {
+  /// 장군을 받은 상태에서 장군을 막지 못한다.
+  mustStopCheck,
+
+  /// 두면 내 궁이 장군을 받게 된다.
+  exposesGeneral,
+
+  /// 반복수 제한에 걸린다.
+  repetition,
+}
+
 /// 대국 결과. 점수는 끝난 국면의 점수이며 한의 덤이 들어 있다.
 final class GameResult {
   final Side winner;
@@ -118,6 +130,29 @@ final class Game {
   }
 
   bool isLegal(Move move) => !isOver && position.isLegal(move) && !_isRepetitionForbidden(move);
+
+  /// [move]를 둘 수 없는 이유. 둘 수 있는 수, 기물 규칙으로도 못 가는 수, 끝난 대국이면 null이다.
+  MoveRejection? getMoveRejection(Move move) {
+    if (isOver || isLegal(move)) {
+      return null;
+    }
+    if (position.isLegal(move)) {
+      return MoveRejection.repetition;
+    }
+    if (!generatePseudoMoves(position.board, position.turn).contains(move)) {
+      return null;
+    }
+    return position.isInCheck(position.turn) ? MoveRejection.mustStopCheck : MoveRejection.exposesGeneral;
+  }
+
+  /// [square]의 기물을 골라도 소용없는 이유. 장군을 받은 상태에서 차례인 쪽 기물이 갈 곳이 하나도 없을 때만 있고, 아니면 null이다.
+  MoveRejection? getSelectionRejection(Square square) {
+    if (isOver || position.pieceAt(square)?.side != position.turn || !position.isInCheck(position.turn)) {
+      return null;
+    }
+    final movable = legalMoves().any((move) => move.from == square);
+    return movable ? null : MoveRejection.mustStopCheck;
+  }
 
   /// [move]를 둔 대국을 반환한다. 끝난 대국이거나 둘 수 없는 수면 [ArgumentError]를 던진다.
   Game play(Move move) {

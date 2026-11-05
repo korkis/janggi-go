@@ -225,6 +225,7 @@ class _GameScreenState extends State<GameScreen> {
             lastMove: review.lastMove,
             selected: review.selected,
             targets: review.targets,
+            rejectedTap: review.rejectedTap,
             onSquareTap: review.trying ? review.tapSquare : null,
           ),
           if (!_resultLanded)
@@ -250,6 +251,7 @@ class _GameScreenState extends State<GameScreen> {
           lastMove: board.lastMove,
           dimmedSide: board.dimmedSide,
           checkedSide: board.checkedSide,
+          rejectedTap: board.rejectedTap,
           onSquareTap: _onSquareTap,
         ),
         if (online != null && mySide != null)

@@ -80,6 +80,55 @@ void main() {
     });
   });
 
+  group('둘 수 없는 이유', () {
+    // a9 초 차가 d9 한 궁에 장군을 걸었다. i8 병은 어디로 가도 막지 못한다.
+    final checked = Game.start(Position.fromFen('9/R2k5/8p/9/9/9/9/9/9/5K3 b'));
+
+    test('장군을 받은 상태에서 막지 못하는 수는 장군을 막아야 한다', () {
+      expect(checked.getMoveRejection(mv('i8i7')), MoveRejection.mustStopCheck);
+      // 궁이 옆으로 가도 차의 줄에 그대로 있다.
+      expect(checked.getMoveRejection(mv('d9e9')), MoveRejection.mustStopCheck);
+      expect(checked.getMoveRejection(mv('d9d10')), isNull);
+    });
+
+    test('장군이 아닌데 두면 궁이 장군을 받는 수를 구분한다', () {
+      // c9 한 차는 b9 초 마의 멱을 막고 있어 움직이면 d10 한 궁이 장군을 받는다.
+      final game = Game.start(Position.fromFen('3k5/1Nr6/9/1p7/9/9/3P5/9/5K3/2C6 b'));
+      expect(game.getMoveRejection(mv('c9c8')), MoveRejection.exposesGeneral);
+      expect(game.getMoveRejection(mv('c9c1')), MoveRejection.exposesGeneral);
+    });
+
+    test('궁이 공격받는 자리로 가는 수를 구분한다', () {
+      // a9 초 차의 줄이다. 궁은 지금 d10에 있어 장군이 아니다.
+      final game = Game.start(Position.fromFen('3k5/R8/9/9/9/9/9/9/9/5K3 b'));
+      expect(game.getMoveRejection(mv('d10d9')), MoveRejection.exposesGeneral);
+      expect(game.getMoveRejection(mv('d10e10')), isNull);
+    });
+
+    test('반복수 제한에 걸리는 수를 구분한다', () {
+      final game = Game.replay(_start(), ['a1a2', 'a10a9', 'a2a1', 'a9a10', 'a1a2', 'a10a9', 'a2a1'].map(Move.parse));
+      expect(game.getMoveRejection(mv('a9a10')), MoveRejection.repetition);
+      expect(game.getMoveRejection(mv('a9a8')), isNull);
+    });
+
+    test('기물 규칙으로도 못 가는 수와 끝난 대국은 이유가 없다', () {
+      expect(checked.getMoveRejection(mv('i8i5')), isNull);
+      expect(checked.getMoveRejection(mv('a9a8')), isNull);
+      final over = Game.start(_start()).play(Move.pass).play(Move.pass);
+      expect(over.getMoveRejection(mv('a1a2')), isNull);
+    });
+
+    test('장군 상태에서 갈 곳이 하나도 없는 기물만 고를 때 이유가 있다', () {
+      expect(checked.getSelectionRejection(sq('i8')), MoveRejection.mustStopCheck);
+      expect(checked.getSelectionRejection(sq('d9')), isNull);
+      // 상대 기물과 빈 칸은 고를 수 없으므로 이유가 없다.
+      expect(checked.getSelectionRejection(sq('a9')), isNull);
+      expect(checked.getSelectionRejection(sq('e5')), isNull);
+      // 장군이 아니면 이유가 없다.
+      expect(Game.start(_start()).getSelectionRejection(sq('c1')), isNull);
+    });
+  });
+
   group('한수쉼', () {
     test('양쪽이 연속으로 한수쉼을 하면 점수로 판정한다', () {
       final game = Game.start(_start()).play(Move.pass).play(Move.pass);

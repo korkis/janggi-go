@@ -9,6 +9,21 @@ Game _record() => Game.replay(
 
 void main() {
   group('ReviewManager', () {
+    test('놓아보기에서 지나온 수까지 따져 둘 수 없는 이유를 알려 주고, 놓아보기를 끝내면 지운다', () {
+      final record = Game.replay(
+        createInitialPosition(cho: Formation.horseElephantHorseElephant, han: Formation.horseElephantHorseElephant),
+        ['a1a2', 'a10a9', 'a2a1', 'a9a10', 'a1a2', 'a10a9', 'a2a1'].map(Move.parse),
+      );
+      final review = ReviewManager(record: record, trying: true);
+      review.tapSquare(Square.parse('a9'));
+      review.tapSquare(Square.parse('a10'));
+      expect(review.rejectedTap?.reason, MoveRejection.repetition);
+      expect(review.selected, Square.parse('a9'));
+
+      review.endTrial();
+      expect(review.rejectedTap, isNull);
+    });
+
     test('끝난 국면에서 시작하고 처음, 이전, 다음, 끝으로 움직인다', () {
       final record = _record();
       final review = ReviewManager(record: record);

@@ -110,6 +110,33 @@ void main() {
     expect(find.text('시작하기'), findsOneWidget);
   });
 
+  testWidgets('금지된 자리를 누르면 이유를 1초쯤 띄우고 기물은 고른 채로 둔다', (tester) async {
+    _usePhoneView(tester);
+    // c9 한 차는 b9 초 마의 멱을 막고 있어 움직이면 d10 한 궁이 장군을 받는다.
+    await tester.pumpWidget(_gameApp(Position.fromFen('3k5/1Nr6/9/1p7/9/9/3P5/9/5K3/2C6 b')));
+    final notice = find.text('궁이 장군을 받습니다');
+    // 화면 전환에도 FadeTransition이 있으므로 안내에 가장 가까운 것을 본다.
+    double opacity() => tester
+        .widget<FadeTransition>(find.ancestor(of: notice, matching: find.byType(FadeTransition)).first)
+        .opacity
+        .value;
+
+    await _tapSquare(tester, 'c9');
+    expect(notice, findsNothing);
+    await _tapSquareOnly(tester, 'c8');
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(notice, findsOneWidget);
+    expect(opacity(), 1);
+
+    await tester.pumpAndSettle();
+    expect(opacity(), 0);
+
+    // 차를 고른 채로 남아 있어 바로 마를 잡을 수 있다.
+    await _tapSquare(tester, 'b9');
+    expect(find.text('개발용 대국 · 1수'), findsOneWidget);
+    expect(notice, findsNothing);
+  });
+
   testWidgets('외통을 걸면 판 가운데에 결과 도장을 찍고 머리줄 결과 칩으로 올린다', (tester) async {
     _usePhoneView(tester);
     await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));

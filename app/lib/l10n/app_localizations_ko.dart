@@ -1433,4 +1433,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String reviewTrialMoves(int count) {
     return '놓아보기 $count수';
   }
+
+  @override
+  String get moveRejectedMustStopCheck => '장군을 막아야 합니다';
+
+  @override
+  String get moveRejectedExposesGeneral => '궁이 장군을 받습니다';
+
+  @override
+  String get moveRejectedRepetition => '반복수입니다';
 }

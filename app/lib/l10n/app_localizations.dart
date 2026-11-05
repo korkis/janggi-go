@@ -2395,6 +2395,24 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'놓아보기 {count}수'**
   String reviewTrialMoves(int count);
+
+  /// 둘 수 없는 수를 누른 이유. 장군을 받은 상태에서 막지 못하는 수
+  ///
+  /// In ko, this message translates to:
+  /// **'장군을 막아야 합니다'**
+  String get moveRejectedMustStopCheck;
+
+  /// 둘 수 없는 수를 누른 이유. 두면 내 궁이 장군을 받게 되는 수
+  ///
+  /// In ko, this message translates to:
+  /// **'궁이 장군을 받습니다'**
+  String get moveRejectedExposesGeneral;
+
+  /// 둘 수 없는 수를 누른 이유. 반복수 금지
+  ///
+  /// In ko, this message translates to:
+  /// **'반복수입니다'**
+  String get moveRejectedRepetition;
 }
 
 class _AppLocalizationsDelegate

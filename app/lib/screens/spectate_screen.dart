@@ -185,6 +185,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
             lastMove: review.lastMove,
             selected: review.selected,
             targets: review.targets,
+            rejectedTap: review.rejectedTap,
             onSquareTap: review.trying ? review.tapSquare : null,
           ),
           if (!_resultLanded)

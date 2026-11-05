@@ -485,5 +485,8 @@
   "languageEnglish": "English",
   "errorSaveSettings": "Couldn't save the setting. Please try again shortly",
   "reviewTrialEnd": "End",
-  "reviewTrialMoves": "{count, plural, =1{1 move} other{{count} moves}}"
+  "reviewTrialMoves": "{count, plural, =1{1 move} other{{count} moves}}",
+  "moveRejectedMustStopCheck": "You must stop the check",
+  "moveRejectedExposesGeneral": "That leaves your general in check",
+  "moveRejectedRepetition": "Repetition is not allowed"
 }
