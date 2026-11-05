@@ -739,7 +739,14 @@ class _WaitingNotice extends StatelessWidget {
 }
 
 /// 상차림 버튼. 글자 없이 마·상 기물 네 개를 고르는 사람 기준 왼쪽부터 놓고, 화면 읽기용 이름을 둔다.
+/// 기물 그림은 좁은 화면에서 버튼 폭에 맞춰 줄어든다.
 class _FormationButton extends StatelessWidget {
+  /// 기물 그림의 가장 큰 크기.
+  static const _maxPieceSize = 34.0;
+
+  /// 기물 그림의 좌우 여백.
+  static const _pieceGap = 2.0;
+
   final Formation formation;
   final Side side;
   final bool selected;
@@ -771,19 +778,26 @@ class _FormationButton extends StatelessWidget {
           onTap: onPick == null ? null : _onTap,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 56),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final type in formation.pieces)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: PieceIcon(piece: Piece(side, type), size: 34),
-                  ),
-              ],
-            ),
+            child: LayoutBuilder(builder: _buildPieces),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPieces(BuildContext context, BoxConstraints constraints) {
+    final pieces = formation.pieces;
+    final fitted = constraints.maxWidth / pieces.length - _pieceGap * 2;
+    final size = min(_maxPieceSize, fitted);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (final type in pieces)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _pieceGap),
+            child: PieceIcon(piece: Piece(side, type), size: size),
+          ),
+      ],
     );
   }
 

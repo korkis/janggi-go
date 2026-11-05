@@ -2396,6 +2396,12 @@ abstract class AppLocalizations {
   /// **'놓아보기 {count}수'**
   String reviewTrialMoves(int count);
 
+  /// 폭이 좁아 놓아보기 막대 가운데에 전체 문구가 들어가지 않을 때 쓰는 짧은 표시
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}수'**
+  String reviewTrialMovesShort(int count);
+
   /// 둘 수 없는 수를 누른 이유. 장군을 받은 상태에서 막지 못하는 수
   ///
   /// In ko, this message translates to:

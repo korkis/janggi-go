@@ -11,6 +11,7 @@ import 'package:janggigo/widgets/board/board_geometry.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
 import 'package:janggigo/widgets/board/check_effect.dart';
 import 'package:janggigo/widgets/game_result.dart';
+import 'package:janggigo/widgets/piece_icon.dart';
 import 'package:janggigo/widgets/player_bar.dart';
 
 import 'fakes.dart';
@@ -57,8 +58,9 @@ Widget _gameApp(Position initialPosition) => MaterialApp(
   ),
 );
 
-void _usePhoneView(WidgetTester tester) {
-  tester.view.physicalSize = const Size(1170, 2532);
+/// 테스트 글꼴은 글자 폭이 실제보다 넓으므로, 놓아보기 막대의 전체 문구를 보는 테스트는 [width]를 넓혀 쓴다.
+void _usePhoneView(WidgetTester tester, {double width = 390}) {
+  tester.view.physicalSize = Size(width * 3, 2532);
   tester.view.devicePixelRatio = 3;
   tester.platformDispatcher.localesTestValue = const [Locale('ko')];
   addTearDown(tester.view.reset);
@@ -199,7 +201,7 @@ void main() {
   });
 
   testWidgets('대국이 끝나면 같은 화면에서 마지막 수부터 복기한다', (tester) async {
-    _usePhoneView(tester);
+    _usePhoneView(tester, width: 480);
     await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));
     await _tapSquare(tester, 'i1');
     await _tapSquare(tester, 'i10');
@@ -263,8 +265,66 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('폭 320에서 놓아보기 막대는 수만 짧게 보여주고 화면 읽기용 이름은 전체 문구로 둔다', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.localesTestValue = const [Locale('ko')];
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i10');
+    await tester.tap(find.byTooltip('이전'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '놓아보기'));
+    await tester.pumpAndSettle();
+    final bar = find.byType(TrialBar);
+    expect(find.descendant(of: bar, matching: find.text('0수')), findsOneWidget);
+    expect(find.bySemanticsLabel('놓아보기'), findsWidgets);
+
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i5');
+    expect(find.descendant(of: bar, matching: find.text('1수')), findsOneWidget);
+    expect(find.text('놓아보기 1수'), findsNothing);
+    expect(find.bySemanticsLabel('놓아보기 1수'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
+
+  testWidgets('상차림 버튼의 기물은 폭 320에서 넘치지 않게 줄고 넓으면 원래 크기다', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.localesTestValue = const [Locale('ko')];
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Theme(data: gameTheme, child: const SetupScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final formationPieces = find.descendant(of: find.bySemanticsLabel('마상상마'), matching: find.byType(PieceIcon));
+    expect(tester.widget<PieceIcon>(formationPieces.first).size, lessThan(34));
+    expect(tester.widget<PieceIcon>(formationPieces.first).size, greaterThan(24));
+    expect(tester.takeException(), isNull);
+
+    // 상대가 정한 상차림까지 나오는 초의 차례도 넘치지 않는다.
+    await tester.tap(find.text('이 상차림으로 정하기'));
+    await tester.pumpAndSettle();
+    expect(find.text('상대가 정했어요'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+    expect(tester.widget<PieceIcon>(formationPieces.first).size, 34);
+  });
+
   testWidgets('복기 화면에서 수를 넘기고 놓아보기를 켰다 끈다', (tester) async {
-    _usePhoneView(tester);
+    _usePhoneView(tester, width: 480);
     final record = Game.start(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')).play(Move.parse('i1i10'));
     await tester.pumpWidget(
       MaterialApp(
@@ -302,7 +362,7 @@ void main() {
   });
 
   testWidgets('새 판에서 놓아보기는 처음이 처음 상차림 자리이고 끝내기 대신 나가기로 화면을 닫는다', (tester) async {
-    _usePhoneView(tester);
+    _usePhoneView(tester, width: 480);
     final initial = Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w');
     await tester.pumpWidget(
       MaterialApp(

@@ -1523,6 +1523,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String reviewTrialMovesShort(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moves',
+      one: '1 move',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get moveRejectedMustStopCheck => 'You must stop the check';
 
   @override

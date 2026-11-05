@@ -403,6 +403,8 @@ class TrialBar extends StatelessWidget {
       center: _BarCenterText(
         // 놓아보기 / 놓아보기 3수
         text: count == 0 ? l10n.reviewTrial : l10n.reviewTrialMoves(count),
+        // 3수
+        shortText: l10n.reviewTrialMovesShort(count),
         color: GameColors.accent,
       ),
       end: Padding(
@@ -487,29 +489,49 @@ class _BarIcon extends StatelessWidget {
   }
 }
 
-/// 막대 가운데 글자. 좁은 화면이나 큰 글자 설정에서는 넘치지 않게 줄여 한 줄로 둔다.
+/// 막대 가운데 글자. 자리가 모자라면 [shortText]로 짧게 쓰고, 그래도 넘치면(큰 글자 설정) 줄여 한 줄로 둔다.
 class _BarCenterText extends StatelessWidget {
   final String text;
+
+  /// 자리가 모자랄 때 대신 보여줄 글자. 화면 읽기용 이름은 늘 [text]다.
+  final String? shortText;
   final Color color;
 
-  const _BarCenterText({required this.text, required this.color});
+  const _BarCenterText({required this.text, this.shortText, required this.color});
 
   @override
   Widget build(BuildContext context) {
+    return shortText == null ? _buildText(text) : LayoutBuilder(builder: _buildFitted);
+  }
+
+  Widget _buildFitted(BuildContext context, BoxConstraints constraints) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: DefaultTextStyle.of(context).style.merge(_style)),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final fits = painter.width <= constraints.maxWidth;
+    painter.dispose();
+    if (fits) {
+      return _buildText(text);
+    }
+    return Semantics(label: text, excludeSemantics: true, child: _buildText(shortText!));
+  }
+
+  Widget _buildText(String value) {
     return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Text(
-        text,
-        maxLines: 1,
-        style: TextStyle(
-          fontSize: AppTextSizes.body,
-          fontWeight: FontWeight.w800,
-          color: color,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
+      child: Text(value, maxLines: 1, style: _style),
     );
   }
+
+  TextStyle get _style => TextStyle(
+    fontSize: AppTextSizes.body,
+    fontWeight: FontWeight.w800,
+    color: color,
+    fontFeatures: const [FontFeature.tabularFigures()],
+  );
 }
 
 /// 대국이 끝난 화면 맨 아래 줄 버튼의 글자. 세 버튼이 한 줄에 들어가도록 넘치면 줄여 한 줄로 둔다.
