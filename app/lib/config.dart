@@ -10,6 +10,12 @@ const functionsRegion = 'asia-northeast3';
 /// `--dart-define=USE_FIREBASE_EMULATOR=false`로 끌 수 있다.
 const useFirebaseEmulator = bool.fromEnvironment('USE_FIREBASE_EMULATOR', defaultValue: !kReleaseMode);
 
+/// 디버그 빌드의 이메일 로그인 칸에 미리 넣는 시험 계정. 이메일의 `test` 뒤에 번호(1~4)만 치면 된다.
+/// 계정은 `server/functions/src/scripts/seedEmulator.ts`가 만든다.
+const debugTestEmail = 'test@janggigo.test';
+const debugTestEmailCursorOffset = 4;
+const debugTestPassword = 'janggigo1';
+
 /// 에뮬레이터를 띄운 개발 PC의 주소. 실제 기기에서는 `--dart-define=FIREBASE_EMULATOR_HOST=<개발 PC IP>`로 바꾼다.
 /// 안드로이드 에뮬레이터는 개발 PC를 10.0.2.2로 본다.
 String getFirebaseEmulatorHost() {

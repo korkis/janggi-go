@@ -1,7 +1,9 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../repositories/app_repositories.dart';
@@ -36,6 +38,21 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   String? _emailError;
   String? _passwordError;
   String? _passwordConfirmError;
+
+  /// 디버그 빌드에서 에뮬레이터에 로그인할 때 시험 계정을 미리 넣는다. 번호를 치고 Enter를 누르면 바로 로그인한다.
+  bool get _testAccountPrefilled => kDebugMode && useFirebaseEmulator && !widget.signUp;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_testAccountPrefilled) {
+      _emailController.value = const TextEditingValue(
+        text: debugTestEmail,
+        selection: TextSelection.collapsed(offset: debugTestEmailCursorOffset),
+      );
+      _passwordController.text = debugTestPassword;
+    }
+  }
 
   @override
   void dispose() {
@@ -84,10 +101,12 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                     ),
                     TextField(
                       controller: _emailController,
+                      autofocus: _testAccountPrefilled,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
                       autocorrect: false,
-                      textInputAction: TextInputAction.next,
+                      textInputAction: _testAccountPrefilled ? TextInputAction.done : TextInputAction.next,
+                      onSubmitted: _testAccountPrefilled ? _onSubmitted : null,
                       style: const TextStyle(fontSize: AppTextSizes.body),
                       decoration: _inputDecoration(errorText: _emailError),
                     ),

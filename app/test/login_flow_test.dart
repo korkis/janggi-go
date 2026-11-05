@@ -5,6 +5,7 @@ import 'package:janggigo/l10n/app_localizations.dart';
 import 'package:janggigo/l10n/app_localizations_ko.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/user_profile.dart';
+import 'package:janggigo/screens/email_login_screen.dart';
 import 'package:janggigo/screens/home_screen.dart';
 import 'package:janggigo/screens/login_flow.dart';
 import 'package:janggigo/screens/nickname_screen.dart';
@@ -178,6 +179,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.emailLoginTitle), findsOneWidget);
 
+    // 디버그 빌드는 시험 계정을 미리 넣으므로 지우고 검사한다.
+    await tester.enterText(find.byType(TextField).at(0), '');
+    await tester.enterText(find.byType(TextField).at(1), '');
     await tester.tap(find.widgetWithText(FilledButton, l10n.login));
     await tester.pumpAndSettle();
     expect(find.text(l10n.errorInvalidEmail), findsOneWidget);
@@ -191,6 +195,40 @@ void main() {
 
     expect(fakes.auth.lastSignInMethod, 'email');
     expect(find.byType(NicknameScreen), findsOneWidget);
+  });
+
+  testWidgets('디버그 빌드의 이메일 로그인은 시험 계정을 미리 넣고, 번호를 치고 Enter를 누르면 로그인한다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = setUpFakeApp();
+    final results = <bool>[];
+    await tester.pumpWidget(_app(_NeedsLoginButton(results)));
+
+    await tester.tap(find.text('빠른 대국'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.loginWithEmail));
+    await tester.pumpAndSettle();
+
+    final emailField = tester.widget<TextField>(find.byType(TextField).at(0));
+    expect(emailField.autofocus, isTrue);
+    expect(emailField.controller!.text, 'test@janggigo.test');
+    expect(emailField.controller!.selection, const TextSelection.collapsed(offset: 4));
+    expect(tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text, 'janggigo1');
+
+    await tester.enterText(find.byType(TextField).at(0), 'test1@janggigo.test');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(fakes.auth.lastSignInMethod, 'email');
+    expect(fakes.auth.currentUid, 'test1@janggigo.test');
+  });
+
+  testWidgets('이메일 가입 화면에는 시험 계정을 넣지 않는다', (tester) async {
+    _usePhoneView(tester);
+    setUpFakeApp();
+    await tester.pumpWidget(_app(const EmailLoginScreen(signUp: true)));
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextField>(find.byType(TextField).at(0)).controller!.text, isEmpty);
   });
 
   testWidgets('이메일 가입은 비밀번호 확인이 다르면 가입하지 않는다', (tester) async {
