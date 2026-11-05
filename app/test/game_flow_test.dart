@@ -10,7 +10,7 @@ import 'package:janggigo/theme/app_theme.dart';
 import 'package:janggigo/widgets/board/board_geometry.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
 import 'package:janggigo/widgets/board/check_effect.dart';
-import 'package:janggigo/widgets/game_scaffold.dart';
+import 'package:janggigo/widgets/game_result.dart';
 import 'package:janggigo/widgets/player_bar.dart';
 
 import 'fakes.dart';
@@ -33,6 +33,20 @@ Future<void> _tapSquareOnly(WidgetTester tester, String square) async {
   await tester.tapAt(origin + center);
   await tester.pump();
 }
+
+/// 새 판에서 놓아보기 화면을 여는 버튼을 만든다. 나가기로 닫히는지 보려고 그 아래에 화면을 하나 둔다.
+WidgetBuilder _buildFreePlayOpener(Position initial) =>
+    (context) => TextButton(
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => Theme(
+            data: gameTheme,
+            child: ReviewScreen(record: Game.start(initial), trying: true),
+          ),
+        ),
+      ),
+      child: const Text('열기', textDirection: TextDirection.ltr),
+    );
 
 Widget _gameApp(Position initialPosition) => MaterialApp(
   localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -164,27 +178,62 @@ void main() {
     await _tapSquare(tester, 'i10');
 
     expect(find.text('복기 1 / 1수'), findsOneWidget);
-    await tester.tap(find.text('이전'));
+    await tester.tap(find.byTooltip('이전'));
     await tester.pumpAndSettle();
     expect(find.text('복기 0 / 1수'), findsOneWidget);
     final board = tester.widget<BoardView>(find.byType(BoardView));
     expect(board.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
     expect(find.text('재대국 신청'), findsOneWidget);
 
-    // 놓아보기를 켜면 판에 직접 두고 수 이동은 끈다. 끄면 원래 기보 위치로 돌아간다.
-    await tester.tap(find.text('놓아보기'));
+    // 놓아보기는 맨 아래 줄에 있다. 켜면 복기 막대 자리가 놓아보기 막대로 바뀌고 판에 직접 둔다.
+    await tester.tap(find.widgetWithText(OutlinedButton, '놓아보기'));
     await tester.pumpAndSettle();
-    expect(tester.widget<GameBarButton>(find.widgetWithText(GameBarButton, '다음')).onPressed, isNull);
+    expect(find.byType(TrialBar), findsOneWidget);
+    expect(find.text('복기 0 / 1수'), findsNothing);
+    expect(tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '놓아보기')).onPressed, isNull);
     await _tapSquare(tester, 'i1');
     await _tapSquare(tester, 'i5');
+    expect(find.text('놓아보기 1수'), findsOneWidget);
     final trial = tester.widget<BoardView>(find.byType(BoardView));
     expect(trial.position.pieceAt(Square.parse('i5')), const Piece(Side.cho, PieceType.chariot));
 
-    await tester.tap(find.text('놓아보기'));
+    // 이전과 다음은 놓아 본 수를 오간다.
+    await tester.tap(find.byTooltip('이전'));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(TrialBar), matching: find.text('놓아보기')), findsOneWidget);
+    expect(
+      tester.widget<BoardView>(find.byType(BoardView)).position.pieceAt(Square.parse('i1')),
+      const Piece(Side.cho, PieceType.chariot),
+    );
+    await tester.tap(find.byTooltip('다음'));
+    await tester.pumpAndSettle();
+    expect(find.text('놓아보기 1수'), findsOneWidget);
+
+    await tester.tap(find.text('끝내기'));
     await tester.pumpAndSettle();
     final restored = tester.widget<BoardView>(find.byType(BoardView));
     expect(restored.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
     expect(find.text('복기 0 / 1수'), findsOneWidget);
+    expect(find.byType(TrialBar), findsNothing);
+  });
+
+  testWidgets('폭 320에 글자가 커도 대국이 끝난 화면의 막대와 버튼이 넘치지 않는다', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.localesTestValue = const [Locale('ko')];
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpWidget(_gameApp(Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w')));
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i10');
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '놓아보기'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TrialBar), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('복기 화면에서 수를 넘기고 놓아보기를 켰다 끈다', (tester) async {
@@ -209,16 +258,50 @@ void main() {
 
     await tester.tap(find.text('놓아보기'));
     await tester.pumpAndSettle();
+    // 놓아보기 중에는 수 막대와 버튼 줄 대신 놓아보기 막대를 둔다.
+    expect(find.byType(TrialBar), findsOneWidget);
+    expect(find.byType(Slider), findsNothing);
     await _tapSquare(tester, 'i1');
     await _tapSquare(tester, 'i5');
+    expect(find.text('놓아보기 1수'), findsOneWidget);
     final board = tester.widget<BoardView>(find.byType(BoardView));
     expect(board.position.pieceAt(Square.parse('i5')), const Piece(Side.cho, PieceType.chariot));
 
-    await tester.tap(find.text('놓아보기'));
+    await tester.tap(find.text('끝내기'));
     await tester.pumpAndSettle();
     final restored = tester.widget<BoardView>(find.byType(BoardView));
     expect(restored.position.pieceAt(Square.parse('i1')), const Piece(Side.cho, PieceType.chariot));
     expect(find.text('0 / 1수'), findsOneWidget);
+  });
+
+  testWidgets('새 판에서 놓아보기는 처음이 처음 상차림 자리이고 끝내기 대신 나가기로 화면을 닫는다', (tester) async {
+    _usePhoneView(tester);
+    final initial = Position.fromFen('4k4/R8/9/9/9/9/9/9/4K4/8R w');
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(builder: _buildFreePlayOpener(initial)),
+      ),
+    );
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TrialBar), findsOneWidget);
+    expect(find.text('끝내기'), findsNothing);
+
+    await _tapSquare(tester, 'i1');
+    await _tapSquare(tester, 'i5');
+    expect(find.text('놓아보기 1수'), findsOneWidget);
+    await tester.tap(find.byTooltip('처음'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<BoardView>(find.byType(BoardView)).position.pieceAt(Square.parse('i1')),
+      const Piece(Side.cho, PieceType.chariot),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, '나가기'));
+    await tester.pumpAndSettle();
+    expect(find.text('열기'), findsOneWidget);
   });
 
   testWidgets('기권은 확인을 받은 뒤 차례인 쪽이 진다', (tester) async {

@@ -142,7 +142,7 @@ class AppException implements Exception {
     AppErrorCode.challengeLimited => l10n.errorChallengeLimited,
     // 상대가 지금은 신청을 받을 수 없어요
     AppErrorCode.targetUnavailable => l10n.errorTargetUnavailable,
-    // 부적절한 표현이 있어 보내지 않았어요
+    // 부적절한 표현이 있습니다
     AppErrorCode.chatMessageBlocked => l10n.errorChatMessageBlocked,
     // 이용이 제한되어 지금은 채팅할 수 없어요
     AppErrorCode.chatRestricted => l10n.errorChatRestricted,

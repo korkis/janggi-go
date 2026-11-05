@@ -294,7 +294,7 @@
   "chatReportDone": "Reported. Our team will review it",
   "errorChatReport": "Couldn't report. Please try again later",
   "errorChatSend": "Couldn't send the message. Please try again later",
-  "errorChatMessageBlocked": "Not sent because it contains inappropriate language",
+  "errorChatMessageBlocked": "Contains inappropriate language",
   "errorChatRestricted": "You can't chat right now because your account is restricted",
   "loginSheetTitleSpectateChat": "Sign in to\nchat while watching",
   "nicknameStartHintSpectateChat": "We'll take you back to the chat right after",
@@ -474,7 +474,7 @@
   "resultRankKept": "Stayed at {rank}",
   "reviewBarCounter": "Review {current} / {total}",
   "chatOpponentLeft": "{nickname} left",
-  "chatNotSent": "Not sent",
+  "chatNotSent": "Failed to send",
   "chatPreviewHint": "Chat",
   "disconnectCardTitle": "{nickname} disconnected",
   "disconnectCardBody": "If they don't return within {seconds}s, {winner} wins",
@@ -483,5 +483,7 @@
   "languageSystem": "Use device setting",
   "languageKorean": "한국어",
   "languageEnglish": "English",
-  "errorSaveSettings": "Couldn't save the setting. Please try again shortly"
+  "errorSaveSettings": "Couldn't save the setting. Please try again shortly",
+  "reviewTrialEnd": "End",
+  "reviewTrialMoves": "{count, plural, =1{1 move} other{{count} moves}}"
 }

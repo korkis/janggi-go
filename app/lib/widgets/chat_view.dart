@@ -468,7 +468,7 @@ String getChatChannelLabel(AppLocalizations l10n, ChatChannel channel) => switch
 
 /// 보내지 못한 내 메시지 아래에 붙이는 까닭. 검사에 걸리면 그 이유, 그 밖에는 보내지 못했다는 안내다.
 String getChatSendFailure(AppLocalizations l10n, Object error) {
-  // 부적절한 표현이 있어 보내지 않았어요 / 메시지를 보내지 못했어요. 잠시 후 다시 해 주세요
+  // 부적절한 표현이 있습니다 / 메시지를 보내지 못했어요. 잠시 후 다시 해 주세요
   return error is AppException ? error.getMessage(l10n) : l10n.errorChatSend;
 }
 
@@ -522,7 +522,7 @@ class _MessageMenu extends StatelessWidget {
 
 /// 메시지 말풍선. 다른 사람 메시지는 왼쪽에 닉네임과 함께, 내 메시지는 오른쪽 강조색으로 보여준다.
 ///
-/// 보내지 못한 내 메시지([failure])는 테두리만 남기고 흐리게 바꾸고, 옆에 "안 보냄", 아래에 까닭을 붙인다.
+/// 보내지 못한 내 메시지([failure])는 테두리만 남기고 흐리게 바꾸고, 옆에 "전송실패", 아래에 까닭을 붙인다.
 class _MessageBubble extends StatelessWidget {
   final String text;
 
@@ -594,7 +594,7 @@ class _MessageBubble extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  // 안 보냄
+                  // 전송실패
                   l10n.chatNotSent,
                   style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700, color: colors.subText),
                 ),

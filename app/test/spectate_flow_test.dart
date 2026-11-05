@@ -169,7 +169,7 @@ void main() {
     expect(find.text('한 판 더'), findsNothing);
     expect(find.text('복기 0 / 0수'), findsOneWidget);
 
-    await _tap(tester, find.widgetWithText(GameBarButton, '나가기'));
+    await _tap(tester, find.widgetWithText(OutlinedButton, '나가기'));
     expect(find.text('지금 볼 만한 대국'), findsOneWidget);
     expect(fakes.spectators.calls, ['create g1', 'remove g1']);
 

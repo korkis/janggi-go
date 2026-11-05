@@ -61,7 +61,7 @@ Widget _app(Widget home, {ThemeData? theme}) {
 }
 
 void main() {
-  testWidgets('대국실 채팅에서 보내자마자 내 메시지를 보여주고, 걸린 메시지는 안 보냄으로 바꾸고, 길게 눌러 신고·차단한다', (tester) async {
+  testWidgets('대국실 채팅에서 보내자마자 내 메시지를 보여주고, 걸린 메시지는 전송실패로 바꾸고, 길게 눌러 신고·차단한다', (tester) async {
     _usePhoneView(tester);
     final fakes = await _signIn('me', '나');
     final otherMessage = fakes.chats.addMessage(ChatChannel.lobby, null, uid: 'other', nickname: '장기왕', text: '반가워요');
@@ -89,12 +89,12 @@ void main() {
     // 자주 쓰는 말 버튼은 없다.
     expect(find.text('반갑습니다'), findsNothing);
 
-    // 검사에 걸리면 그 말풍선을 안 보냄으로 바꾸고 아래에 까닭을 붙인다. 입력칸은 이미 비웠다.
+    // 검사에 걸리면 그 말풍선을 전송실패로 바꾸고 아래에 까닭을 붙인다. 입력칸은 이미 비웠다.
     fakes.chats.nextError = const AppException(AppErrorCode.chatMessageBlocked);
     await tester.enterText(find.byType(TextField), '나쁜 말');
     await _tap(tester, find.byTooltip('보내기'));
-    expect(find.text('안 보냄'), findsOneWidget);
-    expect(find.text('부적절한 표현이 있어 보내지 않았어요'), findsOneWidget);
+    expect(find.text('전송실패'), findsOneWidget);
+    expect(find.text('부적절한 표현이 있습니다'), findsOneWidget);
     expect(find.text('나쁜 말'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
 

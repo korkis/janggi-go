@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/score_format.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
+import '../widgets/game_result.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
 
@@ -15,7 +16,8 @@ import '../widgets/player_bar.dart';
 /// 시계 대신 양쪽 남은 점수를 보여주고, 차례 표시와 기물 어두워짐은 쓰지 않는다. 글자로 된 수 목록은 두지 않는다.
 ///
 /// 내 기보 목록에서 열면 내 진영을 아래에 두고 정보 줄에 대국자 이름을 보여준다. 새 판에서 놓아보기도 이 화면을 쓰며 놓아보기를
-/// 켠 채로 연다([trying]).
+/// 켠 채로 연다([trying]). 놓아보기 중에는 수 막대와 버튼 줄 대신 [TrialBar]를 둔다. 새 판에서는 돌아갈 기보가 없으므로
+/// 끝내기 대신 나가기로 화면을 닫는다.
 class ReviewScreen extends StatefulWidget {
   final Game record;
 
@@ -83,7 +85,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         ),
         panel: GamePanel(
           title: title,
-          body: Column(children: [_buildProgressRow(context)]),
+          body: _review.trying ? null : Column(children: [_buildProgressRow(context)]),
           buttons: _buildButtonBar(context),
         ),
       );
@@ -101,7 +103,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
             ],
           ),
         ),
-        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: _buildProgressRow(context)),
+        if (!_review.trying)
+          Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: _buildProgressRow(context)),
         Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: _buildButtonBar(context)),
       ],
     );
@@ -134,7 +137,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget _buildProgressRow(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final total = _review.totalMoves;
-    final canSlide = total > 0 && !_review.trying;
+    final canSlide = total > 0;
     return Row(
       children: [
         Text(
@@ -163,32 +166,32 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildTrialButton(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final trying = _review.trying;
-    return Semantics(
-      toggled: trying,
-      child: OutlinedButton.icon(
-        onPressed: _review.toggleTrial,
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(minTouchSize, minTouchSize),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          shape: const StadiumBorder(),
-          backgroundColor: trying ? GameColors.accentSurface : null,
-          foregroundColor: trying ? GameColors.accent : GameColors.buttonText,
-          side: BorderSide(color: trying ? GameColors.accent : GameColors.outline, width: 1.5),
-        ),
-        icon: const Icon(Icons.edit_outlined, size: 18),
-        // 놓아보기
-        label: Text(l10n.reviewTrial),
+    return OutlinedButton.icon(
+      onPressed: _review.startTrial,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(minTouchSize, minTouchSize),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: const StadiumBorder(),
       ),
+      icon: const Icon(Icons.edit_outlined, size: 18),
+      // 놓아보기
+      label: Text(l10n.reviewTrial),
     );
   }
 
-  /// 처음, 이전, 다음, 끝. 가장 많이 쓰는 이전·다음을 강조한다. 놓아보기 중에는 끈다.
+  /// 처음, 이전, 다음, 끝. 가장 많이 쓰는 이전·다음을 강조한다. 놓아보기 중에는 놓아보기 막대로 바뀐다.
   Widget _buildButtonBar(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final movable = !_review.trying;
-    final canGoBack = movable && _review.ply > 0;
-    final canGoForward = movable && _review.ply < _review.totalMoves;
+    if (_review.trying) {
+      return TrialBar(
+        review: _review,
+        // 나가기 / 끝내기
+        endLabel: widget.trying ? l10n.leaveGameAction : l10n.reviewTrialEnd,
+        onEnd: widget.trying ? _onBack : _review.endTrial,
+      );
+    }
+    final canGoBack = _review.canGoBack;
+    final canGoForward = _review.canGoForward;
     return GameButtonBar(
       children: [
         GameBarButton(

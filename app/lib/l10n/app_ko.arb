@@ -1459,7 +1459,7 @@
   "@errorChatSend": {
     "description": "채팅 메시지 보내기 실패"
   },
-  "errorChatMessageBlocked": "부적절한 표현이 있어 보내지 않았어요",
+  "errorChatMessageBlocked": "부적절한 표현이 있습니다",
   "@errorChatMessageBlocked": {
     "description": "검사에 걸려 보내지 않은 메시지 안내"
   },
@@ -1892,9 +1892,9 @@
       }
     }
   },
-  "chatNotSent": "안 보냄",
+  "chatNotSent": "전송실패",
   "@chatNotSent": {
-    "description": "채팅. 보내지 못한 내 메시지 옆 표시"
+    "description": "채팅. 전송에 실패한 내 메시지 옆 표시"
   },
   "chatPreviewHint": "채팅",
   "@chatPreviewHint": {
@@ -1944,5 +1944,18 @@
   "errorSaveSettings": "설정을 저장하지 못했어요. 잠시 후 다시 해 주세요",
   "@errorSaveSettings": {
     "description": "설정 저장 실패"
+  },
+  "reviewTrialEnd": "끝내기",
+  "@reviewTrialEnd": {
+    "description": "놓아보기 막대 맨 오른쪽 버튼. 원래 기보 위치로 돌아간다"
+  },
+  "reviewTrialMoves": "놓아보기 {count}수",
+  "@reviewTrialMoves": {
+    "description": "놓아보기 막대 가운데. 놓아보기를 시작한 자리에서 둔 수",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

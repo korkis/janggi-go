@@ -11,7 +11,6 @@ import '../models/player_state.dart';
 import '../theme/app_theme.dart';
 import '../utils/rank_format.dart';
 import 'board/check_effect.dart';
-import 'game_scaffold.dart';
 import 'rank_progress_bar.dart';
 
 /// 결과 도장. 이기면 붉은 네모 낙관에 "승", 지면 먹색 둥근 바탕에 "패"를 송명 글꼴로 쓴다(`docs/ui.md`의 연출).
@@ -345,8 +344,7 @@ class ResultRankChange extends StatelessWidget {
       change.rankProgressAfter >= _getPrevious(change, up: up, down: down);
 }
 
-/// 대국이 끝난 화면의 복기 막대. 처음·이전·"복기 87 / 87수"·다음·끝·놓아보기다. 가장 많이 쓰는 이전·다음을 강조한다.
-/// 놓아보기를 켜면 판에 직접 수를 둘 수 있고 수 이동은 끈다. 끄면 원래 기보 위치로 돌아간다.
+/// 대국이 끝난 화면의 복기 막대. 처음·이전·"복기 87 / 87수"·다음·끝이다. 놓아보기 중이면 그 자리가 [TrialBar]로 바뀐다.
 class ReviewBar extends StatelessWidget {
   final ReviewManager review;
 
@@ -359,61 +357,209 @@ class ReviewBar extends StatelessWidget {
 
   Widget _buildBar(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
-    final movable = !review.trying;
-    final canGoBack = movable && review.ply > 0;
-    final canGoForward = movable && review.ply < review.totalMoves;
-    return GameButtonBar(
-      children: [
-        GameBarButton(
-          icon: Icons.first_page,
-          // 처음
-          label: l10n.reviewFirst,
-          onPressed: canGoBack ? review.goFirst : null,
+    if (review.trying) {
+      return TrialBar(
+        review: review,
+        // 끝내기
+        endLabel: l10n.reviewTrialEnd,
+        onEnd: review.endTrial,
+      );
+    }
+    return _MoveBar(
+      background: GameColors.surface,
+      review: review,
+      center: _BarCenterText(
+        // 복기 4 / 87수
+        text: l10n.reviewBarCounter(review.ply, review.totalMoves),
+        color: GameColors.text,
+      ),
+      end: _BarIcon(
+        icon: Icons.last_page,
+        // 끝
+        tooltip: l10n.reviewLast,
+        onPressed: review.canGoForward ? review.goLast : null,
+      ),
+    );
+  }
+}
+
+/// 놓아보기 중의 초록 막대. 처음·이전·"놓아보기 3수"·다음과 맨 오른쪽 끝내기 버튼이다. 처음·이전·다음은 놓아 본 수를 오간다.
+class TrialBar extends StatelessWidget {
+  final ReviewManager review;
+
+  /// 맨 오른쪽 버튼의 글자. 복기는 끝내기, 새 판에서 놓아보기는 나가기다.
+  final String endLabel;
+  final VoidCallback onEnd;
+
+  const TrialBar({super.key, required this.review, required this.endLabel, required this.onEnd});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final count = review.trialMoveCount;
+    return _MoveBar(
+      background: GameColors.accentSurface,
+      review: review,
+      center: _BarCenterText(
+        // 놓아보기 / 놓아보기 3수
+        text: count == 0 ? l10n.reviewTrial : l10n.reviewTrialMoves(count),
+        color: GameColors.accent,
+      ),
+      end: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: FilledButton(
+          onPressed: onEnd,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(minTouchSize, minTouchSize),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: Text(endLabel),
         ),
-        GameBarButton(
-          icon: Icons.chevron_left,
-          // 이전
-          label: l10n.reviewPrevious,
-          onPressed: canGoBack ? review.goPrevious : null,
-          emphasized: true,
-        ),
-        Center(
-          child: Text(
-            // 복기 4 / 87수
-            l10n.reviewBarCounter(review.ply, review.totalMoves),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: AppTextSizes.body,
-              fontWeight: FontWeight.w700,
-              color: GameColors.text,
-              fontFeatures: [FontFeature.tabularFigures()],
+      ),
+    );
+  }
+}
+
+/// 복기 막대와 놓아보기 막대의 틀. 처음·이전·[center]·다음·[end]를 한 줄에 둔다. 좁은 화면에 들어가도록 버튼은 아이콘만 쓴다.
+class _MoveBar extends StatelessWidget {
+  final Color background;
+  final ReviewManager review;
+  final Widget center;
+  final Widget end;
+
+  const _MoveBar({required this.background, required this.review, required this.center, required this.end});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            _BarIcon(
+              icon: Icons.first_page,
+              // 처음
+              tooltip: l10n.reviewFirst,
+              onPressed: review.canGoBack ? review.goFirst : null,
             ),
-          ),
+            _BarIcon(
+              icon: Icons.chevron_left,
+              // 이전
+              tooltip: l10n.reviewPrevious,
+              onPressed: review.canGoBack ? review.goPrevious : null,
+            ),
+            Expanded(child: center),
+            _BarIcon(
+              icon: Icons.chevron_right,
+              // 다음
+              tooltip: l10n.reviewNext,
+              onPressed: review.canGoForward ? review.goNext : null,
+            ),
+            end,
+          ],
         ),
-        GameBarButton(
-          icon: Icons.chevron_right,
-          // 다음
-          label: l10n.reviewNext,
-          onPressed: canGoForward ? review.goNext : null,
-          emphasized: true,
+      ),
+    );
+  }
+}
+
+class _BarIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  const _BarIcon({required this.icon, required this.tooltip, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      color: GameColors.text,
+      disabledColor: GameColors.inactiveText,
+      constraints: const BoxConstraints.tightFor(width: minTouchSize, height: minTouchSize),
+      padding: EdgeInsets.zero,
+      icon: Icon(icon),
+    );
+  }
+}
+
+/// 막대 가운데 글자. 좁은 화면이나 큰 글자 설정에서는 넘치지 않게 줄여 한 줄로 둔다.
+class _BarCenterText extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const _BarCenterText({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        text,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: AppTextSizes.body,
+          fontWeight: FontWeight.w800,
+          color: color,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
-        GameBarButton(
-          icon: Icons.last_page,
-          // 끝
-          label: l10n.reviewLast,
-          onPressed: canGoForward ? review.goLast : null,
-        ),
-        Semantics(
-          toggled: review.trying,
-          child: GameBarButton(
-            icon: Icons.edit_outlined,
-            // 놓아보기
-            label: l10n.reviewTrial,
-            onPressed: review.toggleTrial,
-            emphasized: review.trying,
-          ),
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+/// 대국이 끝난 화면 맨 아래 줄 버튼의 글자. 세 버튼이 한 줄에 들어가도록 넘치면 줄여 한 줄로 둔다.
+class ResultButtonLabel extends StatelessWidget {
+  final String text;
+
+  const ResultButtonLabel({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(fit: BoxFit.scaleDown, child: Text(text, maxLines: 1));
+  }
+}
+
+/// 대국이 끝난 화면 맨 아래 줄의 외곽선 버튼. 글자 자리를 넓히려고 좌우 여백을 줄인다.
+class ResultOutlinedButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+
+  const ResultOutlinedButton({super.key, required this.label, required this.onPressed});
+
+  /// 맨 아래 줄 버튼의 좌우 여백.
+  static const padding = EdgeInsets.symmetric(horizontal: 8);
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(padding: padding),
+      child: ResultButtonLabel(text: label),
+    );
+  }
+}
+
+/// 대국이 끝난 화면 맨 아래 줄의 놓아보기 버튼. 놓아보기 중에는 끝내기가 막대에 있으므로 흐리게 끈다.
+class TrialButton extends StatelessWidget {
+  final ReviewManager review;
+
+  const TrialButton({super.key, required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(listenable: review, builder: _buildButton);
+  }
+
+  Widget _buildButton(BuildContext context, Widget? child) {
+    return ResultOutlinedButton(
+      // 놓아보기
+      label: AppLocalizations.of(context).reviewTrial,
+      onPressed: review.trying ? null : review.startTrial,
     );
   }
 }

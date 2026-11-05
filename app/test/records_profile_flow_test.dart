@@ -16,6 +16,7 @@ import 'package:janggigo/screens/user_info_sheet.dart';
 import 'package:janggigo/utils/app_exception.dart';
 import 'package:janggigo/widgets/adaptive_layout.dart';
 import 'package:janggigo/widgets/board/board_view.dart';
+import 'package:janggigo/widgets/game_result.dart';
 
 import 'fakes.dart';
 
@@ -262,7 +263,8 @@ void main() {
 
     // 놓아보기를 켠 복기 화면으로 연다.
     expect(find.text('놓아보기'), findsWidgets);
-    expect(find.text('0 / 0수'), findsOneWidget);
+    expect(find.byType(TrialBar), findsOneWidget);
+    expect(find.text('나가기'), findsOneWidget);
     final board = tester.widget<BoardView>(find.byType(BoardView));
     expect(board.onSquareTap, isNotNull);
     expect(board.position.pieceAt(Square.parse('a4')), const Piece(Side.cho, PieceType.soldier));

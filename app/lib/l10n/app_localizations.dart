@@ -1865,7 +1865,7 @@ abstract class AppLocalizations {
   /// 검사에 걸려 보내지 않은 메시지 안내
   ///
   /// In ko, this message translates to:
-  /// **'부적절한 표현이 있어 보내지 않았어요'**
+  /// **'부적절한 표현이 있습니다'**
   String get errorChatMessageBlocked;
 
   /// 채팅 제한이나 이용 정지 중일 때
@@ -2324,10 +2324,10 @@ abstract class AppLocalizations {
   /// **'{nickname}님이 나갔어요'**
   String chatOpponentLeft(String nickname);
 
-  /// 채팅. 보내지 못한 내 메시지 옆 표시
+  /// 채팅. 전송에 실패한 내 메시지 옆 표시
   ///
   /// In ko, this message translates to:
-  /// **'안 보냄'**
+  /// **'전송실패'**
   String get chatNotSent;
 
   /// 대국 화면 채팅 미리보기 줄. 메시지가 아직 없을 때
@@ -2383,6 +2383,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'설정을 저장하지 못했어요. 잠시 후 다시 해 주세요'**
   String get errorSaveSettings;
+
+  /// 놓아보기 막대 맨 오른쪽 버튼. 원래 기보 위치로 돌아간다
+  ///
+  /// In ko, this message translates to:
+  /// **'끝내기'**
+  String get reviewTrialEnd;
+
+  /// 놓아보기 막대 가운데. 놓아보기를 시작한 자리에서 둔 수
+  ///
+  /// In ko, this message translates to:
+  /// **'놓아보기 {count}수'**
+  String reviewTrialMoves(int count);
 }
 
 class _AppLocalizationsDelegate

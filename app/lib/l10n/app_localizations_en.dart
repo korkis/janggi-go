@@ -1182,8 +1182,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send the message. Please try again later';
 
   @override
-  String get errorChatMessageBlocked =>
-      'Not sent because it contains inappropriate language';
+  String get errorChatMessageBlocked => 'Contains inappropriate language';
 
   @override
   String get errorChatRestricted =>
@@ -1475,7 +1474,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get chatNotSent => 'Not sent';
+  String get chatNotSent => 'Failed to send';
 
   @override
   String get chatPreviewHint => 'Chat';
@@ -1508,4 +1507,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorSaveSettings =>
       'Couldn\'t save the setting. Please try again shortly';
+
+  @override
+  String get reviewTrialEnd => 'End';
+
+  @override
+  String reviewTrialMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moves',
+      one: '1 move',
+    );
+    return '$_temp0';
+  }
 }

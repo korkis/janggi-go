@@ -1111,7 +1111,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorChatSend => '메시지를 보내지 못했어요. 잠시 후 다시 해 주세요';
 
   @override
-  String get errorChatMessageBlocked => '부적절한 표현이 있어 보내지 않았어요';
+  String get errorChatMessageBlocked => '부적절한 표현이 있습니다';
 
   @override
   String get errorChatRestricted => '이용이 제한되어 지금은 채팅할 수 없어요';
@@ -1393,7 +1393,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get chatNotSent => '안 보냄';
+  String get chatNotSent => '전송실패';
 
   @override
   String get chatPreviewHint => '채팅';
@@ -1425,4 +1425,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get errorSaveSettings => '설정을 저장하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get reviewTrialEnd => '끝내기';
+
+  @override
+  String reviewTrialMoves(int count) {
+    return '놓아보기 $count수';
+  }
 }

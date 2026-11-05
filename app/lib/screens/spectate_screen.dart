@@ -286,21 +286,20 @@ class _SpectateScreenState extends State<SpectateScreen> {
     );
   }
 
-  /// 나가기. 대국이 끝났으면 위에 복기 막대를 둔다.
+  /// 나가기. 대국이 끝났으면 복기 막대와 놓아보기·나가기 줄로 바뀐다.
   Widget _buildButtons(BuildContext context, ReviewManager? review) {
     final l10n = AppLocalizations.of(context);
-    final buttonBar = GameButtonBar(
-      children: [
-        GameBarButton(
-          icon: Icons.logout,
-          // 나가기
-          label: l10n.leaveGameAction,
-          onPressed: _onLeave,
-        ),
-      ],
-    );
     if (review == null) {
-      return buttonBar;
+      return GameButtonBar(
+        children: [
+          GameBarButton(
+            icon: Icons.logout,
+            // 나가기
+            label: l10n.leaveGameAction,
+            onPressed: _onLeave,
+          ),
+        ],
+      );
     }
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -308,7 +307,19 @@ class _SpectateScreenState extends State<SpectateScreen> {
       children: [
         ReviewBar(review: review),
         const SizedBox(height: 8),
-        buttonBar,
+        Row(
+          children: [
+            Expanded(child: TrialButton(review: review)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ResultOutlinedButton(
+                // 나가기
+                label: l10n.leaveGameAction,
+                onPressed: _onLeave,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

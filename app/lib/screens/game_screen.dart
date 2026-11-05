@@ -364,13 +364,13 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// 대국이 끝난 뒤의 복기 막대와 재대국 신청·나가기.
+  /// 대국이 끝난 뒤의 복기 막대와 재대국 신청·놓아보기·나가기.
   Widget _buildResultActions(BuildContext context, BoardManager board, ReviewManager review) {
     final l10n = AppLocalizations.of(context);
     final rematch = _getRematchState(board);
     final note = rematch.note;
     final inRoom = _online?.game?.meta.roomId != null;
-    final rematchLabel = Text(rematch.label, maxLines: 1, overflow: TextOverflow.ellipsis);
+    final rematchLabel = ResultButtonLabel(text: rematch.label);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -392,17 +392,28 @@ class _GameScreenState extends State<GameScreen> {
         Row(
           children: [
             Expanded(
-              flex: 2,
+              flex: 135,
               child: rematch.primary
-                  ? FilledButton(onPressed: rematch.enabled ? _onRematch : null, child: rematchLabel)
-                  : OutlinedButton(onPressed: rematch.enabled ? _onRematch : null, child: rematchLabel),
+                  ? FilledButton(
+                      onPressed: rematch.enabled ? _onRematch : null,
+                      style: FilledButton.styleFrom(padding: ResultOutlinedButton.padding),
+                      child: rematchLabel,
+                    )
+                  : OutlinedButton(
+                      onPressed: rematch.enabled ? _onRematch : null,
+                      style: OutlinedButton.styleFrom(padding: ResultOutlinedButton.padding),
+                      child: rematchLabel,
+                    ),
             ),
             const SizedBox(width: 8),
+            Expanded(flex: 100, child: TrialButton(review: review)),
+            const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton(
-                onPressed: _onExit,
+              flex: 100,
+              child: ResultOutlinedButton(
                 // 방 대기실로 / 나가기
-                child: Text(inRoom ? l10n.resultBackToRoom : l10n.leaveGameAction),
+                label: inRoom ? l10n.resultBackToRoom : l10n.leaveGameAction,
+                onPressed: _onExit,
               ),
             ),
           ],
