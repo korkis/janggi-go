@@ -219,9 +219,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeLoginGuide => 'Sign in to save your rank and record';
 
   @override
-  String get homeDevSignOut => 'Sign out (dev)';
-
-  @override
   String get loginSheetTitleHome => 'Sign in and\nplay online';
 
   @override
@@ -1127,9 +1124,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSpectateTitle => 'Games worth watching';
 
   @override
-  String get homeSpectateAll => 'See all';
-
-  @override
   String get homeRecentGamesTitle => 'My recent games';
 
   @override
@@ -1621,4 +1615,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorFeatureDisabled => 'Not available right now';
+
+  @override
+  String get menuLobby => 'Rooms';
+
+  @override
+  String get menuStore => 'Store';
+
+  @override
+  String get settingsGameGroup => 'Game';
+
+  @override
+  String get settingsSound => 'Sound';
+
+  @override
+  String get settingsVibration => 'Vibration';
+
+  @override
+  String get settingsChallengesEnabled => 'Accept challenges';
+
+  @override
+  String get settingsAccountGroup => 'Account';
+
+  @override
+  String get settingsSignInMethod => 'Signed in with';
+
+  @override
+  String get signInMethodGoogle => 'Google';
+
+  @override
+  String get signInMethodApple => 'Apple';
+
+  @override
+  String get signInMethodEmail => 'Email';
+
+  @override
+  String get settingsSignOut => 'Sign out';
+
+  @override
+  String get settingsSignOutConfirm => 'Sign out?';
+
+  @override
+  String get settingsInfoGroup => 'About';
+
+  @override
+  String get settingsVersion => 'Version';
+
+  @override
+  String get settingsLicenses => 'Open source licenses';
 }

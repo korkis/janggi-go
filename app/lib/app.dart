@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/incoming_challenge_dialog.dart';
 import 'screens/sanction_dialog.dart';
 import 'theme/app_theme.dart';
+import 'widgets/adaptive_layout.dart';
 
 class JanggigoApp extends StatefulWidget {
   const JanggigoApp({super.key});
@@ -28,6 +29,7 @@ class _JanggigoAppState extends State<JanggigoApp> {
   Widget _buildMaterialApp(BuildContext context, Widget? child) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
+      navigatorObservers: [pageRouteObserver],
       onGenerateTitle: _getTitle,
       theme: lightTheme,
       locale: managers.languageManager.locale,

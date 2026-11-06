@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'config.dart';
@@ -23,7 +24,15 @@ Future<void> main() async {
   managers.inviteLinkManager.start();
   // 저장한 언어로 첫 화면을 그린다.
   await managers.languageManager.load();
+  await managers.effectSettingsManager.load();
+  LicenseRegistry.addLicense(_getFontLicenses);
   runApp(const JanggigoApp());
+}
+
+/// 설정의 오픈소스 라이선스에 앱에 넣은 글꼴의 라이선스를 더한다(`docs/ui.md`의 디자인 방향).
+Stream<LicenseEntry> _getFontLicenses() async* {
+  final license = await rootBundle.loadString('assets/fonts/SongMyung-OFL.txt');
+  yield LicenseEntryWithLineBreaks(const ['Song Myung'], license);
 }
 
 /// Firebase를 초기화한다. 개발 빌드는 에뮬레이터에 연결한다.

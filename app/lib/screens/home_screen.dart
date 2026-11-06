@@ -20,24 +20,20 @@ import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
 import '../widgets/spectate_card.dart';
 import 'create_room_screen.dart';
-import 'lobby_screen.dart';
 import 'login_flow.dart';
-import 'profile_screen.dart';
 import 'quick_match_screen.dart';
 import 'records_screen.dart';
 import 'room_join_flow.dart';
 import 'room_screen.dart';
 import 'setup_screen.dart';
-import 'spectate_list_screen.dart';
 import 'spectate_screen.dart';
 
-/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기·대국실·기보·내 정보 버튼, 지금 볼 만한 대국, 최근 내 대국과, 개발 빌드에서만
-/// 보이는 개발용 대국 카드들을 보여준다.
+/// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기 버튼, 지금 볼 만한 대국, 최근 내 대국과, 개발 빌드에서만 보이는 개발용 대국
+/// 카드들을 보여준다. 대국실·관전·기보·내 정보는 아래쪽 탭으로 간다.
 ///
 /// 앱의 처음 화면이라 초대 링크로 들어온 방도 여기서 받아 방 대기실로 간다.
 ///
-/// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 대국실·기보·내 정보는 왼쪽 메뉴로
-/// 간다.
+/// 1024 이상은 두 칸으로 나눈다(`docs/ui.md`의 넓은 화면). 왼쪽 칸에 내 카드와 대국 버튼을 두고, 아래쪽 탭 대신 왼쪽 메뉴로 간다.
 /// 오른쪽 칸에는 "지금 볼 만한 대국"을 2열 카드로 두고 그 아래에 최근 내 대국을, 개발 빌드에서는 그 아래에 개발용 대국 카드를
 /// 둔다.
 ///
@@ -62,20 +58,31 @@ class HomeScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          // 장기고
-          l10n.appTitle,
-          style: Theme.of(context).textTheme.titleLarge,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                // 장기고
+                l10n.appTitle,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            // 상점 화면이 생기면(구현 순서 5번) 잇는다.
+            IconButton(
+              onPressed: null,
+              // 상점
+              tooltip: l10n.menuStore,
+              icon: const Icon(Icons.storefront_outlined),
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
         const _ResumeGameButton(),
         const _MyCard(),
         const SizedBox(height: 16),
         const _QuickMatchButton(),
         const SizedBox(height: 12),
-        const _RoomButtons(showLobby: true),
-        const SizedBox(height: 12),
-        const _MenuButtons(),
+        const _CreateRoomButton(),
         const SizedBox(height: 24),
         const _SpectateSection(wide: false),
         const _RecentGamesSection(),
@@ -101,7 +108,7 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: 16),
               _QuickMatchButton(),
               SizedBox(height: 12),
-              _RoomButtons(showLobby: false),
+              _CreateRoomButton(),
             ],
           ),
         ),
@@ -187,8 +194,8 @@ class _ResumeGameButton extends StatelessWidget {
 
 /// 지금 볼 만한 대국(`docs/screens.md`의 홈). 관전 목록과 같은 순서로 앞의 몇 대국만 보여준다.
 ///
-/// 1024 미만은 카드를 가로로 넘겨 보고([wide]가 false), 1024 이상은 오른쪽 칸에 2열 카드로 크게 보여준다. 아래쪽 탭이 생기기
-/// 전까지 "전체 보기"로 관전 목록에 간다. 홈에 돌아올 때(관전을 마치고) 다시 읽는다.
+/// 1024 미만은 카드를 가로로 넘겨 보고([wide]가 false), 1024 이상은 오른쪽 칸에 2열 카드로 크게 보여준다. 홈에 돌아올 때(관전을
+/// 마치거나 탭에서) 다시 읽는다.
 class _SpectateSection extends StatefulWidget {
   static const _limit = 6;
   static const _narrowCardWidth = 220.0;
@@ -201,7 +208,7 @@ class _SpectateSection extends StatefulWidget {
   State<_SpectateSection> createState() => _SpectateSectionState();
 }
 
-class _SpectateSectionState extends State<_SpectateSection> {
+class _SpectateSectionState extends State<_SpectateSection> with RouteAware {
   List<({String gameId, SpectateListEntry entry})>? _entries;
   var _failed = false;
 
@@ -212,26 +219,35 @@ class _SpectateSectionState extends State<_SpectateSection> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic>) {
+      pageRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    pageRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _loadEntries();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                // 지금 볼 만한 대국
-                l10n.homeSpectateTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            TextButton(
-              onPressed: _onOpenList,
-              // 전체 보기
-              child: Text(l10n.homeSpectateAll),
-            ),
-          ],
+        Text(
+          // 지금 볼 만한 대국
+          l10n.homeSpectateTitle,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         _buildContent(context),
@@ -294,16 +310,6 @@ class _SpectateSectionState extends State<_SpectateSection> {
 
   Future<void> _onOpen(String gameId) async {
     await openSpectate(context, gameId);
-    if (mounted) {
-      await _loadEntries();
-    }
-  }
-
-  Future<void> _onOpenList() async {
-    await SpectateListScreen.open(context);
-    if (mounted) {
-      await _loadEntries();
-    }
   }
 }
 
@@ -450,41 +456,19 @@ class _RecentGamesSectionState extends State<_RecentGamesSection> {
   }
 }
 
-/// 방 만들기 버튼과 대국실 버튼(`docs/screens.md`의 홈). 대국실은 아래쪽 탭이 생기기 전까지 버튼으로 둔다.
-/// 1024 이상은 대국실이 왼쪽 메뉴에 있어 [showLobby]를 끈다.
-/// 로그인과 닉네임을 거친 뒤 간다. 이미 방에 있으면 방 만들기 대신 그 방으로 간다.
-class _RoomButtons extends StatelessWidget {
-  final bool showLobby;
-
-  const _RoomButtons({required this.showLobby});
+/// 방 만들기 버튼(`docs/screens.md`의 홈). 로그인과 닉네임을 거친 뒤 간다. 이미 방에 있으면 방 만들기 대신 그 방으로 간다.
+class _CreateRoomButton extends StatelessWidget {
+  const _CreateRoomButton();
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: () => _onCreateRoom(context),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-            icon: const Icon(Icons.add_home),
-            // 방 만들기
-            label: Text(l10n.homeCreateRoom),
-          ),
-        ),
-        if (showLobby) ...[
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton.tonalIcon(
-              onPressed: () => LobbyScreen.open(context),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-              icon: const Icon(Icons.groups),
-              // 대국실
-              label: Text(l10n.lobbyTitle),
-            ),
-          ),
-        ],
-      ],
+    return FilledButton.tonalIcon(
+      onPressed: () => _onCreateRoom(context),
+      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+      icon: const Icon(Icons.add_home),
+      // 방 만들기
+      label: Text(l10n.homeCreateRoom),
     );
   }
 
@@ -499,40 +483,6 @@ class _RoomButtons extends StatelessWidget {
       return;
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => const CreateRoomScreen()));
-  }
-}
-
-/// 기보 버튼과 내 정보 버튼(`docs/screens.md`의 홈). 아래쪽 탭이 생기기 전까지 버튼으로 둔다. 1024 이상은 왼쪽 메뉴에 있어
-/// 두지 않는다.
-class _MenuButtons extends StatelessWidget {
-  const _MenuButtons();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: () => RecordsScreen.open(context),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-            icon: const Icon(Icons.menu_book),
-            // 기보
-            label: Text(l10n.menuRecords),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: () => ProfileScreen.open(context),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-            icon: const Icon(Icons.person),
-            // 내 정보
-            label: Text(l10n.menuProfile),
-          ),
-        ),
-      ],
-    );
   }
 }
 
@@ -917,35 +867,11 @@ class _MyCard extends StatelessWidget {
             ),
           ],
         ],
-        if (!kReleaseMode) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => _onSignOut(context),
-              // 로그아웃 (개발용)
-              child: Text(l10n.homeDevSignOut),
-            ),
-          ),
-        ],
       ],
     );
   }
 
   Future<void> _onLogin(BuildContext context) async {
     await ensureSignedInWithProfile(context, LoginPurpose.home);
-  }
-
-  Future<void> _onSignOut(BuildContext context) async {
-    try {
-      await managers.authManager.signOut();
-    } catch (error, stackTrace) {
-      developer.log('AuthManager.signOut 실패', error: error, stackTrace: stackTrace);
-      if (context.mounted) {
-        final l10n = AppLocalizations.of(context);
-        // 로그아웃하지 못했어요. 잠시 후 다시 해 주세요
-        await DialogUtils.showMessage(context, message: l10n.errorSignOut);
-      }
-    }
   }
 }

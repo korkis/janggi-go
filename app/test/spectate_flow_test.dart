@@ -186,7 +186,7 @@ void main() {
     await tester.pumpWidget(const JanggigoApp());
     await _pumpFor(tester);
 
-    await _tap(tester, find.text('전체 보기'));
+    await _tap(tester, find.text('관전'));
     expect(find.text('진행 중인 대국 3개'), findsOneWidget);
     expect(find.byType(SpectateCardGrid), findsOneWidget);
 

@@ -7,6 +7,10 @@ class DeviceSettingsRepository {
   /// 언어 설정 값의 키. 값은 [AppLanguage]의 `name`이다.
   static const _languageKey = 'language';
 
+  /// 효과음과 진동을 켰는지의 키. 저장한 적이 없으면 켜 둔다.
+  static const _soundEnabledKey = 'soundEnabled';
+  static const _vibrationEnabledKey = 'vibrationEnabled';
+
   final SharedPreferencesAsync preferences;
 
   DeviceSettingsRepository({required this.preferences});
@@ -19,5 +23,17 @@ class DeviceSettingsRepository {
 
   Future<void> updateLanguage(AppLanguage language) async {
     await preferences.setString(_languageKey, language.name);
+  }
+
+  Future<bool> getSoundEnabled() async => await preferences.getBool(_soundEnabledKey) ?? true;
+
+  Future<void> updateSoundEnabled(bool enabled) async {
+    await preferences.setBool(_soundEnabledKey, enabled);
+  }
+
+  Future<bool> getVibrationEnabled() async => await preferences.getBool(_vibrationEnabledKey) ?? true;
+
+  Future<void> updateVibrationEnabled(bool enabled) async {
+    await preferences.setBool(_vibrationEnabledKey, enabled);
   }
 }

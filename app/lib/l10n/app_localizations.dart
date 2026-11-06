@@ -356,12 +356,6 @@ abstract class AppLocalizations {
   /// **'로그인하면 급수와 전적이 저장돼요'**
   String get homeLoginGuide;
 
-  /// 홈 내 카드의 로그아웃 버튼. 개발 빌드에만 보인다
-  ///
-  /// In ko, this message translates to:
-  /// **'로그아웃 (개발용)'**
-  String get homeDevSignOut;
-
   /// 홈의 로그인 버튼으로 띄운 로그인 창 제목
   ///
   /// In ko, this message translates to:
@@ -998,7 +992,7 @@ abstract class AppLocalizations {
   /// **'방으로 돌아가기'**
   String get homeResumeRoom;
 
-  /// 대국실 화면 제목과 홈의 대국실 버튼
+  /// 대국실 화면 제목
   ///
   /// In ko, this message translates to:
   /// **'대국실'**
@@ -1753,12 +1747,6 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'지금 볼 만한 대국'**
   String get homeSpectateTitle;
-
-  /// 홈의 관전 카드에서 관전 목록으로 가는 버튼
-  ///
-  /// In ko, this message translates to:
-  /// **'전체 보기'**
-  String get homeSpectateAll;
 
   /// 홈의 최근 내 대국 제목
   ///
@@ -2533,6 +2521,102 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'지금은 쓸 수 없어요'**
   String get errorFeatureDisabled;
+
+  /// 아래쪽 탭과 왼쪽 메뉴의 대국실
+  ///
+  /// In ko, this message translates to:
+  /// **'대국실'**
+  String get menuLobby;
+
+  /// 상점 아이콘과 왼쪽 메뉴
+  ///
+  /// In ko, this message translates to:
+  /// **'상점'**
+  String get menuStore;
+
+  /// 설정의 대국 묶음
+  ///
+  /// In ko, this message translates to:
+  /// **'대국'**
+  String get settingsGameGroup;
+
+  /// 설정의 효과음 켜기·끄기
+  ///
+  /// In ko, this message translates to:
+  /// **'소리'**
+  String get settingsSound;
+
+  /// 설정의 진동 켜기·끄기
+  ///
+  /// In ko, this message translates to:
+  /// **'진동'**
+  String get settingsVibration;
+
+  /// 설정의 대국 신청 받기. 대국실 접속자 탭의 스위치와 같은 설정
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 신청 받기'**
+  String get settingsChallengesEnabled;
+
+  /// 설정의 계정 묶음
+  ///
+  /// In ko, this message translates to:
+  /// **'계정'**
+  String get settingsAccountGroup;
+
+  /// 설정의 계정 묶음에 보여주는 로그인 방식
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인 방식'**
+  String get settingsSignInMethod;
+
+  /// 로그인 방식 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'Google'**
+  String get signInMethodGoogle;
+
+  /// 로그인 방식 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'Apple'**
+  String get signInMethodApple;
+
+  /// 로그인 방식 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일'**
+  String get signInMethodEmail;
+
+  /// 설정의 로그아웃 줄과 확인 창 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'로그아웃'**
+  String get settingsSignOut;
+
+  /// 로그아웃 확인 창
+  ///
+  /// In ko, this message translates to:
+  /// **'로그아웃할까요?'**
+  String get settingsSignOutConfirm;
+
+  /// 설정의 정보 묶음
+  ///
+  /// In ko, this message translates to:
+  /// **'정보'**
+  String get settingsInfoGroup;
+
+  /// 설정의 앱 버전
+  ///
+  /// In ko, this message translates to:
+  /// **'버전'**
+  String get settingsVersion;
+
+  /// 설정의 오픈소스 라이선스 화면으로 가는 줄
+  ///
+  /// In ko, this message translates to:
+  /// **'오픈소스 라이선스'**
+  String get settingsLicenses;
 }
 
 class _AppLocalizationsDelegate

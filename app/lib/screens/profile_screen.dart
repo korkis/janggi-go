@@ -20,7 +20,8 @@ import 'nickname_screen.dart';
 import 'records_screen.dart';
 import 'settings_screen.dart';
 
-/// 내 정보(`docs/screens.md`의 내 정보). 프로필 카드, 전적, 메뉴를 둔다.
+/// 내 정보(`docs/screens.md`의 내 정보). 프로필 카드, 전적, 메뉴를 둔다. 로그인하지 않았으면 프로필 카드 자리에 로그인 버튼을 두고
+/// 메뉴에는 설정만 둔다. 설정은 로그인 없이 쓰기 때문이다.
 ///
 /// 프로필 카드에는 닉네임과 닉네임 바꾸기 버튼, 급수, 오늘 전적, 다음 급수까지 진행 막대를 둔다. 전적에는 대국 수, 승, 패, 승률과
 /// 최근 10판의 승패를 두고, 승패를 누르면 그 대국의 복기로 간다. 메뉴에는 차단 목록과 설정을 둔다. 상점은 그 화면이 생기면 넣는다.
@@ -29,18 +30,10 @@ import 'settings_screen.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  /// 로그인과 닉네임을 거친 뒤 처음 화면(홈) 위에 내 정보를 연다. 홈과 왼쪽 메뉴가 같이 쓴다.
-  static Future<void> open(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    final ready = await ensureSignedInWithProfile(context, LoginPurpose.profile);
-    if (!ready) {
-      return;
-    }
-    navigator.popUntil(_isFirstRoute);
-    await navigator.push(MaterialPageRoute<void>(builder: (context) => const ProfileScreen()));
-  }
+  /// 처음 화면(홈) 위에 내 정보를 연다. 아래쪽 탭과 왼쪽 메뉴가 같이 쓴다.
+  static Future<void> open(BuildContext context) => openMenuScreen(Navigator.of(context), _build);
 
-  static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
+  static Widget _build(BuildContext context) => const ProfileScreen();
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -52,6 +45,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // 오늘 전적을 셀 때 읽는 대국의 최대 수.
   static const _todayLimit = 100;
+
+  // 전적을 읽은 사용자. 로그인 카드에서 로그인하면 바뀌어 그때 읽는다.
+  String? _loadedUid;
 
   // 화면을 열 때 읽은 전적. 읽기 전이면 null이다.
   UserStats? _stats;
@@ -68,7 +64,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadRecord();
+    managers.authManager.addListener(_onAuthChanged);
+    _onAuthChanged();
+  }
+
+  @override
+  void dispose() {
+    managers.authManager.removeListener(_onAuthChanged);
+    super.dispose();
   }
 
   @override
@@ -79,34 +82,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
       layout: PageLayout.wide,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           // 내 정보
           title: Text(l10n.menuProfile),
         ),
         body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              ListenableBuilder(
-                listenable: Listenable.merge([managers.authManager, managers.rankManager]),
-                builder: _buildProfileCard,
-              ),
-              const SizedBox(height: 16),
-              _buildStatsCard(context),
-              const SizedBox(height: 16),
-              _buildMenuCard(context),
-            ],
+          child: ListenableBuilder(
+            listenable: Listenable.merge([managers.authManager, managers.rankManager]),
+            builder: _buildContent,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileCard(BuildContext context, Widget? child) {
-    final l10n = AppLocalizations.of(context);
+  Widget _buildContent(BuildContext context, Widget? child) {
     final profile = managers.authManager.profile;
-    if (profile == null) {
-      return const SizedBox.shrink();
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (profile == null) _buildLoginCard(context) else _buildProfileCard(context, profile),
+        const SizedBox(height: 16),
+        if (profile != null) ...[_buildStatsCard(context), const SizedBox(height: 16)],
+        _buildMenuCard(context, profile != null),
+      ],
+    );
+  }
+
+  /// 로그인하지 않았거나 닉네임을 정하기 전의 프로필 카드 자리.
+  Widget _buildLoginCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (managers.authManager.profileLoading) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              // 로그인하면 급수와 전적이 저장돼요
+              l10n.homeLoginGuide,
+              style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _onLogin,
+              // 로그인
+              child: Text(l10n.login),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard(BuildContext context, UserProfile profile) {
+    final l10n = AppLocalizations.of(context);
     final rankManager = managers.rankManager;
     final rankLevel = rankManager.rankLevel ?? profile.rankLevel;
     final rankProgress = rankManager.rankProgress;
@@ -268,20 +306,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
   }
 
-  Widget _buildMenuCard(BuildContext context) {
+  Widget _buildMenuCard(BuildContext context, bool hasProfile) {
     final l10n = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          ListTile(
-            minTileHeight: 56,
-            leading: const Icon(Icons.block),
-            // 차단 목록
-            title: Text(l10n.blockListTitle, style: const TextStyle(fontSize: AppTextSizes.body)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _onBlockList,
-          ),
+          if (hasProfile)
+            ListTile(
+              minTileHeight: 56,
+              leading: const Icon(Icons.block),
+              // 차단 목록
+              title: Text(l10n.blockListTitle, style: const TextStyle(fontSize: AppTextSizes.body)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _onBlockList,
+            ),
           ListTile(
             minTileHeight: 56,
             leading: const Icon(Icons.settings_outlined),
@@ -295,9 +334,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// 프로필이 생기면(화면을 열 때 또는 로그인 카드에서 로그인해서) 그 사용자의 전적을 읽는다.
+  void _onAuthChanged() {
+    final authManager = managers.authManager;
+    final uid = authManager.profile == null ? null : authManager.uid;
+    if (uid == _loadedUid) {
+      return;
+    }
+    _loadedUid = uid;
+    _stats = null;
+    _recentGames = null;
+    _todayGames = null;
+    _nicknames.clear();
+    _loadRecord();
+  }
+
+  Future<void> _onLogin() async {
+    await ensureSignedInWithProfile(context, LoginPurpose.profile);
+  }
+
   /// 전적(`users.stats`), 최근 10판, 오늘 끝난 대국을 읽는다.
   Future<void> _loadRecord() async {
-    final uid = managers.authManager.uid;
+    final uid = _loadedUid;
     if (uid == null) {
       return;
     }
@@ -317,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       final recentGames = getMyArchivedGames(uid, recent);
       await loadNicknames(_nicknames, [for (final item in recentGames) item.opponent.uid]);
-      if (mounted) {
+      if (mounted && uid == _loadedUid) {
         setState(() {
           _stats = profile.stats;
           _recentGames = recentGames;
@@ -326,7 +384,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (error, stackTrace) {
       developer.log('내 전적 읽기 실패', error: error, stackTrace: stackTrace);
-      if (mounted) {
+      if (mounted && uid == _loadedUid) {
         setState(() {
           _failed = true;
         });

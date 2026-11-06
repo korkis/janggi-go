@@ -18,14 +18,10 @@ import 'spectate_screen.dart';
 class SpectateListScreen extends StatefulWidget {
   const SpectateListScreen({super.key});
 
-  /// 처음 화면(홈) 위에 관전 목록을 연다. 홈과 왼쪽 메뉴가 같이 쓴다.
-  static Future<void> open(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    navigator.popUntil(_isFirstRoute);
-    await navigator.push(MaterialPageRoute<void>(builder: (context) => const SpectateListScreen()));
-  }
+  /// 처음 화면(홈) 위에 관전 목록을 연다. 아래쪽 탭과 왼쪽 메뉴가 같이 쓴다.
+  static Future<void> open(BuildContext context) => openMenuScreen(Navigator.of(context), _build);
 
-  static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
+  static Widget _build(BuildContext context) => const SpectateListScreen();
 
   @override
   State<SpectateListScreen> createState() => _SpectateListScreenState();
@@ -50,6 +46,7 @@ class _SpectateListScreenState extends State<SpectateListScreen> {
       layout: PageLayout.wide,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           // 관전
           title: Text(l10n.menuSpectate),
         ),

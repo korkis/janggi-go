@@ -213,9 +213,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeLoginGuide => '로그인하면 급수와 전적이 저장돼요';
 
   @override
-  String get homeDevSignOut => '로그아웃 (개발용)';
-
-  @override
   String get loginSheetTitleHome => '로그인하고\n온라인 대국을 둬 보세요';
 
   @override
@@ -1057,9 +1054,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeSpectateTitle => '지금 볼 만한 대국';
 
   @override
-  String get homeSpectateAll => '전체 보기';
-
-  @override
   String get homeRecentGamesTitle => '최근 내 대국';
 
   @override
@@ -1523,4 +1517,52 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get errorFeatureDisabled => '지금은 쓸 수 없어요';
+
+  @override
+  String get menuLobby => '대국실';
+
+  @override
+  String get menuStore => '상점';
+
+  @override
+  String get settingsGameGroup => '대국';
+
+  @override
+  String get settingsSound => '소리';
+
+  @override
+  String get settingsVibration => '진동';
+
+  @override
+  String get settingsChallengesEnabled => '대국 신청 받기';
+
+  @override
+  String get settingsAccountGroup => '계정';
+
+  @override
+  String get settingsSignInMethod => '로그인 방식';
+
+  @override
+  String get signInMethodGoogle => 'Google';
+
+  @override
+  String get signInMethodApple => 'Apple';
+
+  @override
+  String get signInMethodEmail => '이메일';
+
+  @override
+  String get settingsSignOut => '로그아웃';
+
+  @override
+  String get settingsSignOutConfirm => '로그아웃할까요?';
+
+  @override
+  String get settingsInfoGroup => '정보';
+
+  @override
+  String get settingsVersion => '버전';
+
+  @override
+  String get settingsLicenses => '오픈소스 라이선스';
 }

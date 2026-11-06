@@ -20,6 +20,7 @@ import 'package:janggigo/models/nickname_reject_reason.dart';
 import 'package:janggigo/models/online_user.dart';
 import 'package:janggigo/models/player_state.dart';
 import 'package:janggigo/models/room.dart';
+import 'package:janggigo/models/sign_in_method.dart';
 import 'package:janggigo/models/spectate_list_entry.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
@@ -65,6 +66,12 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   String? get currentUid => _uid;
+
+  /// [getSignInMethod]가 돌려줄 값.
+  SignInMethod? signInMethod;
+
+  @override
+  SignInMethod? getSignInMethod() => signInMethod;
 
   @override
   Stream<String?> uidChanges() async* {
@@ -860,11 +867,15 @@ class FakeSpectateListRepository implements SpectateListRepository {
   /// 다음 [getEntries]가 이 오류로 실패한다.
   Object? nextError;
 
+  /// [getEntries]를 부른 횟수.
+  var getEntriesCount = 0;
+
   @override
   FirebaseDatabase get database => throw UnimplementedError();
 
   @override
   Future<List<({String gameId, SpectateListEntry entry})>> getEntries() async {
+    getEntriesCount++;
     final error = nextError;
     if (error != null) {
       nextError = null;
@@ -1034,9 +1045,27 @@ class FakeArchivedGameRepository implements ArchivedGameRepository {
 /// 기기 저장소 없이 언어 설정을 기억하는 가짜 DeviceSettingsRepository.
 class FakeDeviceSettingsRepository implements DeviceSettingsRepository {
   var language = AppLanguage.system;
+  var soundEnabled = true;
+  var vibrationEnabled = true;
 
   @override
   SharedPreferencesAsync get preferences => throw UnimplementedError();
+
+  @override
+  Future<bool> getSoundEnabled() async => soundEnabled;
+
+  @override
+  Future<void> updateSoundEnabled(bool enabled) async {
+    soundEnabled = enabled;
+  }
+
+  @override
+  Future<bool> getVibrationEnabled() async => vibrationEnabled;
+
+  @override
+  Future<void> updateVibrationEnabled(bool enabled) async {
+    vibrationEnabled = enabled;
+  }
 
   @override
   Future<AppLanguage> getLanguage() async => language;

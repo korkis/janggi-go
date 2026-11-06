@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../screens/lobby_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/records_screen.dart';
+import '../screens/settings_screen.dart';
 import '../screens/spectate_list_screen.dart';
 import '../theme/app_theme.dart';
 
@@ -63,15 +64,84 @@ enum PageLayout {
   form,
 }
 
-/// 왼쪽 메뉴의 항목. 화면이 생긴 메뉴만 둔다.
-enum AppMenu { home, lobby, spectate, records, profile }
+/// 아래쪽 탭과 왼쪽 메뉴의 항목(`docs/ui.md`의 넓은 화면). 설정은 왼쪽 메뉴에만 있고 1024 미만은 내 정보 안에 있다.
+enum AppMenu {
+  home(Icons.home_outlined, Icons.home),
+  lobby(Icons.groups_outlined, Icons.groups),
+  spectate(Icons.visibility_outlined, Icons.visibility),
+  records(Icons.menu_book_outlined, Icons.menu_book),
+  profile(Icons.person_outline, Icons.person),
+  settings(Icons.settings_outlined, Icons.settings);
+
+  /// 아래쪽 탭 줄의 항목. 왼쪽 메뉴도 위쪽에 같은 순서로 둔다.
+  static const tabs = [home, lobby, spectate, records, profile];
+
+  final IconData icon;
+  final IconData selectedIcon;
+
+  const AppMenu(this.icon, this.selectedIcon);
+
+  String getLabel(AppLocalizations l10n) => switch (this) {
+    // 홈
+    AppMenu.home => l10n.menuHome,
+    // 대국실
+    AppMenu.lobby => l10n.menuLobby,
+    // 관전
+    AppMenu.spectate => l10n.menuSpectate,
+    // 기보
+    AppMenu.records => l10n.menuRecords,
+    // 내 정보
+    AppMenu.profile => l10n.menuProfile,
+    // 설정
+    AppMenu.settings => l10n.menuSettings,
+  };
+
+  /// [selected]를 보고 있을 때 이 메뉴로 간다. 지금 화면을 다시 누르면 그대로 둔다.
+  Future<void> open(BuildContext context, AppMenu? selected) async {
+    if (this == selected) {
+      return;
+    }
+    switch (this) {
+      case AppMenu.home:
+        Navigator.of(context).popUntil(_isFirstRoute);
+      case AppMenu.lobby:
+        await LobbyScreen.open(context);
+      case AppMenu.spectate:
+        await SpectateListScreen.open(context);
+      case AppMenu.records:
+        await RecordsScreen.open(context);
+      case AppMenu.profile:
+        await ProfileScreen.open(context);
+      case AppMenu.settings:
+        await SettingsScreen.open(context);
+    }
+  }
+}
+
+bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
+
+/// 메뉴 화면을 처음 화면(홈) 위에 하나만 쌓아 연다. 탭을 바꾸는 것이므로 전환 없이 바로 바꾼다.
+Future<void> openMenuScreen(NavigatorState navigator, WidgetBuilder builder) async {
+  navigator.popUntil(_isFirstRoute);
+  await navigator.push(
+    PageRouteBuilder<void>(
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    ),
+  );
+}
+
+/// 화면이 다시 맨 위로 돌아온 것을 듣는다. 홈의 관전 카드가 탭에서 돌아올 때 다시 읽는 데 쓴다.
+final pageRouteObserver = RouteObserver<PageRoute<dynamic>>();
 
 /// 일반 화면(밝은 화면)의 폭별 틀. 화면의 [Scaffold]를 [child]로 받는다.
 ///
 /// 600 미만은 [child]를 그대로, 600~1023은 가운데 폭 480으로 모으고, 1024 이상은 왼쪽 메뉴를 두고 [layout]에 따라 내용을
-/// 넓게 쓰거나 가운데 카드에 담는다. 창 크기가 바뀌어도 [child]의 상태가 남도록 구간마다 같은 위젯 구조를 쓴다.
+/// 넓게 쓰거나 가운데 카드에 담는다. 1024 미만의 탭 화면은 아래에 탭 줄을 둔다. 창 크기가 바뀌어도 [child]의 상태가 남도록
+/// 구간마다 같은 위젯 구조를 쓴다.
 class AppPage extends StatelessWidget {
-  /// 왼쪽 메뉴에서 고른 것으로 보여줄 항목. 메뉴에 없는 화면이면 null이다.
+  /// 왼쪽 메뉴와 아래쪽 탭에서 고른 것으로 보여줄 항목. 메뉴에 없는 화면이면 null이다.
   final AppMenu? menu;
 
   final PageLayout layout;
@@ -109,26 +179,41 @@ class AppPage extends StatelessWidget {
         ),
       );
     }
+    // 글자를 입력하는 동안에는 키보드 위에 탭 줄을 올리지 않는다.
+    final tabBar = !expanded && AppMenu.tabs.contains(menu) && MediaQuery.viewInsetsOf(context).bottom == 0;
     return ColoredBox(
       color: LightColors.background,
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (expanded) SideMenu(selected: menu),
           Expanded(
-            child: Center(
-              child: Padding(
-                padding: card ? const EdgeInsets.all(32) : EdgeInsets.zero,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: card ? 820 : double.infinity),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(card ? 24 : 0),
-                    child: Theme(data: pageTheme, child: child),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (expanded) SideMenu(selected: menu),
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: card ? const EdgeInsets.all(32) : EdgeInsets.zero,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: card ? 820 : double.infinity),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(card ? 24 : 0),
+                          // 아래쪽 여백은 탭 줄이 맡는다.
+                          child: MediaQuery.removePadding(
+                            context: context,
+                            removeBottom: tabBar,
+                            child: Theme(data: pageTheme, child: child),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
+          if (tabBar) AppTabBar(selected: menu),
         ],
       ),
     );
@@ -185,6 +270,105 @@ class AdaptivePageTransitionsBuilder extends PageTransitionsBuilder {
   }
 }
 
+/// 1024 미만 탭 화면의 아래쪽 탭 줄(`docs/screens.md`의 홈). 고른 탭은 왼쪽 메뉴처럼 연한 초록 바탕과 강조색 글자로 보여준다.
+class AppTabBar extends StatelessWidget {
+  final AppMenu? selected;
+
+  const AppTabBar({super.key, required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: LightColors.surface,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: LightColors.outline)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: LayoutWidths.mediumContent),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: [
+                    for (final menu in AppMenu.tabs)
+                      Expanded(
+                        child: _TabBarItem(
+                          menu: menu,
+                          label: menu.getLabel(l10n),
+                          selected: menu == selected,
+                          onTap: () => menu.open(context, selected),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabBarItem extends StatelessWidget {
+  final AppMenu menu;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabBarItem({required this.menu, required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? LightColors.accent : LightColors.subText;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? LightColors.accentSurface : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: minTouchSize),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(selected ? menu.selectedIcon : menu.icon, color: color),
+                  // 큰 글자 설정이나 긴 영어 이름으로 넘칠 때만 줄인다.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: AppTextSizes.body,
+                        height: 1.25,
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 1024 이상 일반 화면의 왼쪽 메뉴(`docs/ui.md`의 넓은 화면). 아래 탭 줄 대신 쓴다.
 class SideMenu extends StatelessWidget {
   final AppMenu? selected;
@@ -206,54 +390,32 @@ class SideMenu extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
-                child: Text(
-                  // 장기고
-                  l10n.appTitle,
-                  style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800),
+              Expanded(
+                child: ListView(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+                      child: Text(
+                        // 장기고
+                        l10n.appTitle,
+                        style: const TextStyle(fontSize: AppTextSizes.large, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    for (final menu in AppMenu.tabs) _buildItem(context, l10n, menu),
+                  ],
                 ),
               ),
+              // 상점 화면이 생기면(구현 순서 5번) 잇는다.
               _SideMenuItem(
-                icon: Icons.home_outlined,
-                selectedIcon: Icons.home,
-                // 홈
-                label: l10n.menuHome,
-                selected: selected == AppMenu.home,
-                onTap: () => _onSelect(context, AppMenu.home),
+                icon: Icons.storefront_outlined,
+                selectedIcon: Icons.storefront,
+                // 상점
+                label: l10n.menuStore,
+                selected: false,
+                onTap: null,
               ),
-              _SideMenuItem(
-                icon: Icons.groups_outlined,
-                selectedIcon: Icons.groups,
-                // 대국실
-                label: l10n.lobbyTitle,
-                selected: selected == AppMenu.lobby,
-                onTap: () => _onSelect(context, AppMenu.lobby),
-              ),
-              _SideMenuItem(
-                icon: Icons.visibility_outlined,
-                selectedIcon: Icons.visibility,
-                // 관전
-                label: l10n.menuSpectate,
-                selected: selected == AppMenu.spectate,
-                onTap: () => _onSelect(context, AppMenu.spectate),
-              ),
-              _SideMenuItem(
-                icon: Icons.menu_book_outlined,
-                selectedIcon: Icons.menu_book,
-                // 기보
-                label: l10n.menuRecords,
-                selected: selected == AppMenu.records,
-                onTap: () => _onSelect(context, AppMenu.records),
-              ),
-              _SideMenuItem(
-                icon: Icons.person_outline,
-                selectedIcon: Icons.person,
-                // 내 정보
-                label: l10n.menuProfile,
-                selected: selected == AppMenu.profile,
-                onTap: () => _onSelect(context, AppMenu.profile),
-              ),
+              _buildItem(context, l10n, AppMenu.settings),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -261,26 +423,15 @@ class SideMenu extends StatelessWidget {
     );
   }
 
-  /// 메뉴 화면은 처음 화면(홈) 위에 하나만 쌓는다. 지금 화면을 다시 누르면 그대로 둔다.
-  Future<void> _onSelect(BuildContext context, AppMenu menu) async {
-    if (menu == selected) {
-      return;
-    }
-    switch (menu) {
-      case AppMenu.home:
-        Navigator.of(context).popUntil(_isFirstRoute);
-      case AppMenu.lobby:
-        await LobbyScreen.open(context);
-      case AppMenu.spectate:
-        await SpectateListScreen.open(context);
-      case AppMenu.records:
-        await RecordsScreen.open(context);
-      case AppMenu.profile:
-        await ProfileScreen.open(context);
-    }
+  Widget _buildItem(BuildContext context, AppLocalizations l10n, AppMenu menu) {
+    return _SideMenuItem(
+      icon: menu.icon,
+      selectedIcon: menu.selectedIcon,
+      label: menu.getLabel(l10n),
+      selected: menu == selected,
+      onTap: () => menu.open(context, selected),
+    );
   }
-
-  static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
 }
 
 class _SideMenuItem extends StatelessWidget {
@@ -288,7 +439,9 @@ class _SideMenuItem extends StatelessWidget {
   final IconData selectedIcon;
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+
+  /// 아직 열 수 없는 항목이면 null이다. 흐리게 보여준다.
+  final VoidCallback? onTap;
 
   const _SideMenuItem({
     required this.icon,
@@ -300,7 +453,10 @@ class _SideMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? LightColors.accent : LightColors.text;
+    var color = selected ? LightColors.accent : LightColors.text;
+    if (onTap == null) {
+      color = LightColors.subText.withValues(alpha: 0.5);
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Material(

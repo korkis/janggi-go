@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../config.dart';
+import '../models/sign_in_method.dart';
 import '../utils/app_exception.dart';
 
 /// Firebase Auth 로그인과 로그아웃.
@@ -16,6 +17,21 @@ class AuthRepository {
 
   /// 로그인한 사용자의 uid. 로그인하지 않았으면 null.
   String? get currentUid => auth.currentUser?.uid;
+
+  /// 로그인한 방식. 로그인하지 않았거나 쓰지 않는 방식이면 null.
+  SignInMethod? getSignInMethod() {
+    for (final info in auth.currentUser?.providerData ?? const <UserInfo>[]) {
+      switch (info.providerId) {
+        case 'google.com':
+          return SignInMethod.google;
+        case 'apple.com':
+          return SignInMethod.apple;
+        case 'password':
+          return SignInMethod.email;
+      }
+    }
+    return null;
+  }
 
   /// 로그인 상태가 바뀔 때마다 uid를 보낸다. 처음 들을 때 지금 상태를 한 번 보낸다.
   Stream<String?> uidChanges() => auth.authStateChanges().map(_getUid);

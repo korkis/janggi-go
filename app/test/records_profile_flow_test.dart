@@ -184,7 +184,7 @@ void main() {
     await tester.pumpWidget(const JanggigoApp());
     await _pumpFor(tester);
 
-    await tester.scrollUntilVisible(find.text('최근 내 대국'), 200);
+    await tester.scrollUntilVisible(find.text('최근 내 대국'), 200, scrollable: find.byType(Scrollable).first);
     await _pumpFor(tester);
     expect(find.text('외통패 · 1수'), findsOneWidget);
     expect(find.text('외통승 · 2수'), findsOneWidget);
@@ -226,7 +226,7 @@ void main() {
     await _signIn('me', '나');
     await tester.pumpWidget(const JanggigoApp());
     await _pumpFor(tester);
-    await tester.scrollUntilVisible(find.text('최근 내 대국'), 200);
+    await tester.scrollUntilVisible(find.text('최근 내 대국'), 200, scrollable: find.byType(Scrollable).first);
     await _pumpFor(tester);
     expect(find.text('아직 끝난 대국이 없어요'), findsOneWidget);
     await _tap(tester, find.widgetWithText(TextButton, '전체 보기').last);

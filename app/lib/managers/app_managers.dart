@@ -3,6 +3,7 @@ import 'block_manager.dart';
 import 'challenge_manager.dart';
 import 'coin_manager.dart';
 import 'connection_manager.dart';
+import 'effect_settings_manager.dart';
 import 'invite_link_manager.dart';
 import 'language_manager.dart';
 import 'lobby_presence_manager.dart';
@@ -24,6 +25,7 @@ class AppManagers {
   final BlockManager blockManager;
   final SanctionManager sanctionManager;
   final LanguageManager languageManager;
+  final EffectSettingsManager effectSettingsManager;
   final CoinManager coinManager;
 
   AppManagers({
@@ -37,6 +39,7 @@ class AppManagers {
     required this.blockManager,
     required this.sanctionManager,
     required this.languageManager,
+    required this.effectSettingsManager,
     required this.coinManager,
   });
 
@@ -55,6 +58,7 @@ class AppManagers {
       blockManager: BlockManager(authManager: authManager),
       sanctionManager: SanctionManager(authManager: authManager),
       languageManager: LanguageManager(),
+      effectSettingsManager: EffectSettingsManager(),
       coinManager: CoinManager(authManager: authManager),
     );
   }

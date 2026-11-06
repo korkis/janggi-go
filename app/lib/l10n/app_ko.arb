@@ -230,10 +230,6 @@
   "@homeLoginGuide": {
     "description": "홈 내 카드의 로그인 안내"
   },
-  "homeDevSignOut": "로그아웃 (개발용)",
-  "@homeDevSignOut": {
-    "description": "홈 내 카드의 로그아웃 버튼. 개발 빌드에만 보인다"
-  },
   "loginSheetTitleHome": "로그인하고\n온라인 대국을 둬 보세요",
   "@loginSheetTitleHome": {
     "description": "홈의 로그인 버튼으로 띄운 로그인 창 제목"
@@ -766,7 +762,7 @@
   },
   "lobbyTitle": "대국실",
   "@lobbyTitle": {
-    "description": "대국실 화면 제목과 홈의 대국실 버튼"
+    "description": "대국실 화면 제목"
   },
   "menuHome": "홈",
   "@menuHome": {
@@ -1386,10 +1382,6 @@
   "homeSpectateTitle": "지금 볼 만한 대국",
   "@homeSpectateTitle": {
     "description": "홈의 관전 카드 제목"
-  },
-  "homeSpectateAll": "전체 보기",
-  "@homeSpectateAll": {
-    "description": "홈의 관전 카드에서 관전 목록으로 가는 버튼"
   },
   "homeRecentGamesTitle": "최근 내 대국",
   "@homeRecentGamesTitle": {
@@ -2107,5 +2099,69 @@
   "errorFeatureDisabled": "지금은 쓸 수 없어요",
   "@errorFeatureDisabled": {
     "description": "운영 스위치로 멈춘 기능을 눌렀을 때"
+  },
+  "menuLobby": "대국실",
+  "@menuLobby": {
+    "description": "아래쪽 탭과 왼쪽 메뉴의 대국실"
+  },
+  "menuStore": "상점",
+  "@menuStore": {
+    "description": "상점 아이콘과 왼쪽 메뉴"
+  },
+  "settingsGameGroup": "대국",
+  "@settingsGameGroup": {
+    "description": "설정의 대국 묶음"
+  },
+  "settingsSound": "소리",
+  "@settingsSound": {
+    "description": "설정의 효과음 켜기·끄기"
+  },
+  "settingsVibration": "진동",
+  "@settingsVibration": {
+    "description": "설정의 진동 켜기·끄기"
+  },
+  "settingsChallengesEnabled": "대국 신청 받기",
+  "@settingsChallengesEnabled": {
+    "description": "설정의 대국 신청 받기. 대국실 접속자 탭의 스위치와 같은 설정"
+  },
+  "settingsAccountGroup": "계정",
+  "@settingsAccountGroup": {
+    "description": "설정의 계정 묶음"
+  },
+  "settingsSignInMethod": "로그인 방식",
+  "@settingsSignInMethod": {
+    "description": "설정의 계정 묶음에 보여주는 로그인 방식"
+  },
+  "signInMethodGoogle": "Google",
+  "@signInMethodGoogle": {
+    "description": "로그인 방식 이름"
+  },
+  "signInMethodApple": "Apple",
+  "@signInMethodApple": {
+    "description": "로그인 방식 이름"
+  },
+  "signInMethodEmail": "이메일",
+  "@signInMethodEmail": {
+    "description": "로그인 방식 이름"
+  },
+  "settingsSignOut": "로그아웃",
+  "@settingsSignOut": {
+    "description": "설정의 로그아웃 줄과 확인 창 버튼"
+  },
+  "settingsSignOutConfirm": "로그아웃할까요?",
+  "@settingsSignOutConfirm": {
+    "description": "로그아웃 확인 창"
+  },
+  "settingsInfoGroup": "정보",
+  "@settingsInfoGroup": {
+    "description": "설정의 정보 묶음"
+  },
+  "settingsVersion": "버전",
+  "@settingsVersion": {
+    "description": "설정의 앱 버전"
+  },
+  "settingsLicenses": "오픈소스 라이선스",
+  "@settingsLicenses": {
+    "description": "설정의 오픈소스 라이선스 화면으로 가는 줄"
   }
 }

@@ -32,18 +32,17 @@ import 'spectate_screen.dart';
 class LobbyScreen extends StatefulWidget {
   const LobbyScreen({super.key});
 
-  /// 로그인과 닉네임을 거친 뒤 처음 화면(홈) 위에 대국실을 연다. 홈의 대국실 버튼과 왼쪽 메뉴가 같이 쓴다.
+  /// 로그인과 닉네임을 거친 뒤 처음 화면(홈) 위에 대국실을 연다. 아래쪽 탭과 왼쪽 메뉴가 같이 쓴다.
   static Future<void> open(BuildContext context) async {
     final navigator = Navigator.of(context);
     final ready = await ensureSignedInWithProfile(context, LoginPurpose.lobby);
     if (!ready) {
       return;
     }
-    navigator.popUntil(_isFirstRoute);
-    await navigator.push(MaterialPageRoute<void>(builder: (context) => const LobbyScreen()));
+    await openMenuScreen(navigator, _build);
   }
 
-  static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
+  static Widget _build(BuildContext context) => const LobbyScreen();
 
   @override
   State<LobbyScreen> createState() => _LobbyScreenState();
@@ -90,6 +89,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     final rooms = RefreshIndicator(onRefresh: _loadRooms, child: _buildList(context));
     final scaffold = Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         // 대국실
         title: Text(l10n.lobbyTitle),
         actions: [

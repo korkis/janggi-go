@@ -62,6 +62,17 @@ class LobbyPresenceManager extends ChangeNotifier {
     }
   }
 
+  /// 로그아웃하기 전에 내 항목을 지운다. 로그아웃한 뒤에는 보안 규칙이 막아 지울 수 없고, RTDB 연결은 그대로라 `onDisconnect`도
+  /// 실행되지 않으므로 다른 사람에게 계속 보인다.
+  Future<void> leaveBeforeSignOut() async {
+    final uid = _uid;
+    // 다시 들어가지 않게 먼저 끈다. 로그아웃에 실패하면 다음 [_sync]가 다시 들어간다.
+    _present = false;
+    if (uid != null && connectionManager.connected) {
+      await _leave(uid);
+    }
+  }
+
   void _sync() {
     final uid = authManager.profile == null ? null : authManager.uid;
     if (uid != _uid) {

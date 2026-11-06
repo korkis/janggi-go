@@ -25,18 +25,17 @@ import 'setup_screen.dart';
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
 
-  /// 로그인과 닉네임을 거친 뒤 처음 화면(홈) 위에 내 기보 목록을 연다. 홈과 왼쪽 메뉴, 내 정보가 같이 쓴다.
+  /// 로그인과 닉네임을 거친 뒤 처음 화면(홈) 위에 내 기보 목록을 연다. 아래쪽 탭과 왼쪽 메뉴, 홈, 내 정보가 같이 쓴다.
   static Future<void> open(BuildContext context) async {
     final navigator = Navigator.of(context);
     final ready = await ensureSignedInWithProfile(context, LoginPurpose.records);
     if (!ready) {
       return;
     }
-    navigator.popUntil(_isFirstRoute);
-    await navigator.push(MaterialPageRoute<void>(builder: (context) => const RecordsScreen()));
+    await openMenuScreen(navigator, _build);
   }
 
-  static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
+  static Widget _build(BuildContext context) => const RecordsScreen();
 
   @override
   State<RecordsScreen> createState() => _RecordsScreenState();
@@ -72,6 +71,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
       layout: PageLayout.wide,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           // 내 기보
           title: Text(l10n.recordsTitle),
         ),
