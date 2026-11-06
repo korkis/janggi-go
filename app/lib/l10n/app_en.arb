@@ -389,7 +389,67 @@
     }
   },
   "errorNicknameChangeCooldown": "You can't change your nickname again within 7 days",
-  "errorNicknameChangeNotFree": "You've used your free nickname change. More changes are coming soon",
+  "errorNicknameChangeNotFree": "You've used your free nickname change. Please open this again",
+  "errorCoinPriceChanged": "The price has changed. Please open this again",
+  "errorCoinsInsufficient": "Not enough coins",
+  "nicknameChangeNeedCoins": "Changing your nickname takes {cost} coins. You have {balance}",
+  "@nicknameChangeNeedCoins": {
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameChangePaidHint": "This costs {cost} coins. After changing, you can't change it again for {days} days",
+  "@nicknameChangePaidHint": {
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameChangeConfirm": "Pay {cost} coins to change to {nickname}?",
+  "@nicknameChangeConfirm": {
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "coinBalanceAmount": "{amount}",
+  "@coinBalanceAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "coinBalanceLabel": "{amount} coins",
+  "@coinBalanceLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "coinAttendanceGranted": "Attendance +{amount} coins",
+  "@coinAttendanceGranted": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
   "errorChangeNickname": "Couldn't change your nickname. Please try again later",
   "nicknameChanged": "Nickname changed",
   "userInfoStats": "{games} games · {rate}% wins",

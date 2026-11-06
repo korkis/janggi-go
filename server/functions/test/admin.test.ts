@@ -13,6 +13,7 @@ import {adminSanctionUser} from "../src/callables/adminSanctionUser";
 import {adminUpdateAppConfig} from "../src/callables/adminUpdateAppConfig";
 import {ADMIN_PAGE_SIZE} from "../src/config";
 import {ModerationLogView, Page, ReportSummaryView, ReportWithTargetView, UserHistoryView} from "../src/models/admin";
+import {INITIAL_APP_CONFIG} from "../src/models/appConfig";
 import {expireSanctions} from "../src/services/sanctionService";
 import {TEST_PROJECT_ID} from "./testEnv";
 
@@ -31,13 +32,7 @@ const wrappedUpdateAppConfig = fft.wrap(adminUpdateAppConfig);
 
 const ADMIN = "admin1";
 
-const APP_CONFIG = {
-  disconnectLimitSeconds: 30,
-  quickRematchLimit: 5,
-  onlineUsersVisible: false,
-  autoSanctionEnabled: false,
-  heartbeatSeconds: 5,
-};
+const APP_CONFIG = INITIAL_APP_CONFIG;
 
 // fft.wrap은 CallableRequest 전체를 받는다. 테스트에 필요한 필드만 채운다. [admin]이면 ID token에 admin claim을 넣는다.
 function callAs(uid: string | null, data: unknown, admin = false) {
@@ -425,7 +420,13 @@ describe("검사 기록", () => {
 describe("configs/app", () => {
   test("지금 값을 읽고 바꾼다", async () => {
     expect(await wrappedGetAppConfig(callAsAdmin({}))).toEqual(APP_CONFIG);
-    const changed = {...APP_CONFIG, onlineUsersVisible: true, disconnectLimitSeconds: 60};
+    const changed = {
+      ...APP_CONFIG,
+      onlineUsersVisible: true,
+      disconnectLimitSeconds: 60,
+      entryFeeEnabled: false,
+      coinEntryFee: 20,
+    };
 
     expect(await wrappedUpdateAppConfig(callAsAdmin({config: changed}))).toEqual(changed);
 
@@ -437,6 +438,14 @@ describe("configs/app", () => {
     {...APP_CONFIG, disconnectLimitSeconds: 9},
     {...APP_CONFIG, quickRematchLimit: 1.5},
     {...APP_CONFIG, onlineUsersVisible: "true"},
+    {...APP_CONFIG, entryFeeEnabled: 1},
+    {...APP_CONFIG, coinEntryFee: 101},
+    {...APP_CONFIG, coinEntryFee: -1},
+    {...APP_CONFIG, coinWinReward: 101},
+    {...APP_CONFIG, coinSignupBonus: 3001},
+    {...APP_CONFIG, coinAttendanceStreakReward: 1.5},
+    {...APP_CONFIG, coinRescueThreshold: "10"},
+    {...APP_CONFIG, coinNicknameChangeCost: 0},
     {...APP_CONFIG, extra: 1},
     {disconnectLimitSeconds: 30},
   ])("범위를 벗어나거나 필드가 맞지 않으면 invalid-argument: %j", async (config) => {

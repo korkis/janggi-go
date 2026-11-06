@@ -15,8 +15,20 @@ export const NICKNAME_PATTERN = /^[가-힣A-Za-z0-9]+$/;
 // 닉네임을 바꾼 뒤 다시 바꿀 수 없는 날 수(docs/screens.md의 내 정보).
 export const NICKNAME_CHANGE_COOLDOWN_DAYS = 7;
 
-// 엽전 없이 닉네임을 바꿀 수 있는 횟수. 첫 변경만 무료다(docs/monetization.md). 그 뒤의 변경은 엽전이 생기면(3단계) 연다.
+// 엽전 없이 닉네임을 바꿀 수 있는 횟수. 첫 변경만 무료이고 그 뒤에는 configs/app.coinNicknameChangeCost를 낸다(docs/monetization.md).
 export const NICKNAME_FREE_CHANGE_COUNT = 1;
+
+// 연속 출석의 한 바퀴. 이 날에는 configs/app.coinAttendanceStreakReward를 주고 다음 날 1부터 다시 센다(docs/monetization.md).
+export const COIN_ATTENDANCE_STREAK_DAYS = 7;
+
+// 출석과 바닥 구제의 "하루"가 바뀌는 시간대의 UTC 차이(시간). 서울 시간 0시다. 대국 서버의 coinDayUtcOffset과 같다.
+export const COIN_DAY_UTC_OFFSET_HOURS = 9;
+
+// Admin 웹의 잔액 분포 구간 시작값. 마지막 구간은 위가 열려 있다.
+export const COIN_BALANCE_BUCKET_STARTS = [0, 10, 50, 100, 300, 1000, 3000];
+
+// Admin 웹의 엽전 지표가 하루 단위로 보여주는 날 수. 오늘 포함이다.
+export const COIN_STATS_DAYS = 7;
 
 // 운영진을 사칭하는 단어. 닉네임에 들어 있으면(영문은 대소문자 무시) 쓸 수 없다.
 export const NICKNAME_IMPERSONATION_WORDS = [
@@ -137,4 +149,15 @@ export const APP_CONFIG_LIMITS = {
   quickRematchLimit: {min: 0, max: 100},
   // 대국 서버는 lastSeenAt이 presenceStaleSeconds(15초)보다 오래되면 끊긴 것으로 본다. 그 안에 세 번 갱신하도록 5초까지만 둔다.
   heartbeatSeconds: {min: 1, max: 5},
+  // 엽전 숫자. 실수로 자릿수를 틀려도 경제가 무너지지 않을 만큼만 연다(docs/monetization.md의 숫자).
+  coinSignupBonus: {min: 0, max: 3000},
+  coinEntryFee: {min: 0, max: 100},
+  coinWinReward: {min: 0, max: 100},
+  coinDrawReward: {min: 0, max: 100},
+  coinLossReward: {min: 0, max: 100},
+  coinAttendanceReward: {min: 0, max: 300},
+  coinAttendanceStreakReward: {min: 0, max: 1000},
+  coinRescueReward: {min: 0, max: 300},
+  coinRescueThreshold: {min: 0, max: 100},
+  coinNicknameChangeCost: {min: 1, max: 3000},
 };

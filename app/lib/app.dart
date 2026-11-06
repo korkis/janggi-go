@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
 import 'managers/app_managers.dart';
+import 'screens/attendance_listener.dart';
 import 'screens/home_screen.dart';
 import 'screens/incoming_challenge_dialog.dart';
 import 'screens/sanction_dialog.dart';
@@ -43,9 +44,11 @@ class _JanggigoAppState extends State<JanggigoApp> {
   }
 
   Widget _buildApp(BuildContext context, Widget? child) {
-    return SanctionListener(
-      navigatorKey: _navigatorKey,
-      child: ChallengeListener(navigatorKey: _navigatorKey, child: child ?? const SizedBox.shrink()),
+    return AttendanceListener(
+      child: SanctionListener(
+        navigatorKey: _navigatorKey,
+        child: ChallengeListener(navigatorKey: _navigatorKey, child: child ?? const SizedBox.shrink()),
+      ),
     );
   }
 }

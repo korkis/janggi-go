@@ -6,6 +6,7 @@ import {
   type AdminErrorCode,
   type AppConfig,
   CHAT_CHANNELS,
+  type CoinStatsView,
   type ModerationLogView,
   type Page,
   type PageCursor,
@@ -270,6 +271,41 @@ function parseAppConfig(value: unknown): AppConfig {
     onlineUsersVisible: asBoolean(record.onlineUsersVisible, "config.onlineUsersVisible"),
     autoSanctionEnabled: asBoolean(record.autoSanctionEnabled, "config.autoSanctionEnabled"),
     heartbeatSeconds: asNumber(record.heartbeatSeconds, "config.heartbeatSeconds"),
+    entryFeeEnabled: asBoolean(record.entryFeeEnabled, "config.entryFeeEnabled"),
+    coinSignupBonus: asNumber(record.coinSignupBonus, "config.coinSignupBonus"),
+    coinEntryFee: asNumber(record.coinEntryFee, "config.coinEntryFee"),
+    coinWinReward: asNumber(record.coinWinReward, "config.coinWinReward"),
+    coinDrawReward: asNumber(record.coinDrawReward, "config.coinDrawReward"),
+    coinLossReward: asNumber(record.coinLossReward, "config.coinLossReward"),
+    coinAttendanceReward: asNumber(record.coinAttendanceReward, "config.coinAttendanceReward"),
+    coinAttendanceStreakReward: asNumber(record.coinAttendanceStreakReward, "config.coinAttendanceStreakReward"),
+    coinRescueReward: asNumber(record.coinRescueReward, "config.coinRescueReward"),
+    coinRescueThreshold: asNumber(record.coinRescueThreshold, "config.coinRescueThreshold"),
+    coinNicknameChangeCost: asNumber(record.coinNicknameChangeCost, "config.coinNicknameChangeCost"),
+  };
+}
+
+function parseCoinStats(value: unknown): CoinStatsView {
+  const record = asRecord(value, "stats");
+  return {
+    balanceBuckets: asArray(record.balanceBuckets, "stats.balanceBuckets", (item, itemPath) => {
+      const bucket = asRecord(item, itemPath);
+      return {
+        min: asNumber(bucket.min, `${itemPath}.min`),
+        max: asNullable(bucket.max, `${itemPath}.max`, asNumber),
+        count: asNumber(bucket.count, `${itemPath}.count`),
+      };
+    }),
+    days: asArray(record.days, "stats.days", (item, itemPath) => {
+      const day = asRecord(item, itemPath);
+      return {
+        day: asString(day.day, `${itemPath}.day`),
+        games: asNumber(day.games, `${itemPath}.games`),
+        timeExtensions: asNumber(day.timeExtensions, `${itemPath}.timeExtensions`),
+        gamePractices: asNumber(day.gamePractices, `${itemPath}.gamePractices`),
+        rewardedAds: asNumber(day.rewardedAds, `${itemPath}.rewardedAds`),
+      };
+    }),
   };
 }
 
@@ -309,4 +345,8 @@ export function getAppConfig(): Promise<AppConfig> {
 
 export function updateAppConfig(config: AppConfig): Promise<AppConfig> {
   return call("adminUpdateAppConfig", {config}, parseAppConfig);
+}
+
+export function getCoinStats(): Promise<CoinStatsView> {
+  return call("adminGetCoinStats", null, parseCoinStats);
 }

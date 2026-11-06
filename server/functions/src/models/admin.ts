@@ -131,3 +131,27 @@ export interface ReportWithTargetView {
   report: ReportDetailView;
   target: UserHistoryView;
 }
+
+/** 잔액이 [min] 이상 [max] 미만인 지갑 수. [max]가 null이면 위가 열려 있다. */
+export interface CoinBalanceBucketView {
+  min: number;
+  max: number | null;
+  count: number;
+}
+
+/** 하루(서울 기준)의 엽전 지표. timeExtensions, gamePractices, rewardedAds는 그 기능이 생기면 쌓인다. */
+export interface CoinDayStatsView {
+  // yyyy-MM-dd.
+  day: string;
+  // 이날 끝난 대국 수. 시간 연장과 놓아보기 비율의 분모다.
+  games: number;
+  timeExtensions: number;
+  gamePractices: number;
+  rewardedAds: number;
+}
+
+export interface CoinStatsView {
+  balanceBuckets: CoinBalanceBucketView[];
+  // 최근 날부터.
+  days: CoinDayStatsView[];
+}

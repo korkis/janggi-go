@@ -1,0 +1,180 @@
+import dayjs, {Dayjs} from "dayjs";
+import {Timestamp, Transaction} from "firebase-admin/firestore";
+import {HttpsError} from "firebase-functions/https";
+import * as logger from "firebase-functions/logger";
+import {COIN_ATTENDANCE_STREAK_DAYS, COIN_DAY_UTC_OFFSET_HOURS} from "../config";
+import {CoinReason, CoinWallet, ClaimAttendanceResult, ClaimCoinRescueResult} from "../models/coin";
+import {NicknameChangeErrorCode} from "../models/nickname";
+import {createCoinTransactionInTransaction, getCoinTransactionId} from "../repositories/coinTransactionsRepository";
+import {getWalletInTransaction, setWalletInTransaction} from "../repositories/coinWalletsRepository";
+import {getAppConfig} from "../repositories/configsRepository";
+import {runTransaction} from "../repositories/firestore";
+import {getUserInTransaction} from "../repositories/usersRepository";
+
+/** 엽전을 움직이는 한 번의 일. 어떤 지갑이 어떻게 바뀌었는지 내역에 남긴다. */
+interface CoinMove {
+  uid: string;
+  reason: CoinReason;
+  // 한 번만 일어나는 일의 열쇠. 내역 ID에 들어간다(getCoinTransactionId).
+  key: string | null;
+  freeDelta: number;
+  paidDelta: number;
+}
+
+/** 하루의 기준. 서울 시간 0시에 바뀌는 yyyy-MM-dd다(docs/monetization.md의 엽전). 대국 서버의 `getCoinDay`와 같다. */
+export function getCoinDay(time: Dayjs): string {
+  return time.add(COIN_DAY_UTC_OFFSET_HOURS, "hour").toISOString().slice(0, 10);
+}
+
+/** 지갑이 없는 사용자(엽전이 생기기 전에 가입)는 잔액 0으로 본다. */
+function getEmptyWallet(now: Timestamp): CoinWallet {
+  return {
+    freeCoins: 0,
+    paidCoins: 0,
+    balance: 0,
+    attendanceDay: null,
+    attendanceStreak: 0,
+    rescueDay: null,
+    updatedAt: now,
+  };
+}
+
+/** [wallet]에서 [cost]를 쓸 때 무상과 유상에서 나갈 양(음수). 무상부터 쓴다(docs/monetization.md의 지킬 선). */
+export function getSpendDeltas(wallet: CoinWallet, cost: number): {freeDelta: number; paidDelta: number} {
+  const fromFree = Math.min(wallet.freeCoins, cost);
+  return {freeDelta: -fromFree, paidDelta: -(cost - fromFree)};
+}
+
+/** [move]를 [wallet]에 더한 지갑을 쓰고 내역을 만든다. 바뀐 지갑을 돌려준다. 호출하기 전에 읽기를 모두 끝낸다. */
+function applyMoveInTransaction(
+  transaction: Transaction,
+  wallet: CoinWallet,
+  move: CoinMove,
+  now: Timestamp,
+  walletChanges: Partial<CoinWallet> = {},
+): CoinWallet {
+  const freeCoins = wallet.freeCoins + move.freeDelta;
+  const paidCoins = wallet.paidCoins + move.paidDelta;
+  const next: CoinWallet = {
+    ...wallet,
+    ...walletChanges,
+    freeCoins,
+    paidCoins,
+    balance: freeCoins + paidCoins,
+    updatedAt: now,
+  };
+  setWalletInTransaction(transaction, move.uid, next);
+  createCoinTransactionInTransaction(transaction, getCoinTransactionId(move.reason, move.uid, move.key), {
+    uid: move.uid,
+    reason: move.reason,
+    freeDelta: move.freeDelta,
+    paidDelta: move.paidDelta,
+    freeBalance: freeCoins,
+    paidBalance: paidCoins,
+    gameId: null,
+    createdAt: now,
+  });
+  return next;
+}
+
+/** 가입 지급을 프로필과 같은 트랜잭션에 넣는다. 프로필을 처음 만들 때만 부른다. 호출하기 전에 읽기를 모두 끝낸다. */
+export function grantSignupInTransaction(transaction: Transaction, uid: string, amount: number, now: Timestamp): void {
+  applyMoveInTransaction(
+    transaction,
+    getEmptyWallet(now),
+    {uid, reason: CoinReason.signup, key: null, freeDelta: amount, paidDelta: 0},
+    now,
+  );
+}
+
+/** 닉네임 변경 값을 내게 한다. [changeCount]번째 변경 값이 두 번 나가지 않는다. 호출하기 전에 읽기를 모두 끝낸다. */
+export function spendNicknameChangeInTransaction(
+  transaction: Transaction,
+  uid: string,
+  wallet: CoinWallet | null,
+  cost: number,
+  changeCount: number,
+  now: Timestamp,
+): void {
+  const current = wallet ?? getEmptyWallet(now);
+  if (current.balance < cost) {
+    throw new HttpsError("failed-precondition", "엽전이 모자랍니다", {code: NicknameChangeErrorCode.coinsInsufficient});
+  }
+  applyMoveInTransaction(
+    transaction,
+    current,
+    {uid, reason: CoinReason.nicknameChange, key: String(changeCount), ...getSpendDeltas(current, cost)},
+    now,
+  );
+}
+
+/**
+ * 오늘의 출석을 준다. 연속 7째 날은 평소 값 대신 그 날의 값을 주고 다음 날 1로 돌아간다. 하루가 비면 1부터 다시 센다.
+ * 오늘 이미 받았으면 아무것도 바꾸지 않고 granted false를 돌려주므로 여러 번 불려도 한 번만 받는다.
+ */
+export async function claimAttendance(uid: string): Promise<ClaimAttendanceResult> {
+  const config = await getAppConfig();
+  const result = await runTransaction(async (transaction): Promise<ClaimAttendanceResult> => {
+    const user = await getUserInTransaction(transaction, uid);
+    const wallet = await getWalletInTransaction(transaction, uid);
+    if (user === null) {
+      throw new HttpsError("failed-precondition", "닉네임을 먼저 정해야 합니다", {code: "profileRequired"});
+    }
+    const time = dayjs();
+    const today = getCoinDay(time);
+    if (wallet?.attendanceDay === today) {
+      return {granted: false, amount: 0, streak: wallet.attendanceStreak, balance: wallet.balance};
+    }
+    const now = Timestamp.fromMillis(time.valueOf());
+    const current = wallet ?? getEmptyWallet(now);
+    const continued =
+      current.attendanceDay === getCoinDay(time.subtract(1, "day")) &&
+      current.attendanceStreak < COIN_ATTENDANCE_STREAK_DAYS;
+    const streak = continued ? current.attendanceStreak + 1 : 1;
+    const amount =
+      streak === COIN_ATTENDANCE_STREAK_DAYS ? config.coinAttendanceStreakReward : config.coinAttendanceReward;
+    const next = applyMoveInTransaction(
+      transaction,
+      current,
+      {uid, reason: CoinReason.attendance, key: today, freeDelta: amount, paidDelta: 0},
+      now,
+      {attendanceDay: today, attendanceStreak: streak},
+    );
+    return {granted: true, amount, streak, balance: next.balance};
+  });
+  logger.info("claimAttendance 완료", {uid, ...result});
+  return result;
+}
+
+/**
+ * 잔액이 기준 미만이면 바닥 구제를 하루 한 번 준다. 대상이 아니거나 오늘 이미 받았으면 granted false를 돌려주므로 여러 번 불려도
+ * 한 번만 받는다. 대국 서버도 참가비를 받을 때 같은 조건으로 준다(docs/server.md의 엽전).
+ */
+export async function claimCoinRescue(uid: string): Promise<ClaimCoinRescueResult> {
+  const config = await getAppConfig();
+  const result = await runTransaction(async (transaction): Promise<ClaimCoinRescueResult> => {
+    const user = await getUserInTransaction(transaction, uid);
+    const wallet = await getWalletInTransaction(transaction, uid);
+    if (user === null) {
+      throw new HttpsError("failed-precondition", "닉네임을 먼저 정해야 합니다", {code: "profileRequired"});
+    }
+    const time = dayjs();
+    const today = getCoinDay(time);
+    const now = Timestamp.fromMillis(time.valueOf());
+    const current = wallet ?? getEmptyWallet(now);
+    if (current.balance >= config.coinRescueThreshold || current.rescueDay === today) {
+      return {granted: false, amount: 0, balance: current.balance};
+    }
+    const amount = config.coinRescueReward;
+    const next = applyMoveInTransaction(
+      transaction,
+      current,
+      {uid, reason: CoinReason.rescue, key: today, freeDelta: amount, paidDelta: 0},
+      now,
+      {rescueDay: today},
+    );
+    return {granted: true, amount, balance: next.balance};
+  });
+  logger.info("claimCoinRescue 완료", {uid, ...result});
+  return result;
+}

@@ -1355,7 +1355,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorNicknameChangeNotFree =>
-      'You\'ve used your free nickname change. More changes are coming soon';
+      'You\'ve used your free nickname change. Please open this again';
+
+  @override
+  String get errorCoinPriceChanged =>
+      'The price has changed. Please open this again';
+
+  @override
+  String get errorCoinsInsufficient => 'Not enough coins';
+
+  @override
+  String nicknameChangeNeedCoins(int cost, int balance) {
+    return 'Changing your nickname takes $cost coins. You have $balance';
+  }
+
+  @override
+  String nicknameChangePaidHint(int cost, int days) {
+    return 'This costs $cost coins. After changing, you can\'t change it again for $days days';
+  }
+
+  @override
+  String nicknameChangeConfirm(int cost, String nickname) {
+    return 'Pay $cost coins to change to $nickname?';
+  }
+
+  @override
+  String coinBalanceAmount(int amount) {
+    final intl.NumberFormat amountNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String amountString = amountNumberFormat.format(amount);
+
+    return '$amountString';
+  }
+
+  @override
+  String coinBalanceLabel(int amount) {
+    return '$amount coins';
+  }
+
+  @override
+  String coinAttendanceGranted(int amount) {
+    return 'Attendance +$amount coins';
+  }
 
   @override
   String get errorChangeNickname =>

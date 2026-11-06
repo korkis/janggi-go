@@ -142,6 +142,39 @@ export interface AppConfig {
   onlineUsersVisible: boolean;
   autoSanctionEnabled: boolean;
   heartbeatSeconds: number;
+  entryFeeEnabled: boolean;
+  coinSignupBonus: number;
+  coinEntryFee: number;
+  coinWinReward: number;
+  coinDrawReward: number;
+  coinLossReward: number;
+  coinAttendanceReward: number;
+  coinAttendanceStreakReward: number;
+  coinRescueReward: number;
+  coinRescueThreshold: number;
+  coinNicknameChangeCost: number;
+}
+
+/** 잔액이 [min] 이상 [max] 미만인 지갑 수. [max]가 null이면 위가 열려 있다. */
+export interface CoinBalanceBucketView {
+  min: number;
+  max: number | null;
+  count: number;
+}
+
+/** 하루(서울 기준)의 엽전 지표. */
+export interface CoinDayStatsView {
+  day: string;
+  games: number;
+  timeExtensions: number;
+  gamePractices: number;
+  rewardedAds: number;
+}
+
+export interface CoinStatsView {
+  balanceBuckets: CoinBalanceBucketView[];
+  // 최근 날부터.
+  days: CoinDayStatsView[];
 }
 
 /** 걸 제재. 채팅 제한과 이용 정지는 기간이 있고, 경고와 영구 정지는 null이다. */

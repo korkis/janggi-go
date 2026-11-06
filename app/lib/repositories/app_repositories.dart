@@ -10,6 +10,7 @@ import 'archived_game_repository.dart';
 import 'auth_repository.dart';
 import 'challenge_repository.dart';
 import 'chat_repository.dart';
+import 'coin_wallet_repository.dart';
 import 'config_repository.dart';
 import 'connection_repository.dart';
 import 'deep_link_repository.dart';
@@ -47,6 +48,7 @@ class AppRepositories {
   final ChatRepository chatRepository;
   final ArchivedGameRepository archivedGameRepository;
   final DeviceSettingsRepository deviceSettingsRepository;
+  final CoinWalletRepository coinWalletRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -67,6 +69,7 @@ class AppRepositories {
     required this.chatRepository,
     required this.archivedGameRepository,
     required this.deviceSettingsRepository,
+    required this.coinWalletRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -100,6 +103,7 @@ class AppRepositories {
       chatRepository: ChatRepository(database: database, functions: functions),
       archivedGameRepository: ArchivedGameRepository(firestore: firestore),
       deviceSettingsRepository: DeviceSettingsRepository(preferences: SharedPreferencesAsync()),
+      coinWalletRepository: CoinWalletRepository(firestore: firestore, functions: functions),
     );
   }
 }

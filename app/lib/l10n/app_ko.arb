@@ -1692,9 +1692,81 @@
   "@errorNicknameChangeCooldown": {
     "description": "서버가 7일 제한으로 거절했을 때"
   },
-  "errorNicknameChangeNotFree": "무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요",
+  "errorNicknameChangeNotFree": "무료 닉네임 변경을 이미 썼어요. 다시 열어 주세요",
   "@errorNicknameChangeNotFree": {
-    "description": "두 번째 닉네임 변경. 엽전 기능이 아직 없다"
+    "description": "화면을 연 뒤 다른 기기에서 무료 변경을 써서 서버가 값 없는 변경을 거절했을 때"
+  },
+  "errorCoinPriceChanged": "값이 바뀌었어요. 다시 열어 주세요",
+  "@errorCoinPriceChanged": {
+    "description": "화면에 보여준 엽전 값과 서버 값이 다를 때"
+  },
+  "errorCoinsInsufficient": "엽전이 모자라요",
+  "@errorCoinsInsufficient": {
+    "description": "서버가 엽전이 모자라 거절했을 때"
+  },
+  "nicknameChangeNeedCoins": "닉네임을 바꾸려면 {cost}엽전이 필요해요. 지금 {balance}엽전이 있어요",
+  "@nicknameChangeNeedCoins": {
+    "description": "두 번째 닉네임 변경에 엽전이 모자랄 때",
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameChangePaidHint": "{cost}엽전을 내고 바꿔요. 바꾸면 {days}일 동안 다시 바꿀 수 없어요",
+  "@nicknameChangePaidHint": {
+    "description": "유료 닉네임 바꾸기 버튼 위 안내",
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "nicknameChangeConfirm": "{cost}엽전을 내고 {nickname}(으)로 바꿀까요?",
+  "@nicknameChangeConfirm": {
+    "description": "유료 닉네임 바꾸기 확인",
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "coinBalanceAmount": "{amount}",
+  "@coinBalanceAmount": {
+    "description": "홈 내 카드의 엽전 잔액 숫자",
+    "placeholders": {
+      "amount": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "coinBalanceLabel": "엽전 {amount}개",
+  "@coinBalanceLabel": {
+    "description": "엽전 잔액의 화면 낭독 문구",
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "coinAttendanceGranted": "출석 +{amount}엽전",
+  "@coinAttendanceGranted": {
+    "description": "출석 엽전을 받은 뒤 알림",
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
   },
   "errorChangeNickname": "닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요",
   "@errorChangeNickname": {

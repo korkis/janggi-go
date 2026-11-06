@@ -2150,11 +2150,59 @@ abstract class AppLocalizations {
   /// **'닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요'**
   String get errorNicknameChangeCooldown;
 
-  /// 두 번째 닉네임 변경. 엽전 기능이 아직 없다
+  /// 화면을 연 뒤 다른 기기에서 무료 변경을 써서 서버가 값 없는 변경을 거절했을 때
   ///
   /// In ko, this message translates to:
-  /// **'무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요'**
+  /// **'무료 닉네임 변경을 이미 썼어요. 다시 열어 주세요'**
   String get errorNicknameChangeNotFree;
+
+  /// 화면에 보여준 엽전 값과 서버 값이 다를 때
+  ///
+  /// In ko, this message translates to:
+  /// **'값이 바뀌었어요. 다시 열어 주세요'**
+  String get errorCoinPriceChanged;
+
+  /// 서버가 엽전이 모자라 거절했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'엽전이 모자라요'**
+  String get errorCoinsInsufficient;
+
+  /// 두 번째 닉네임 변경에 엽전이 모자랄 때
+  ///
+  /// In ko, this message translates to:
+  /// **'닉네임을 바꾸려면 {cost}엽전이 필요해요. 지금 {balance}엽전이 있어요'**
+  String nicknameChangeNeedCoins(int cost, int balance);
+
+  /// 유료 닉네임 바꾸기 버튼 위 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'{cost}엽전을 내고 바꿔요. 바꾸면 {days}일 동안 다시 바꿀 수 없어요'**
+  String nicknameChangePaidHint(int cost, int days);
+
+  /// 유료 닉네임 바꾸기 확인
+  ///
+  /// In ko, this message translates to:
+  /// **'{cost}엽전을 내고 {nickname}(으)로 바꿀까요?'**
+  String nicknameChangeConfirm(int cost, String nickname);
+
+  /// 홈 내 카드의 엽전 잔액 숫자
+  ///
+  /// In ko, this message translates to:
+  /// **'{amount}'**
+  String coinBalanceAmount(int amount);
+
+  /// 엽전 잔액의 화면 낭독 문구
+  ///
+  /// In ko, this message translates to:
+  /// **'엽전 {amount}개'**
+  String coinBalanceLabel(int amount);
+
+  /// 출석 엽전을 받은 뒤 알림
+  ///
+  /// In ko, this message translates to:
+  /// **'출석 +{amount}엽전'**
+  String coinAttendanceGranted(int amount);
 
   /// 닉네임 바꾸기 실패
   ///

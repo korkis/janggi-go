@@ -5,7 +5,9 @@ import {HttpsError} from "firebase-functions/https";
 import {changeNickname} from "../src/callables/changeNickname";
 import {checkNickname} from "../src/callables/checkNickname";
 import {createProfile} from "../src/callables/createProfile";
+import {INITIAL_APP_CONFIG} from "../src/models/appConfig";
 import {NicknameChange} from "../src/models/nickname";
+import {setAppConfig} from "../src/repositories/configsRepository";
 import {TEST_PROJECT_ID} from "./testEnv";
 
 const fft = functionsTest({projectId: TEST_PROJECT_ID});
@@ -46,6 +48,7 @@ async function expectHttpsError(call: () => unknown): Promise<HttpsError> {
 
 beforeEach(async () => {
   await clearFirestore();
+  await setAppConfig(INITIAL_APP_CONFIG);
 });
 
 afterAll(() => {
@@ -214,6 +217,8 @@ describe("changeNickname", () => {
     expect(error.code).toBe("failed-precondition");
     expect(error.details).toEqual({code: "nicknameChangeNotFree"});
     expect((await db.doc("nicknames/장기귀신").get()).exists).toBe(false);
+    // 값을 모르고 부른 옛 앱은 엽전을 내지 않는다.
+    expect((await db.doc("coin_wallets/u1").get()).data()?.balance).toBe(INITIAL_APP_CONFIG.coinSignupBonus);
   });
 
   test("다른 사람이 쓰는 닉네임이면 taken으로 거절한다", async () => {

@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import {getFirestore} from "firebase-admin/firestore";
 import {APP_CONFIG_CACHE_SECONDS} from "../config";
 import {AppConfig} from "../models/appConfig";
-import {modelConverter} from "./firestore";
+import {modelConverter, runTransaction} from "./firestore";
 
 const COLLECTION = "configs";
 const APP_CONFIG_ID = "app";
@@ -41,16 +41,19 @@ export async function setAppConfig(config: AppConfig): Promise<void> {
   cachedAppConfig = null;
 }
 
-/** configs/app이 없을 때만 [config]로 만든다. 만들었으면 true. */
-export async function createAppConfigIfAbsent(config: AppConfig): Promise<boolean> {
-  try {
-    await appConfigRef().create(config);
-    return true;
-  } catch (error) {
-    // 이미 있으면 ALREADY_EXISTS(6)로 실패한다.
-    if ((error as {code?: unknown}).code === 6) {
-      return false;
+/**
+ * configs/app에 없는 필드만 [config]의 값으로 채운다. 문서가 없으면 만든다. 이미 있는 값은 바꾸지 않는다. 채운 필드 이름을 돌려준다.
+ * 필드가 늘어난 서버를 배포하기 전에 부른다. 앱과 서버가 모든 필드를 필수로 읽기 때문이다.
+ */
+export async function fillMissingAppConfig(config: AppConfig): Promise<string[]> {
+  const ref = appConfigRef();
+  return runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const current: Partial<AppConfig> = snapshot.data() ?? {};
+    const missing = Object.entries(config).filter(([key]) => !(key in current));
+    if (missing.length > 0) {
+      transaction.set(ref, {...current, ...Object.fromEntries(missing)} as AppConfig);
     }
-    throw error;
-  }
+    return missing.map(([key]) => key);
+  });
 }

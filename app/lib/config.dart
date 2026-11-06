@@ -118,12 +118,15 @@ abstract final class NicknameRules {
   /// 닉네임을 바꾼 뒤 다시 바꿀 수 없는 기간(`docs/screens.md`의 내 정보). 서버(`NICKNAME_CHANGE_COOLDOWN_DAYS`)와 같다.
   static const changeCooldownDays = 7;
 
-  /// 엽전 없이 바꿀 수 있는 횟수. 첫 변경만 무료이고, 엽전으로 바꾸기는 3단계에서 연다(`docs/monetization.md`).
+  /// 엽전 없이 바꿀 수 있는 횟수. 첫 변경만 무료이고 그 뒤에는 `configs/app.coinNicknameChangeCost`를 낸다(`docs/monetization.md`).
   static const freeChangeCount = 1;
 
   static bool isValidFormat(String nickname) =>
       nickname.length >= minLength && nickname.length <= maxLength && pattern.hasMatch(nickname);
 }
+
+/// 출석의 "하루"가 바뀌는 시간대의 UTC 차이. 서울 시간 0시다. Functions의 `COIN_DAY_UTC_OFFSET_HOURS`와 같다.
+const coinDayUtcOffset = Duration(hours: 9);
 
 /// 닉네임을 입력하다 멈춘 뒤 서버에 쓸 수 있는지 물어볼 때까지 기다리는 시간.
 const nicknameCheckDelay = Duration(milliseconds: 400);

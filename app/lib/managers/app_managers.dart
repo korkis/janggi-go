@@ -1,6 +1,7 @@
 import 'auth_manager.dart';
 import 'block_manager.dart';
 import 'challenge_manager.dart';
+import 'coin_manager.dart';
 import 'connection_manager.dart';
 import 'invite_link_manager.dart';
 import 'language_manager.dart';
@@ -23,6 +24,7 @@ class AppManagers {
   final BlockManager blockManager;
   final SanctionManager sanctionManager;
   final LanguageManager languageManager;
+  final CoinManager coinManager;
 
   AppManagers({
     required this.authManager,
@@ -35,6 +37,7 @@ class AppManagers {
     required this.blockManager,
     required this.sanctionManager,
     required this.languageManager,
+    required this.coinManager,
   });
 
   factory AppManagers.createDefault() {
@@ -52,6 +55,7 @@ class AppManagers {
       blockManager: BlockManager(authManager: authManager),
       sanctionManager: SanctionManager(authManager: authManager),
       languageManager: LanguageManager(),
+      coinManager: CoinManager(authManager: authManager),
     );
   }
 }

@@ -7,6 +7,7 @@ import '../logging.dart';
 import '../models/active_game.dart';
 import '../models/app_config.dart';
 import '../models/archived_game.dart';
+import '../models/coin.dart';
 import '../models/connection.dart';
 import '../models/game_enums.dart';
 import '../models/player_state.dart';
@@ -16,6 +17,9 @@ import '../models/user.dart';
 import '../models/user_private.dart';
 import '../repositories/active_games_repository.dart';
 import '../repositories/archived_games_repository.dart';
+import '../repositories/coin_transactions_repository.dart';
+import '../repositories/coin_wallets_repository.dart';
+import '../repositories/configs_repository.dart';
 import '../repositories/connections_repository.dart';
 import '../repositories/online_users_repository.dart';
 import '../repositories/player_states_repository.dart';
@@ -26,6 +30,7 @@ import '../repositories/spectators_repository.dart';
 import '../repositories/users_private_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
+import 'coin_rules.dart';
 import 'game_rules.dart';
 import 'rating_rules.dart';
 
@@ -70,6 +75,9 @@ class GameService {
   final OnlineUsersRepository onlineUsers;
   final SpectateListRepository spectateList;
   final SpectatorsRepository spectators;
+  final ConfigsRepository configs;
+  final CoinWalletsRepository coinWallets;
+  final CoinTransactionsRepository coinTransactions;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -86,6 +94,9 @@ class GameService {
     required this.onlineUsers,
     required this.spectateList,
     required this.spectators,
+    required this.configs,
+    required this.coinWallets,
+    required this.coinTransactions,
     required this.taskScheduler,
     required this.logger,
   });
@@ -96,21 +107,28 @@ class GameService {
   /// 이미 대기열, 방, 대국, 신청 중 하나에 있을 때 `busy`로 거절한다. 묶지 못하면 만든 대국을 지우고 그 예외를 다시 던진다.
   /// 묶으면 두 대국자의 대기열 표시(`quickQueueJoinedAt`)와 신청 표시(`outgoingChallengeId`, `incomingChallengeId`)는 지운다.
   /// 신청 표시는 신청을 수락해 만드는 대국에서만 남아 있다([check]가 그 신청을 확인한다). [gameId]를 주면 그 ID로 만든다(다시 두기).
+  /// 빠른 대국과 신청 대국이면 묶는 트랜잭션에서 참가비를 받는다. 묶지 못하면 참가비도 나가지 않는다.
   /// 묶은 뒤 두 사람의 `online_users` 상태를 `playing`으로 바꾼다.
   Future<String> createGame(ActiveGame game, {required DateTime now, String? gameId, GameBindingCheck? check}) async {
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
     await settlePreviousGames(uids, now);
 
+    final appConfig = isCoinGame(game.meta) ? await configs.getAppConfig() : null;
     final newGameId = gameId ?? activeGames.createGameId();
     await activeGames.createGame(newGameId, game);
     try {
       await firestore.runTransaction((transaction) async {
         final states = await playerStates.getPlayerStatesInTransaction(transaction, uids);
+        // 쓰기를 모으기 전에 읽는다. [check]가 쓰기를 모을 수 있으므로 그보다 먼저 읽는다.
+        final coinPlan = appConfig == null
+            ? CoinPlan.empty
+            : await _planEntryFeesInTransaction(transaction, newGameId, uids, appConfig, now);
         if (check != null) {
           await check(transaction, states);
         } else if (uids.any((uid) => isBusy(states[uid]))) {
           throw const CallableException.failedPrecondition(GameErrorCode.busy, '이미 대국이나 매칭 중인 대국자가 있습니다');
         }
+        _writeCoinPlanInTransaction(transaction, coinPlan);
         for (final uid in uids) {
           playerStates.setPlayerStateInTransaction(
             transaction,
@@ -206,7 +224,8 @@ class GameService {
   /// 한 트랜잭션에서 하며 `games_archived/{gameId}`가 이미 있으면 아무것도 하지 않는다. 여러 번 불려도 결과가 같다.
   /// 급수 대국(`meta.rated`)이면 레이팅과 급수도 반영한다. 방 대국이면 방을 `waiting`으로 돌린다. 두 사람의 `roomId`는 그대로
   /// 두므로 결과 화면을 나가면 방 대기실로 돌아온다. 두 사람의 `users.stats`에 이 대국을 더한다. 온라인 대국은 종류와 급수 대국
-  /// 여부에 상관없이 모두 센다(`docs/database.md`의 `users`).
+  /// 여부에 상관없이 모두 센다(`docs/database.md`의 `users`). 빠른 대국과 신청 대국이면 보상을 주거나, 수가 하나도 없이 끝났으면
+  /// 참가비를 돌려준다(`docs/server.md`의 엽전).
   Future<void> finalizeGame(String gameId, {required DateTime now}) async {
     final game = await activeGames.getGame(gameId);
     if (game == null) {
@@ -219,15 +238,19 @@ class GameService {
     }
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
     final rated = game.meta.rated;
+    final appConfig = isCoinGame(game.meta) ? await configs.getAppConfig() : null;
     final archived = await firestore.runTransaction((transaction) async {
       if (await archivedGames.hasArchivedGameInTransaction(transaction, gameId)) {
         return false;
       }
       final roomId = game.meta.roomId;
-      final (states, room, profiles) = await (
+      final (states, room, profiles, coinPlan) = await (
         playerStates.getPlayerStatesInTransaction(transaction, uids),
         roomId == null ? Future.value(null) : rooms.getRoomInTransaction(transaction, roomId),
         users.getUsersInTransaction(transaction, uids),
+        appConfig == null
+            ? Future.value(CoinPlan.empty)
+            : _planGameEndInTransaction(transaction, gameId, game, uids, appConfig, now),
       ).wait;
       if (roomId != null && room != null && room.gameId == gameId && room.status == RoomStatus.playing) {
         rooms.updateStatusInTransaction(transaction, roomId, status: RoomStatus.waiting, now: now);
@@ -236,6 +259,7 @@ class GameService {
           ? await _applyRatingsInTransaction(transaction, gameId, game, now)
           : const <String, RankChange>{};
       archivedGames.createArchivedGameInTransaction(transaction, gameId, _buildArchivedGame(game));
+      _writeCoinPlanInTransaction(transaction, coinPlan);
       _updateRecordsInTransaction(transaction, gameId, game, profiles, rankChanges);
       for (final uid in uids) {
         final state = states[uid];
@@ -265,6 +289,70 @@ class GameService {
       'rated': rated,
       'reason': game.state.result?.reason.name,
     });
+  }
+
+  Future<CoinPlan> _planEntryFeesInTransaction(
+    FirestoreTransaction transaction,
+    String gameId,
+    List<String> uids,
+    AppConfig appConfig,
+    DateTime now,
+  ) async {
+    if (!appConfig.entryFeeEnabled) {
+      return CoinPlan.empty;
+    }
+    final (wallets, feeTransactions) = await (
+      coinWallets.getWalletsInTransaction(transaction, uids),
+      _getFeeTransactionsInTransaction(transaction, gameId, uids),
+    ).wait;
+    return planEntryFees(
+      gameId: gameId,
+      uids: uids,
+      wallets: wallets,
+      feeTransactions: feeTransactions,
+      config: appConfig,
+      now: now,
+    );
+  }
+
+  Future<CoinPlan> _planGameEndInTransaction(
+    FirestoreTransaction transaction,
+    String gameId,
+    ActiveGame game,
+    List<String> uids,
+    AppConfig appConfig,
+    DateTime now,
+  ) async {
+    final (wallets, feeTransactions) = await (
+      coinWallets.getWalletsInTransaction(transaction, uids),
+      _getFeeTransactionsInTransaction(transaction, gameId, uids),
+    ).wait;
+    return planGameEnd(
+      gameId: gameId,
+      game: game,
+      wallets: wallets,
+      feeTransactions: feeTransactions,
+      config: appConfig,
+      now: now,
+    );
+  }
+
+  Future<Map<String, CoinTransaction?>> _getFeeTransactionsInTransaction(
+    FirestoreTransaction transaction,
+    String gameId,
+    List<String> uids,
+  ) {
+    final ids = [for (final uid in uids) getCoinTransactionId(CoinReason.entryFee, uid, gameId)];
+    return coinTransactions.getTransactionsInTransaction(transaction, ids);
+  }
+
+  void _writeCoinPlanInTransaction(FirestoreTransaction transaction, CoinPlan plan) {
+    for (final MapEntry(key: uid, value: wallet) in plan.wallets.entries) {
+      coinWallets.setWalletInTransaction(transaction, uid, wallet);
+    }
+    for (final move in plan.moves) {
+      coinTransactions.createTransactionInTransaction(transaction, move.transactionId, move.transaction);
+    }
   }
 
   /// 두 대국자의 `users`에 전적과, 급수 대국이면 바뀐 급수를 쓴다. 프로필이 없는 사용자는 건너뛴다.

@@ -2,6 +2,7 @@ import {useEffect} from "react";
 import {BrowserRouter, Navigate, Route, Routes} from "react-router";
 import {Layout} from "./components/Layout";
 import {RequireAdmin} from "./components/RequireAdmin";
+import {CoinStatsPage} from "./pages/CoinStatsPage";
 import {ConfigPage} from "./pages/ConfigPage";
 import {LoginPage} from "./pages/LoginPage";
 import {ModerationLogsPage} from "./pages/ModerationLogsPage";
@@ -10,6 +11,7 @@ import {ReportsPage} from "./pages/ReportsPage";
 import {UserPage} from "./pages/UserPage";
 import {UserSearchPage} from "./pages/UserSearchPage";
 import {useAuthStore} from "./stores/authStore";
+import {useCoinStatsStore} from "./stores/coinStatsStore";
 import {useConfigStore} from "./stores/configStore";
 import {useModerationStore} from "./stores/moderationStore";
 import {useUiStore} from "./stores/uiStore";
@@ -25,6 +27,7 @@ export function App() {
     if (status === "signedOut" || status === "notAdmin") {
       useModerationStore.getState().reset();
       useConfigStore.getState().reset();
+      useCoinStatsStore.getState().reset();
       useUiStore.getState().clearNotice();
     }
   }, [status]);
@@ -40,6 +43,7 @@ export function App() {
             <Route path="/moderation-logs" element={<ModerationLogsPage />} />
             <Route path="/users" element={<UserSearchPage />} />
             <Route path="/users/:uid" element={<UserPage />} />
+            <Route path="/coins" element={<CoinStatsPage />} />
             <Route path="/config" element={<ConfigPage />} />
           </Route>
         </Route>

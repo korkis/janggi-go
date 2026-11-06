@@ -56,10 +56,11 @@ class UserRepository {
     }
   }
 
-  /// 닉네임을 바꾼다(`docs/screens.md`의 내 정보). 서버가 거절하면 그 이유의 AppException을 던진다.
-  Future<void> changeNickname(String nickname) async {
+  /// 닉네임을 바꾼다(`docs/screens.md`의 내 정보). 무료 변경을 이미 썼으면 사용자에게 보여준 값을 [coinCost]로 보낸다. 서버가
+  /// 거절하면 그 이유의 AppException을 던진다.
+  Future<void> changeNickname(String nickname, {int? coinCost}) async {
     try {
-      await functions.httpsCallable('changeNickname').call<Object?>({'nickname': nickname});
+      await functions.httpsCallable('changeNickname').call<Object?>({'nickname': nickname, 'coinCost': ?coinCost});
     } on FirebaseFunctionsException catch (error) {
       final details = error.details;
       final code = details is Map ? details['code'] : null;
@@ -72,6 +73,10 @@ class UserRepository {
           throw const AppException(AppErrorCode.nicknameChangeCooldown);
         case 'nicknameChangeNotFree':
           throw const AppException(AppErrorCode.nicknameChangeNotFree);
+        case 'coinPriceChanged':
+          throw const AppException(AppErrorCode.coinPriceChanged);
+        case 'coinsInsufficient':
+          throw const AppException(AppErrorCode.coinsInsufficient);
       }
       rethrow;
     }

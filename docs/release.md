@@ -101,6 +101,7 @@
 
 운영 배포 전에 채울 값:
 
+- `configs/app`의 새 필드. 서버를 배포하기 전에 `npm run init-app-config`를 실행한다([server.md](./server.md)의 `configs/app`).
 - `assetlinks.json`의 Play App Signing SHA-256(지금은 개발 PC 디버그 키만 있다).
 - AASA의 `APPLE_TEAM_ID`, Associated Domains, `invite.html`의 `APP_STORE_URL`.
 - 운영 Firestore 규칙. [server.md](./server.md) 구현 순서 1번에 2026-11-30까지 열려 있다고 적힌 규칙이 운영에 남아 있는지 확인한다.

@@ -325,7 +325,7 @@ void main() {
     expect(find.text('장기신'), findsOneWidget);
   });
 
-  testWidgets('닉네임을 바꾼 지 7일이 지나지 않았거나 무료 변경을 썼으면 바꾸기를 열지 않고 알린다', (tester) async {
+  testWidgets('닉네임을 바꾼 지 7일이 지나지 않았거나 엽전이 모자라면 바꾸기를 열지 않고 알린다', (tester) async {
     _usePhoneView(tester);
     final fakes = await _signIn('me', '나');
     final changedAt = DateTime.now().toUtc().subtract(const Duration(days: 2));
@@ -341,10 +341,85 @@ void main() {
       'me',
       _private(nicknameChangeCount: 1, nicknameChangedAt: DateTime.now().toUtc().subtract(const Duration(days: 30))),
     );
+    fakes.coinWallets.emit('me', 120);
     await _tap(tester, find.byTooltip('닉네임 바꾸기'));
-    expect(find.text('무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요'), findsOneWidget);
+    expect(find.text('닉네임을 바꾸려면 300엽전이 필요해요. 지금 120엽전이 있어요'), findsOneWidget);
     await _tap(tester, find.text('확인'));
     expect(find.text('바꾸기'), findsNothing);
+  });
+
+  testWidgets('두 번째 닉네임 변경은 값을 보여주고 확인을 받은 뒤 엽전을 내고 바꾼다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = await _signIn('me', '나');
+    fakes.userPrivates.emit(
+      'me',
+      _private(nicknameChangeCount: 1, nicknameChangedAt: DateTime.now().toUtc().subtract(const Duration(days: 30))),
+    );
+    fakes.coinWallets.emit('me', 300);
+    await tester.pumpWidget(_app(const ProfileScreen()));
+    await _pumpFor(tester);
+
+    await _tap(tester, find.byTooltip('닉네임 바꾸기'));
+    expect(find.text('300엽전을 내고 바꿔요. 바꾸면 7일 동안 다시 바꿀 수 없어요'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '장기신');
+    await _pumpFor(tester);
+
+    // 취소하면 바꾸지 않는다.
+    await _tap(tester, find.widgetWithText(FilledButton, '바꾸기'));
+    expect(find.text('300엽전을 내고 장기신(으)로 바꿀까요?'), findsOneWidget);
+    await _tap(tester, find.text('취소'));
+    expect(fakes.users.nicknameChanges, isEmpty);
+
+    await _tap(tester, find.widgetWithText(FilledButton, '바꾸기'));
+    await _tap(tester, find.widgetWithText(TextButton, '바꾸기'));
+    expect(fakes.users.nicknameChanges, ['me 장기신']);
+    expect(fakes.users.lastNicknameCoinCost, 300);
+    expect(find.text('닉네임을 바꿨어요'), findsOneWidget);
+  });
+
+  testWidgets('첫 닉네임 변경은 값을 보내지 않고 확인도 받지 않는다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = await _signIn('me', '나');
+    fakes.userPrivates.emit('me', _private());
+    await tester.pumpWidget(_app(const ProfileScreen()));
+    await _pumpFor(tester);
+
+    await _tap(tester, find.byTooltip('닉네임 바꾸기'));
+    await tester.enterText(find.byType(TextField), '장기신');
+    await _pumpFor(tester);
+    await _tap(tester, find.widgetWithText(FilledButton, '바꾸기'));
+
+    expect(fakes.users.nicknameChanges, ['me 장기신']);
+    expect(fakes.users.lastNicknameCoinCost, isNull);
+  });
+
+  testWidgets('값이 바뀌었거나 엽전이 모자라다고 서버가 거절하면 이유를 알린다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = await _signIn('me', '나');
+    fakes.userPrivates.emit(
+      'me',
+      _private(nicknameChangeCount: 1, nicknameChangedAt: DateTime.now().toUtc().subtract(const Duration(days: 30))),
+    );
+    fakes.coinWallets.emit('me', 500);
+    await tester.pumpWidget(_app(const ProfileScreen()));
+    await _pumpFor(tester);
+
+    await _tap(tester, find.byTooltip('닉네임 바꾸기'));
+    await tester.enterText(find.byType(TextField), '장기신');
+    await _pumpFor(tester);
+
+    fakes.users.nextChangeError = const AppException(AppErrorCode.coinPriceChanged);
+    await _tap(tester, find.widgetWithText(FilledButton, '바꾸기'));
+    await _tap(tester, find.widgetWithText(TextButton, '바꾸기'));
+    expect(find.text('값이 바뀌었어요. 다시 열어 주세요'), findsOneWidget);
+    await _tap(tester, find.text('확인'));
+
+    fakes.users.nextChangeError = const AppException(AppErrorCode.coinsInsufficient);
+    await _tap(tester, find.widgetWithText(FilledButton, '바꾸기'));
+    await _tap(tester, find.widgetWithText(TextButton, '바꾸기'));
+    expect(find.text('엽전이 모자라요'), findsOneWidget);
+    await _tap(tester, find.text('확인'));
+    expect(fakes.users.nicknameChanges, isEmpty);
   });
 
   testWidgets('서버가 닉네임 바꾸기를 거절하면 이유를 알리고 화면에 남는다', (tester) async {

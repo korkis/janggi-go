@@ -19,6 +19,7 @@ Future<void> main() async {
   repositories = AppRepositories.createDefault();
   managers = AppManagers.createDefault();
   managers.connectionManager.observeAppLifecycle();
+  managers.coinManager.observeAppLifecycle();
   managers.inviteLinkManager.start();
   // 저장한 언어로 첫 화면을 그린다.
   await managers.languageManager.load();

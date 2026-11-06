@@ -72,6 +72,14 @@
         {"fieldPath": "uid", "order": "ASCENDING"},
         {"fieldPath": "changedAt", "order": "DESCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "coin_transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "reason", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "ASCENDING"}
+      ]
     }
   ],
   "fieldOverrides": [

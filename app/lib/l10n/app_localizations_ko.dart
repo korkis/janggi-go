@@ -1278,8 +1278,47 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorNicknameChangeCooldown => '닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요';
 
   @override
-  String get errorNicknameChangeNotFree =>
-      '무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요';
+  String get errorNicknameChangeNotFree => '무료 닉네임 변경을 이미 썼어요. 다시 열어 주세요';
+
+  @override
+  String get errorCoinPriceChanged => '값이 바뀌었어요. 다시 열어 주세요';
+
+  @override
+  String get errorCoinsInsufficient => '엽전이 모자라요';
+
+  @override
+  String nicknameChangeNeedCoins(int cost, int balance) {
+    return '닉네임을 바꾸려면 $cost엽전이 필요해요. 지금 $balance엽전이 있어요';
+  }
+
+  @override
+  String nicknameChangePaidHint(int cost, int days) {
+    return '$cost엽전을 내고 바꿔요. 바꾸면 $days일 동안 다시 바꿀 수 없어요';
+  }
+
+  @override
+  String nicknameChangeConfirm(int cost, String nickname) {
+    return '$cost엽전을 내고 $nickname(으)로 바꿀까요?';
+  }
+
+  @override
+  String coinBalanceAmount(int amount) {
+    final intl.NumberFormat amountNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String amountString = amountNumberFormat.format(amount);
+
+    return '$amountString';
+  }
+
+  @override
+  String coinBalanceLabel(int amount) {
+    return '엽전 $amount개';
+  }
+
+  @override
+  String coinAttendanceGranted(int amount) {
+    return '출석 +$amount엽전';
+  }
 
   @override
   String get errorChangeNickname => '닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요';

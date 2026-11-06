@@ -31,8 +31,8 @@ flowchart LR
 
 | 구성 | 맡는 일 |
 |---|---|
-| 대국 서버 (`server/game`) | 대국 상태와 매칭에 관한 모든 쓰기. 빠른 대국, 방, 신청, 접속자 목록, 상차림, 수, 시계, 접속 끊김, 결과, 레이팅, 다시 두기 |
-| Functions (`server/functions`) | 대국 밖의 서버 기능. 프로필과 닉네임, 채팅 검사와 저장, 신고, 제재, Admin 웹 Callable, 보관 기간 정리 |
+| 대국 서버 (`server/game`) | 대국 상태와 매칭에 관한 모든 쓰기. 빠른 대국, 방, 신청, 접속자 목록, 상차림, 수, 시계, 접속 끊김, 결과, 레이팅, 다시 두기, 참가비와 대국 보상 |
+| Functions (`server/functions`) | 대국 밖의 서버 기능. 프로필과 닉네임, 가입·출석·바닥 구제 엽전, 채팅 검사와 저장, 신고, 제재, Admin 웹 Callable, 보관 기간 정리 |
 | 앱이 직접 쓰는 것 | 접속 상태(`connections`), 관전자 표시(`spectators`), 차단 목록, 신청 받기 설정 |
 | Cloud Tasks | 대국 서버가 정한 시각에 대국 서버를 다시 부른다. 시간패, 상차림 마감, 접속 끊김 마감, 매칭 범위 넓히기, 신청 응답 마감 |
 
@@ -41,6 +41,7 @@ flowchart LR
 - 대국 상태(수, 시계, 결과, 급수)와 그 대국을 만드는 매칭 상태(대기열, 방, 신청, 사용자 활동)는 대국 서버만 쓴다. 한 사람이 대기열·방·대국·신청 중 하나에만 있도록 한 곳에서 관리하기 위해서다.
 - Functions는 대국 상태를 쓰지 않는다. 채팅 권한을 확인할 때 대국 정보를 읽기만 한다.
 - `users/{uid}`는 둘이 함께 쓴다. 닉네임은 Functions, 급수와 전적은 대국 서버가 쓴다. 같은 필드를 둘이 쓰지 않는다.
+- `coin_wallets/{uid}`는 둘이 같은 필드를 쓴다. 그래서 언제나 트랜잭션 안에서 읽고 쓴다(아래 "엽전").
 - 제재 확인: 대국 서버는 대기열·방·신청을 시작할 때 이용 정지와 영구 정지를 확인하고, Functions는 채팅을 받을 때 채팅 제한까지 확인한다.
 
 ## 대국 서버 실행 방식 — 확정
@@ -236,6 +237,7 @@ flowchart LR
    - `users/{uid}.stats` 갱신. 온라인 대국은 종류(빠른 대국, 방, 신청)와 급수 대국 여부에 상관없이 모두 센다(2026-11-03 구현). 급수 대국이면 바뀐 `rankLevel`도 같은 쓰기에 담는다.
    - 급수 대국이면 `ratings` 갱신, `users.rankLevel`, `users_private.rankProgress`·`winsToNextRank`, `player_states.lastRankChange` 쓰기.
    - `player_states.gameId`를 비우고 `lastGameId`를 쓴다.
+   - 빠른 대국과 신청 대국이면 대국 보상을 주거나 참가비를 돌려준다(아래 "엽전").
 3. `online_users`의 상태를 `waiting`으로 돌린다.
 
 레이팅은 [rank.md](./game/rank.md)의 Elo를 쓴다.
@@ -248,6 +250,42 @@ flowchart LR
 - 급수 변동(`lastRankChange`)의 "전" 값은 이 대국 전 레이팅으로 계산한다. `ratings` 문서가 없으면 처음 레이팅(1000)이다.
 - 급수 대국은 빠른 대국(다시 두기 포함)이고 접장기가 아닌 대국이다. 대국을 만들 때 `meta.rated`에 정한다.
 - `users_private` 문서가 없으면(Functions가 프로필과 함께 만드는 문서라 정상이면 없다) 급수 진행만 쓰지 않고 나머지는 반영한다. 대국 마무리를 막지 않기 위해서다.
+
+### 엽전 — 확정 (2026-11-06 구현)
+
+숫자와 규칙은 [monetization.md](./monetization.md)의 엽전, 저장 구조는 [database.md](./database.md)의 `coin_wallets`, `coin_transactions`다. 계산은 대국 서버의 `coin_rules.dart`와 Functions의 `coinService.ts`에 있다.
+
+| 일 | 어디서 | 언제 |
+|---|---|---|
+| 가입 지급 | Functions `createProfile` | 프로필을 만드는 트랜잭션 |
+| 출석 | Functions `claimAttendance` | 앱을 열 때 |
+| 바닥 구제 | Functions `claimCoinRescue`, 대국 서버 `createGame` | 앱이 부를 때(지금 앱은 부르지 않는다), 또는 참가비를 받을 때 |
+| 닉네임 유료 변경 | Functions `changeNickname` | 닉네임을 바꾸는 트랜잭션 |
+| 참가비 | 대국 서버 `createGame` | 두 대국자를 묶는 트랜잭션 |
+| 대국 보상, 참가비 돌려주기 | 대국 서버 `finalizeGame` | 기보를 저장하는 트랜잭션 |
+
+틀어지지 않게 하는 방법:
+
+- 지갑은 트랜잭션 안에서 읽고 내역과 함께 쓴다. 동시에 들어온 요청은 트랜잭션이 다시 실행되어 앞의 결과 위에 계산한다.
+- 하루 한 번인 것은 트랜잭션 안에서 지갑의 `attendanceDay`, `rescueDay`로 확인한다. 참가비는 트랜잭션 안에서 `entryFee_{uid}_{gameId}` 내역이 있는지 확인한다. 대국 보상과 돌려주기는 `games_archived/{gameId}`가 이미 있으면 하지 않는 `finalizeGame`의 확인을 그대로 쓴다.
+- 내역 문서 ID가 고정이고 `create`로 쓰므로, 이 확인을 뚫고 같은 일이 다시 와도 커밋이 실패해 지갑이 바뀌지 않는다.
+- 참가비는 묶는 트랜잭션 안에 있어 묶지 못하면(상대를 다른 요청이 가져갔다, `busy`) 나가지 않는다. 그래서 돌려줄 일이 생기는 것은 묶인 뒤 수 없이 끝난 대국뿐이다.
+
+참가비 규칙(`createGame`):
+
+- `meta.mode`가 `room`이면 받지 않는다. 방 대국의 다시 두기도 같다. `entryFeeEnabled`가 false면 받지 않고 내역도 남기지 않는다.
+- 다시 두기로 만드는 빠른 대국과 신청 대국도 보통 대국과 같이 받는다.
+- 잔액이 참가비보다 적으면 바닥 구제 대상(`coinRescueThreshold` 미만이고 오늘 아직 받지 않음)일 때 구제를 먼저 주고 받는다. 그래도 모자라면 받지 않고 0인 내역을 남긴다. 그래서 엽전 때문에 매칭이 실패하는 경우는 없고, 옛 앱은 새 오류 코드를 보지 않는다.
+
+대국 끝 규칙(`finalizeGame`):
+
+- 수가 하나도 없이 끝나면(상차림 중 기권, 끊김, 첫 수 전 시간패) 성립하지 않은 대국이다. 두 사람 모두 낸 그대로 돌려받고 보상은 없다. 나간 쪽도 돌려받는다. 나간 쪽은 급수와 전적에서 이미 지기 때문이고, 두 계정으로 일부러 끝내도 엽전이 늘지 않는다.
+- 그 밖에는 이긴 쪽 `coinWinReward`, 진 쪽 `coinLossReward`를 무상으로 준다. `result.winner`가 언제나 있어 `coinDrawReward`는 쓰이지 않는다.
+
+닉네임 유료 변경과 옛 앱:
+
+- `changeNickname`의 선택 파라미터 `coinCost`(앱이 보여준 값)가 있어야 엽전을 받는다. 없으면 지금까지처럼 `nicknameChangeNotFree`로 거절하므로 값을 보여주지 못하는 옛 앱에서 엽전이 나가지 않는다.
+- `coinCost`가 지금 `coinNicknameChangeCost`와 다르면 `coinPriceChanged`, 잔액이 모자라면 `coinsInsufficient`로 거절한다. 옛 앱은 `coinCost`를 보내지 않으므로 이 코드를 받지 않는다.
 
 ### 다시 두기
 
@@ -340,7 +378,9 @@ flowchart LR
 |---|---|
 | `checkNickname` | 닉네임 정하기 화면에서 입력하는 동안 쓸 수 있는지 확인한다. 형식, 중복, 금칙어, 운영진 사칭 단어 |
 | `createProfile` | 첫 가입 때 닉네임을 정한다. `nicknames`, `users`(`rankLevel` 1), `users_private`를 한 트랜잭션으로 만든다 |
-| `changeNickname` | 닉네임을 바꾼다. 7일 제한, 첫 변경 무료. 엽전을 쓰는 두 번째 변경부터는 3단계에서 붙인다. 아래 "닉네임 바꾸기" |
+| `changeNickname` | 닉네임을 바꾼다. 7일 제한, 첫 변경 무료, 두 번째부터 엽전을 낸다. 아래 "닉네임 바꾸기" |
+| `claimAttendance` | 오늘의 출석 엽전을 준다. 결과 `granted`, `amount`, `streak`, `balance`. 오늘 이미 받았으면 `granted`가 false다. 프로필이 없으면 `profileRequired` |
+| `claimCoinRescue` | 잔액이 기준 미만이면 바닥 구제를 준다. 결과 `granted`, `amount`, `balance`. 대상이 아니거나 오늘 이미 받았으면 `granted`가 false다. 프로필이 없으면 `profileRequired` |
 | `sendChatMessage` | `channel`, `gameId?`, `text`를 받아 권한과 채팅 제한을 확인하고 검사한다. 통과하면 `chats_*`와 `chat_checks`에 쓰고, 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 거절 사유를 돌려준다. 아래 "채팅 Callable" |
 | `reportMessage` | `channel`, `gameId?`, `messageId`를 받아 신고된 메시지와 앞뒤 메시지, 검사 결과 사본으로 `reports`를 만든다. 아래 "채팅 Callable" |
 | `deleteAccount` | 회원 탈퇴. 지울 범위는 [database.md](./database.md)의 미정 |
@@ -349,12 +389,12 @@ flowchart LR
 ### 닉네임 바꾸기 — 확정 (2026-11-03 구현)
 
 - `changeNickname`은 `nickname`을 받아 `checkNickname`과 같은 형식, 사칭 단어, 금칙어 검사를 한 뒤 한 트랜잭션으로 바꾼다. 거절 이유는 `createProfile`처럼 `details.code`의 NicknameRejectReason(`invalidFormat`, `taken`, `bannedWord`, `impersonation`)이다.
-- 바꿀 수 없으면 `failed-precondition`과 `details.code`로 거절한다. `profileRequired`(프로필 없음), `nicknameChangeCooldown`(바꾼 지 7일이 지나지 않음), `nicknameChangeNotFree`(무료 변경을 이미 씀). 7일 제한을 먼저 본다.
-- 엽전이 아직 없으므로 두 번째 변경부터는 `nicknameChangeNotFree`로 막는다. 엽전(3단계)이 생기면 엽전을 쓰고 바꾸도록 연다. 무료 횟수는 `config.ts`의 `NICKNAME_FREE_CHANGE_COUNT`(1)다.
+- 바꿀 수 없으면 `failed-precondition`과 `details.code`로 거절한다. `profileRequired`(프로필 없음), `nicknameChangeCooldown`(바꾼 지 7일이 지나지 않음), `nicknameChangeNotFree`(무료 변경을 이미 썼는데 `coinCost`가 없음), `coinPriceChanged`(`coinCost`가 지금 값과 다름), `coinsInsufficient`(엽전이 모자람). 7일 제한을 먼저 본다.
+- 두 번째 변경부터는 `coinNicknameChangeCost`를 낸다(2026-11-06 구현, 위 "엽전"). 무료 횟수는 `config.ts`의 `NICKNAME_FREE_CHANGE_COUNT`(1)다.
 - 지금 닉네임과 같은 닉네임이면(응답을 못 받고 다시 누른 경우) 바꾸지 않고 성공으로 본다. 영문 대소문자만 바꾸면 같은 `nicknames` 예약을 그대로 쓰고, 그 밖에는 이전 예약을 지우고 새로 만든다. 이전 닉네임은 바로 다른 사람이 쓸 수 있다.
-- 쓰는 것: `users.nickname`, `users_private.nicknameChangeCount`(+1)·`nicknameChangedAt`, `nickname_changes`(`before`, `after`). `users`의 급수와 전적은 건드리지 않는다.
+- 쓰는 것: `users.nickname`, `users_private.nicknameChangeCount`(+1)·`nicknameChangedAt`, `nickname_changes`(`before`, `after`), 유료면 `coin_wallets`와 `coin_transactions`. `users`의 급수와 전적은 건드리지 않는다.
 - 다른 곳에 복사해 둔 닉네임(`online_users`, `rooms.host`·`guest`, 진행 중 대국의 `meta.players`, 이미 보낸 채팅)은 바꾸지 않는다. 대국실 항목은 다음 `enterLobby`, 방은 다음에 들어갈 때, 대국은 다음 대국부터 새 닉네임이 된다. 기보에는 닉네임이 없어 바로 새 닉네임으로 보인다.
-- 앱은 내 정보의 연필 버튼을 누를 때 `users_private`를 읽어 7일 제한("11월 10일부터 다시 바꿀 수 있어요")과 무료 변경 사용("무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요")을 먼저 알리고, 바꿀 수 있을 때만 닉네임 화면을 연다.
+- 앱은 내 정보의 연필 버튼을 누를 때 `users_private`를 읽어 7일 제한("11월 10일부터 다시 바꿀 수 있어요")을 먼저 알린다. 무료 변경을 이미 썼으면 `configs/app`과 `coin_wallets`를 읽어 값을 정하고 잔액이 모자라면 알린다. 바꿀 수 있을 때만 닉네임 화면을 연다([screens.md](./screens.md)의 내 정보).
 
 ### 채팅 Callable — 확정 (2026-11-03 구현)
 
@@ -402,7 +442,8 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | `adminGetUser` | `uid` 또는 `nickname` 하나 | 사용자 기록. 닉네임은 지금 닉네임으로 찾고 영문 대소문자를 가리지 않는다(`nicknames`) |
 | `adminSanctionUser` | `uid`, `type`, `durationDays?`, `reason` | 신고 없이 제재를 건다. 결과는 바뀐 사용자 기록 |
 | `adminGetAppConfig` | 없음 | `configs/app`을 캐시 없이 읽는다 |
-| `adminUpdateAppConfig` | `config`(다섯 필드 모두) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록) |
+| `adminUpdateAppConfig` | `config`(모든 필드) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록, 엽전 숫자는 아래 "configs/app"의 범위) |
+| `adminGetCoinStats` | 없음 | 엽전 지표. 잔액 구간별 지갑 수(`balanceBuckets`)와 최근 7일의 끝난 대국 수, 시간 연장·놓아보기 내역 수, 광고 시청 내역 수(`days`). 모두 세기 쿼리다. 시간 연장, 놓아보기, 광고는 그 기능이 생기면 쌓인다 |
 
 - 사용자 기록: 프로필(`users`, 없으면 null), 지금 제재(`users_private.sanction`, 끝났지만 예약 작업이 아직 지우지 않은 것도 그대로), 최근 제재 이력·신고된 기록·검사 기록·닉네임 변경 각각 20개.
 - 목록의 `cursor`는 앞 쪽 마지막 항목의 정렬 시각과 문서 ID(`afterMs`, `afterId`)다. 다음 쪽이 없으면 `nextCursor`가 null이다.
@@ -433,7 +474,7 @@ Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./databas
 
 - 위치: `server/admin`. Vite, React, TypeScript(strict), React Router, Zustand, Tailwind CSS. Firebase는 Auth와 Functions(Callable)만 쓰고 Firestore를 직접 읽지 않는다.
 - 로그인: Google 로그인(팝업). ID token의 `admin: true` custom claim이 있어야 화면을 연다. 없으면 "관리자 권한이 없어요"와 "권한 다시 확인"(새 ID token을 받아 claim 다시 확인)을 보여준다.
-- 화면: 신고(처리 전, 처리함), 신고 상세(대화, 검사 결과, 피신고자 기록, 처리 입력), 검사 기록, 사용자 찾기와 사용자 기록(신고 없이 제재 걸기), 설정. 조치는 사유를 적고 "검토하기"를 누르면 대상, 종류, 기간, 연결된 신고를 다시 보여주는 확인 창을 거친다.
+- 화면: 신고(처리 전, 처리함), 신고 상세(대화, 검사 결과, 피신고자 기록, 처리 입력), 검사 기록, 사용자 찾기와 사용자 기록(신고 없이 제재 걸기), 엽전 지표(잔액 분포, 최근 7일의 시간 연장·놓아보기 비율과 광고 시청 수), 설정. 조치는 사유를 적고 "검토하기"를 누르면 대상, 종류, 기간, 연결된 신고를 다시 보여주는 확인 창을 거친다.
 - 보안 규칙: 관리자도 `reports`, `sanctions`, `moderation_logs`, 다른 사람의 `users_private`를 직접 읽거나 쓰지 못한다. 모두 Admin Callable로만 다룬다.
 
 ### 관리자 지정
@@ -560,8 +601,21 @@ sequenceDiagram
 | `onlineUsersVisible` | boolean | `false` | 대국실 접속자 탭과 방 대기실의 접속자 초대하기를 보여준다 | [matching.md](./game/matching.md) |
 | `autoSanctionEnabled` | boolean | `false` | 자동 제재 사용 | [moderation.md](./moderation.md) |
 | `heartbeatSeconds` | number | `5` | 대국 중 앱이 `lastSeenAt`을 갱신하는 주기 | 이 문서 |
+| `entryFeeEnabled` | boolean | `true` | 빠른 대국과 신청 대국의 참가비를 받는다. 끄면 새 대국부터 받지 않는다 | [release.md](./release.md) |
+| `coinSignupBonus` | number | `300` | 가입 엽전. 0~3000 | [monetization.md](./monetization.md) |
+| `coinEntryFee` | number | `10` | 대국 참가비. 0~100 | [monetization.md](./monetization.md) |
+| `coinWinReward` | number | `15` | 대국 보상, 승. 0~100 | [monetization.md](./monetization.md) |
+| `coinDrawReward` | number | `10` | 대국 보상, 무승부. 지금 규칙에 무승부가 없어 쓰이지 않는다. 0~100 | [monetization.md](./monetization.md) |
+| `coinLossReward` | number | `5` | 대국 보상, 패. 0~100 | [monetization.md](./monetization.md) |
+| `coinAttendanceReward` | number | `30` | 하루 출석. 0~300 | [monetization.md](./monetization.md) |
+| `coinAttendanceStreakReward` | number | `100` | 연속 7째 날의 출석. 평소 값 대신 준다. 0~1000 | [monetization.md](./monetization.md) |
+| `coinRescueReward` | number | `50` | 바닥 구제. 0~300 | [monetization.md](./monetization.md) |
+| `coinRescueThreshold` | number | `10` | 잔액이 이 값 미만이면 바닥 구제 대상이다. 0~100 | [monetization.md](./monetization.md) |
+| `coinNicknameChangeCost` | number | `300` | 두 번째부터의 닉네임 변경 값. 1~3000 | [monetization.md](./monetization.md) |
 
-3단계에서 엽전 숫자와 멈춤 스위치를 더한다([release.md](./release.md)의 운영 설정과 멈춤 스위치).
+뒤 순서의 멈춤 스위치는 그 기능을 만들 때 더한다([release.md](./release.md)의 운영 설정과 멈춤 스위치).
+
+앱, Functions, 대국 서버 모두 모든 필드를 필수로 읽는다. 필드를 늘린 서버와 앱을 배포하기 전에 `server/functions`에서 `npm run build`, `npm run init-app-config`를 실행해 빠진 필드를 처음 값으로 채운다. 이미 있는 값은 바꾸지 않는다. 옛 서버와 옛 앱은 모르는 필드를 무시한다.
 
 ### 대국 서버 설정 (`server/game/lib/config.dart`)
 
@@ -605,6 +659,9 @@ sequenceDiagram
 | 검사 기록 보관 | 1년 | [moderation.md](./moderation.md) |
 | 닉네임 길이와 글자 | 한글·영문·숫자 2~10자 | [screens.md](./screens.md) |
 | 닉네임 변경 제한 | 7일 | [screens.md](./screens.md) |
+| 연속 출석 한 바퀴 | 7일 (`COIN_ATTENDANCE_STREAK_DAYS`) | [monetization.md](./monetization.md) |
+| 엽전의 하루 기준 | 서울 0시 (`COIN_DAY_UTC_OFFSET_HOURS`, 대국 서버 `coinDayUtcOffset`, 앱 `coinDayUtcOffset`) | [monetization.md](./monetization.md) |
+| 잔액 분포 구간, 지표의 날 수 | `COIN_BALANCE_BUCKET_STARTS`, 7일 (`COIN_STATS_DAYS`) | 이 문서 |
 
 OpenAI API 키는 Secret Manager에 둔다.
 

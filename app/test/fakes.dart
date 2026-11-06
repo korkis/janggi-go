@@ -13,6 +13,7 @@ import 'package:janggigo/models/archived_game.dart';
 import 'package:janggigo/models/app_config.dart';
 import 'package:janggigo/models/challenge.dart';
 import 'package:janggigo/models/chat_message.dart';
+import 'package:janggigo/models/coin_wallet.dart';
 import 'package:janggigo/models/connection.dart';
 import 'package:janggigo/models/game_enums.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
@@ -27,6 +28,7 @@ import 'package:janggigo/repositories/archived_game_repository.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
 import 'package:janggigo/repositories/challenge_repository.dart';
 import 'package:janggigo/repositories/chat_repository.dart';
+import 'package:janggigo/repositories/coin_wallet_repository.dart';
 import 'package:janggigo/repositories/config_repository.dart';
 import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/deep_link_repository.dart';
@@ -178,11 +180,15 @@ class FakeUserRepository implements UserRepository {
   /// 바꾼 닉네임. 예: `me 장기신`.
   final nicknameChanges = <String>[];
 
+  /// 마지막 닉네임 바꾸기에 보낸 엽전 값.
+  int? lastNicknameCoinCost;
+
   /// 다음 닉네임 바꾸기가 이 오류로 실패한다.
   Object? nextChangeError;
 
   @override
-  Future<void> changeNickname(String nickname) async {
+  Future<void> changeNickname(String nickname, {int? coinCost}) async {
+    lastNicknameCoinCost = coinCost;
     final error = nextChangeError;
     if (error != null) {
       nextChangeError = null;
@@ -217,7 +223,76 @@ class FakeConfigRepository implements ConfigRepository {
     onlineUsersVisible: onlineUsersVisible,
     autoSanctionEnabled: false,
     heartbeatSeconds: 5,
+    entryFeeEnabled: true,
+    coinSignupBonus: 300,
+    coinEntryFee: 10,
+    coinWinReward: 15,
+    coinDrawReward: 10,
+    coinLossReward: 5,
+    coinAttendanceReward: 30,
+    coinAttendanceStreakReward: 100,
+    coinRescueReward: 50,
+    coinRescueThreshold: 10,
+    coinNicknameChangeCost: 300,
   );
+}
+
+class FakeCoinWalletRepository implements CoinWalletRepository {
+  final _controllers = <String, StreamController<CoinWallet?>>{};
+  final _latest = <String, CoinWallet?>{};
+
+  /// 다음 출석 결과. 기본은 이미 받은 것이다.
+  AttendanceResult nextAttendance = const AttendanceResult(granted: false, amount: 0);
+
+  /// 다음 출석이 이 오류로 실패한다.
+  Object? nextAttendanceError;
+  var attendanceCalls = 0;
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  FirebaseFunctions get functions => throw UnimplementedError();
+
+  @override
+  Stream<CoinWallet?> watchWallet(String uid) async* {
+    if (_latest.containsKey(uid)) {
+      yield _latest[uid];
+    }
+    yield* _getController(uid).stream;
+  }
+
+  @override
+  Future<CoinWallet?> getWallet(String uid) async => _latest[uid];
+
+  @override
+  Future<AttendanceResult> claimAttendance() async {
+    attendanceCalls++;
+    final error = nextAttendanceError;
+    if (error != null) {
+      nextAttendanceError = null;
+      throw error;
+    }
+    return nextAttendance;
+  }
+
+  /// 서버가 [uid]의 잔액을 [balance]로 바꾼 것처럼 보낸다.
+  void emit(String uid, int balance) {
+    final wallet = CoinWallet(
+      freeCoins: balance,
+      paidCoins: 0,
+      balance: balance,
+      attendanceDay: null,
+      attendanceStreak: 0,
+      rescueDay: null,
+      updatedAt: DateTime.utc(2026, 11, 6),
+    );
+    _latest[uid] = wallet;
+    _getController(uid).add(wallet);
+  }
+
+  StreamController<CoinWallet?> _getController(String uid) =>
+      _controllers.putIfAbsent(uid, StreamController<CoinWallet?>.broadcast);
 }
 
 class FakePlayerStateRepository implements PlayerStateRepository {
@@ -978,6 +1053,7 @@ typedef FakeApp = ({
   FakeChatRepository chats,
   FakeArchivedGameRepository archivedGames,
   FakeDeviceSettingsRepository deviceSettings,
+  FakeCoinWalletRepository coinWallets,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -999,6 +1075,7 @@ FakeApp setUpFakeApp() {
   final chatRepository = FakeChatRepository();
   final archivedGameRepository = FakeArchivedGameRepository();
   final deviceSettingsRepository = FakeDeviceSettingsRepository();
+  final coinWalletRepository = FakeCoinWalletRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -1018,6 +1095,7 @@ FakeApp setUpFakeApp() {
     chatRepository: chatRepository,
     archivedGameRepository: archivedGameRepository,
     deviceSettingsRepository: deviceSettingsRepository,
+    coinWalletRepository: coinWalletRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -1038,5 +1116,6 @@ FakeApp setUpFakeApp() {
     chats: chatRepository,
     archivedGames: archivedGameRepository,
     deviceSettings: deviceSettingsRepository,
+    coinWallets: coinWalletRepository,
   );
 }

@@ -177,6 +177,9 @@ class GameServer {
       onlineUsers: repositories.onlineUsers,
       spectateList: repositories.spectateList,
       spectators: repositories.spectators,
+      configs: repositories.configs,
+      coinWallets: repositories.coinWallets,
+      coinTransactions: repositories.coinTransactions,
       taskScheduler: taskScheduler,
       logger: logger,
     );

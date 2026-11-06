@@ -222,6 +222,46 @@ describe("서버 전용 컬렉션", () => {
   });
 });
 
+describe("엽전", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, `coin_wallets/${ALICE}`), {freeCoins: 300, paidCoins: 0, balance: 300});
+      await setDoc(doc(db, `coin_transactions/signup_${ALICE}`), {uid: ALICE, reason: "signup", freeDelta: 300});
+    });
+  });
+
+  test("본인은 지갑을 읽는다", async () => {
+    await assertSucceeds(getDoc(doc(userDb(ALICE), `coin_wallets/${ALICE}`)));
+  });
+
+  test("다른 사람과 로그인하지 않은 사용자는 지갑을 읽지 못한다", async () => {
+    await assertFails(getDoc(doc(userDb(BOB), `coin_wallets/${ALICE}`)));
+    await assertFails(getDoc(doc(guestDb(), `coin_wallets/${ALICE}`)));
+    await assertFails(getDocs(collection(userDb(ALICE), "coin_wallets")));
+  });
+
+  test("본인도 지갑을 만들거나 고치거나 지우지 못한다", async () => {
+    await assertFails(setDoc(doc(userDb(BOB), `coin_wallets/${BOB}`), {freeCoins: 9999, paidCoins: 0, balance: 9999}));
+    await assertFails(updateDoc(doc(userDb(ALICE), `coin_wallets/${ALICE}`), {freeCoins: 9999}));
+    await assertFails(deleteDoc(doc(userDb(ALICE), `coin_wallets/${ALICE}`)));
+  });
+
+  test("내역은 본인도 읽거나 쓰지 못한다", async () => {
+    await assertFails(getDoc(doc(userDb(ALICE), `coin_transactions/signup_${ALICE}`)));
+    await assertFails(getDocs(query(collection(userDb(ALICE), "coin_transactions"), where("uid", "==", ALICE))));
+    await assertFails(setDoc(doc(userDb(ALICE), `coin_transactions/x`), {uid: ALICE, freeDelta: 9999}));
+    await assertFails(deleteDoc(doc(userDb(ALICE), `coin_transactions/signup_${ALICE}`)));
+  });
+
+  test("관리자(admin claim)도 다른 사람의 지갑과 내역을 직접 읽거나 쓰지 못한다", async () => {
+    const adminDb = testEnv.authenticatedContext("admin1", {admin: true}).firestore();
+    await assertFails(getDoc(doc(adminDb, `coin_wallets/${ALICE}`)));
+    await assertFails(updateDoc(doc(adminDb, `coin_wallets/${ALICE}`), {freeCoins: 9999}));
+    await assertFails(getDoc(doc(adminDb, `coin_transactions/signup_${ALICE}`)));
+  });
+});
+
 describe("games_archived", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {

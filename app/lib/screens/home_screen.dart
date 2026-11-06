@@ -825,9 +825,34 @@ class _MyCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: ListenableBuilder(
-          listenable: Listenable.merge([managers.authManager, managers.rankManager]),
+          listenable: Listenable.merge([managers.authManager, managers.rankManager, managers.coinManager]),
           builder: _buildContent,
         ),
+      ),
+    );
+  }
+
+  /// 엽전 잔액(`docs/screens.md`의 홈). 아직 읽지 못했으면 비워 둔다.
+  Widget _buildCoinBalance(AppLocalizations l10n) {
+    final balance = managers.coinManager.balance;
+    if (balance == null) {
+      return const SizedBox.shrink();
+    }
+    return Semantics(
+      // 엽전 330개
+      label: l10n.coinBalanceLabel(balance),
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.toll, size: 22, color: LightColors.accent),
+          const SizedBox(width: 4),
+          Text(
+            // 330
+            l10n.coinBalanceAmount(balance),
+            style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }
@@ -864,7 +889,13 @@ class _MyCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(profile.nickname, style: Theme.of(context).textTheme.titleLarge),
+        Row(
+          children: [
+            Expanded(child: Text(profile.nickname, style: Theme.of(context).textTheme.titleLarge)),
+            const SizedBox(width: 12),
+            _buildCoinBalance(l10n),
+          ],
+        ),
         Text(
           getRankLabel(l10n, rankLevel),
           style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),

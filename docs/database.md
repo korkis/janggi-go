@@ -51,6 +51,7 @@
 | `ChatChannel` | `lobby`, `game`, `spectator` | 앱, Functions |
 | `SanctionType` | `warning`, `chatRestriction`, `suspension`, `permanentBan` | 앱, Functions, 대국 서버, Admin 웹 |
 | `ReportStatus` | `pending`, `resolved` | Functions, Admin 웹 |
+| `CoinReason` | `signup`, `attendance`, `rescue`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `gamePractice`, `rewardedAd` | Functions(전부), 대국 서버(쓰는 `rescue`, `entryFee`, `entryFeeRefund`, `gameReward`). `timeExtension`, `gamePractice`, `rewardedAd`는 그 기능이 생기면 쓴다 |
 
 - `rankLevel`은 급수를 `number` 1~27로 저장한다. 1이 18급, 18이 1급, 19가 1단, 27이 9단이다([rank.md](./game/rank.md)). 앱이 글자로 바꿔 보여준다.
 - 서버는 새 enum 값을 옛 앱이 받을 수 있는 곳에 쓰지 않는다([dev_rules.md](./dev_rules.md)의 커밋과 배포). 그래서 앱은 모르는 enum 값과 모르는 오류 코드를 받아도 멈추지 않고 기본 표시를 하도록 만든다.
@@ -99,11 +100,57 @@
 | `challengesEnabled` | boolean | 앱(본인), Functions(처음 값 `true`) | 설정의 "대국 신청 받기" |
 | `rankProgress` | number | 대국 서버 | 현재 급수 구간 안에서의 위치 0~1. 진행 막대에 쓴다 |
 | `winsToNextRank` | number? | 대국 서버 | "4급까지 약 3승"의 어림 승수. 9단이거나 아직 급수 대국을 두지 않았으면 null(Functions가 null로 만든다) |
-| `nicknameChangeCount` | number | Functions | 닉네임을 바꾼 횟수. 첫 변경 무료 판단에 쓴다. 엽전이 생기기 전까지는 1이면 더 바꿀 수 없다 |
+| `nicknameChangeCount` | number | Functions | 닉네임을 바꾼 횟수. 첫 변경 무료 판단에 쓴다. 1 이상이면 엽전을 내고 바꾼다 |
 | `nicknameChangedAt` | timestamp? | Functions | 마지막으로 바꾼 시각. 7일 제한에 쓴다 |
 | `sanction` | map? | Functions, 앱(본인, 경고 지우기) | 지금 걸린 제재. `type`(SanctionType), `endsAt`(timestamp?, 영구 정지와 경고는 null), `reason`(string). 끝난 제재는 `expireSanctions`가 지운다 |
 
 - 읽기: 본인. 쓰기: 본인은 `challengesEnabled`를 바꾸고, 지금 제재가 경고이면 `sanction`을 null로 지울 수 있다(제재 팝업을 확인한 뒤, 2026-11-03 구현). 다른 제재는 지우거나 바꾸지 못한다.
+
+### `coin_wallets/{uid}`
+
+엽전 잔액과 하루 한 번 지급 기록이다([monetization.md](./monetization.md)의 엽전). Functions와 대국 서버가 트랜잭션 안에서만 바꾼다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `freeCoins` | number | 받은 엽전(무상). 쓸 때 먼저 쓴다 |
+| `paidCoins` | number | 산 엽전(유상). 청약철회와 환불에 대비해 나눠 기록한다 |
+| `balance` | number | `freeCoins` + `paidCoins`. 앱의 표시와 Admin 웹의 잔액 분포(세기 쿼리)에 쓴다 |
+| `attendanceDay` | string? | 마지막으로 출석한 날(서울 기준 yyyy-MM-dd) |
+| `attendanceStreak` | number | 연속 출석 몇째 날인지(1~7). 7째 날 다음은 1로 돌아간다 |
+| `rescueDay` | string? | 마지막으로 바닥 구제를 받은 날(서울 기준 yyyy-MM-dd) |
+| `updatedAt` | timestamp | |
+
+- 읽기: 본인. 쓰기: 클라이언트 없음. 관리자도 직접 읽지 못한다.
+- 가입할 때 프로필과 같은 트랜잭션에서 만든다. 엽전이 생기기 전에 가입한 사용자는 문서가 없고 잔액 0으로 본다. 처음 엽전이 움직일 때 만든다.
+- 색인: `balance` 단일 필드(자동).
+
+### `coin_transactions/{transactionId}` — 서버 전용
+
+엽전이 움직인 내역이다. 지갑과 같은 트랜잭션에서 만든다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `uid` | string | |
+| `reason` | CoinReason | |
+| `freeDelta` | number | 무상 엽전 변화. 쓰면 음수다 |
+| `paidDelta` | number | 유상 엽전 변화. 쓰면 음수다 |
+| `freeBalance` | number | 이 움직임 뒤의 무상 잔액 |
+| `paidBalance` | number | 이 움직임 뒤의 유상 잔액 |
+| `gameId` | string? | 대국과 관련된 움직임이면 그 대국 |
+| `createdAt` | timestamp | |
+
+- 문서 ID는 `{reason}_{uid}` 또는 `{reason}_{uid}_{열쇠}`다. 한 번만 일어날 일의 열쇠를 넣어 같은 일이 두 번 기록되지 않게 한다.
+
+| `reason` | 열쇠 | 값 |
+|---|---|---|
+| `signup` | 없음 | 무상 + |
+| `attendance`, `rescue` | 날짜(서울 기준) | 무상 + |
+| `entryFee` | 대국 ID | − (무상부터). 참가비 없이 둔 대국은 0을 남긴다 |
+| `entryFeeRefund` | 대국 ID | `entryFee`를 낸 그대로 + |
+| `gameReward` | 대국 ID | 무상 + |
+| `nicknameChange` | 몇 번째 변경인지 | − (무상부터) |
+
+- 색인: `reason` + `createdAt` 오름차순(Admin 웹의 하루별 사용 수).
 
 ### `ratings/{uid}` — 서버 전용
 
@@ -473,11 +520,12 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `users` | | 읽기 | | Functions, 대국 서버 쓰기 |
 | `users/{uid}/blocks` | | | 읽기, 만들기, 지우기 | 대국 서버 읽기 |
 | `users_private` | | | 읽기, `challengesEnabled` 쓰기, 경고 지우기 | Functions, 대국 서버 쓰기 |
+| `coin_wallets` | | | 읽기 | Functions, 대국 서버 쓰기 |
 | `player_states` | | | 읽기 | 대국 서버 쓰기 |
 | `rooms` | | ID 읽기, 공개 대기 방 목록 | | 대국 서버 쓰기 |
 | `challenges` | | | 보낸 사람·받는 사람 읽기 | 대국 서버 쓰기 |
 | `games_archived` | | 읽기 | | 대국 서버 쓰기 |
-| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions` | | | | 서버 전용 |
+| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions` | | | | 서버 전용 |
 | RTDB `games_active`, `spectate_list` | 읽기 | 읽기 | | 대국 서버 쓰기 |
 | RTDB `spectators` | 만들기, 지우기 | 만들기, 지우기 | | 대국 서버 읽기 |
 | RTDB `connections` | | 읽기 | 쓰기 | 대국 서버 읽기 |
@@ -497,6 +545,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `moderation_logs` | 1년 | Firestore TTL |
 | `reports` | 처리 뒤 1년 | Firestore TTL |
 | `games_archived` | 계속 | |
+| `coin_transactions` | 계속 | 환불과 문의에 대비해 남긴다 |
 
 ## 미정
 

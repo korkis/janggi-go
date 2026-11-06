@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   {to: "/reports", label: "신고"},
   {to: "/moderation-logs", label: "검사 기록"},
   {to: "/users", label: "사용자"},
+  {to: "/coins", label: "엽전"},
   {to: "/config", label: "설정"},
 ];
 

@@ -27,8 +27,12 @@ export const NicknameChangeErrorCode = {
   profileRequired: "profileRequired",
   // 바꾼 지 7일이 지나지 않았다.
   nicknameChangeCooldown: "nicknameChangeCooldown",
-  // 무료 변경을 이미 썼다. 엽전으로 바꾸는 기능은 아직 없다.
+  // 무료 변경을 이미 썼는데 엽전을 내겠다는 뜻(coinCost) 없이 불렀다. 값을 모르는 옛 앱이 엽전을 내지 않게 한다.
   nicknameChangeNotFree: "nicknameChangeNotFree",
+  // 앱이 보여준 값(coinCost)이 지금 값과 다르다.
+  coinPriceChanged: "coinPriceChanged",
+  // 엽전이 모자란다.
+  coinsInsufficient: "coinsInsufficient",
 } as const;
 export type NicknameChangeErrorCode = (typeof NicknameChangeErrorCode)[keyof typeof NicknameChangeErrorCode];
 

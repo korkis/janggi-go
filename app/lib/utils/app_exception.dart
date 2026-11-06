@@ -37,6 +37,8 @@ enum AppErrorCode {
   chatRestricted,
   nicknameChangeCooldown,
   nicknameChangeNotFree,
+  coinPriceChanged,
+  coinsInsufficient,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -148,7 +150,11 @@ class AppException implements Exception {
     AppErrorCode.chatRestricted => l10n.errorChatRestricted,
     // 닉네임은 바꾼 뒤 7일 동안 다시 바꿀 수 없어요
     AppErrorCode.nicknameChangeCooldown => l10n.errorNicknameChangeCooldown,
-    // 무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요
+    // 무료 닉네임 변경을 이미 썼어요. 다시 열어 주세요
     AppErrorCode.nicknameChangeNotFree => l10n.errorNicknameChangeNotFree,
+    // 값이 바뀌었어요. 다시 열어 주세요
+    AppErrorCode.coinPriceChanged => l10n.errorCoinPriceChanged,
+    // 엽전이 모자라요
+    AppErrorCode.coinsInsufficient => l10n.errorCoinsInsufficient,
   };
 }

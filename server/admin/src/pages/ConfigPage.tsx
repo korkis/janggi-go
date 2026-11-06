@@ -8,9 +8,16 @@ import {useConfigStore} from "../stores/configStore";
 import {useUiStore} from "../stores/uiStore";
 
 type NumberField = keyof typeof APP_CONFIG_LIMITS;
-type BooleanField = "onlineUsersVisible" | "autoSanctionEnabled";
+type BooleanField = "onlineUsersVisible" | "autoSanctionEnabled" | "entryFeeEnabled";
 
-const NUMBER_FIELDS: {key: NumberField; label: string; unit: string; help: string}[] = [
+interface NumberFieldInfo {
+  key: NumberField;
+  label: string;
+  unit: string;
+  help?: string;
+}
+
+const NUMBER_FIELDS: NumberFieldInfo[] = [
   {
     key: "disconnectLimitSeconds",
     label: "접속 끊김 허용 시간",
@@ -31,6 +38,19 @@ const NUMBER_FIELDS: {key: NumberField; label: string; unit: string; help: strin
   },
 ];
 
+const COIN_FIELDS: NumberFieldInfo[] = [
+  {key: "coinSignupBonus", label: "가입", unit: "엽전"},
+  {key: "coinEntryFee", label: "대국 참가비", unit: "엽전", help: "빠른 대국과 신청 대국에서 받아요."},
+  {key: "coinWinReward", label: "대국 보상: 승", unit: "엽전"},
+  {key: "coinDrawReward", label: "대국 보상: 무승부", unit: "엽전", help: "지금 규칙에 무승부가 없어 쓰이지 않아요."},
+  {key: "coinLossReward", label: "대국 보상: 패", unit: "엽전"},
+  {key: "coinAttendanceReward", label: "출석", unit: "엽전"},
+  {key: "coinAttendanceStreakReward", label: "출석: 연속 7일째", unit: "엽전", help: "평소 출석 값 대신 줘요."},
+  {key: "coinRescueReward", label: "바닥 구제", unit: "엽전"},
+  {key: "coinRescueThreshold", label: "바닥 구제 기준", unit: "엽전", help: "잔액이 이 값 미만이면 하루 한 번 줘요."},
+  {key: "coinNicknameChangeCost", label: "닉네임 변경", unit: "엽전", help: "두 번째 변경부터 받아요."},
+];
+
 const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
   {
     key: "onlineUsersVisible",
@@ -42,18 +62,25 @@ const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
     label: "자동 제재",
     help: "자동 제재 기준은 아직 정하지 않아 켜도 아무 일도 하지 않아요.",
   },
+  {
+    key: "entryFeeEnabled",
+    label: "대국 참가비 받기",
+    help: "끄면 새 대국부터 참가비를 받지 않아요. 대국 보상은 그대로예요.",
+  },
 ];
 
 /** 폼에 입력 중인 숫자. 비우거나 잘못 적은 값도 그대로 두고 저장 전에 확인한다. */
 type Draft = Record<NumberField, string> & Record<BooleanField, boolean>;
 
 function toDraft(config: AppConfig): Draft {
+  const numbers = Object.fromEntries(
+    [...NUMBER_FIELDS, ...COIN_FIELDS].map(({key}) => [key, String(config[key])]),
+  ) as Record<NumberField, string>;
   return {
-    disconnectLimitSeconds: String(config.disconnectLimitSeconds),
-    quickRematchLimit: String(config.quickRematchLimit),
-    heartbeatSeconds: String(config.heartbeatSeconds),
+    ...numbers,
     onlineUsersVisible: config.onlineUsersVisible,
     autoSanctionEnabled: config.autoSanctionEnabled,
+    entryFeeEnabled: config.entryFeeEnabled,
   };
 }
 
@@ -65,18 +92,19 @@ function parseField(draft: Draft, key: NumberField): number | null {
 }
 
 function toConfig(draft: Draft): AppConfig | null {
-  const disconnectLimitSeconds = parseField(draft, "disconnectLimitSeconds");
-  const quickRematchLimit = parseField(draft, "quickRematchLimit");
-  const heartbeatSeconds = parseField(draft, "heartbeatSeconds");
-  if (disconnectLimitSeconds === null || quickRematchLimit === null || heartbeatSeconds === null) {
-    return null;
+  const numbers = {} as Record<NumberField, number>;
+  for (const {key} of [...NUMBER_FIELDS, ...COIN_FIELDS]) {
+    const value = parseField(draft, key);
+    if (value === null) {
+      return null;
+    }
+    numbers[key] = value;
   }
   return {
-    disconnectLimitSeconds,
-    quickRematchLimit,
-    heartbeatSeconds,
+    ...numbers,
     onlineUsersVisible: draft.onlineUsersVisible,
     autoSanctionEnabled: draft.autoSanctionEnabled,
+    entryFeeEnabled: draft.entryFeeEnabled,
   };
 }
 
@@ -139,6 +167,39 @@ export function ConfigPage() {
     }
   }
 
+  function renderNumberField(field: NumberFieldInfo) {
+    if (draft === null) {
+      return null;
+    }
+    const {min, max} = APP_CONFIG_LIMITS[field.key];
+    const invalid = parseField(draft, field.key) === null;
+    return (
+      <label key={field.key} className="block text-sm">
+        <span className="font-medium">{field.label}</span>{" "}
+        <span className="font-mono text-xs text-slate-500">{field.key}</span>
+        <span className="mt-1 flex items-center gap-2">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={1}
+            value={draft[field.key]}
+            onChange={(event) => setDraft({...draft, [field.key]: event.target.value})}
+            aria-invalid={invalid}
+            className={`w-28 rounded-md border px-2 py-1 ${invalid ? "border-red-500" : "border-slate-300"}`}
+          />
+          {field.unit} ({min}~{max})
+        </span>
+        {field.help !== undefined && <span className="mt-1 block text-xs text-slate-500">{field.help}</span>}
+        {invalid && (
+          <span className="block text-xs text-red-700">
+            ⚠ {min}~{max} 사이의 정수를 적어 주세요.
+          </span>
+        )}
+      </label>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <h1 className="text-xl font-bold">설정</h1>
@@ -146,35 +207,7 @@ export function ConfigPage() {
         Firestore <code>configs/app</code>. 앱, Functions, 대국 서버가 함께 읽어요.
       </p>
       <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-        {NUMBER_FIELDS.map((field) => {
-          const {min, max} = APP_CONFIG_LIMITS[field.key];
-          const invalid = parseField(draft, field.key) === null;
-          return (
-            <label key={field.key} className="block text-sm">
-              <span className="font-medium">{field.label}</span>{" "}
-              <span className="font-mono text-xs text-slate-500">{field.key}</span>
-              <span className="mt-1 flex items-center gap-2">
-                <input
-                  type="number"
-                  min={min}
-                  max={max}
-                  step={1}
-                  value={draft[field.key]}
-                  onChange={(event) => setDraft({...draft, [field.key]: event.target.value})}
-                  aria-invalid={invalid}
-                  className={`w-28 rounded-md border px-2 py-1 ${invalid ? "border-red-500" : "border-slate-300"}`}
-                />
-                {field.unit} ({min}~{max})
-              </span>
-              <span className="mt-1 block text-xs text-slate-500">{field.help}</span>
-              {invalid && (
-                <span className="block text-xs text-red-700">
-                  ⚠ {min}~{max} 사이의 정수를 적어 주세요.
-                </span>
-              )}
-            </label>
-          );
-        })}
+        {NUMBER_FIELDS.map(renderNumberField)}
         {BOOLEAN_FIELDS.map((field) => (
           <label key={field.key} className="flex items-start gap-2 text-sm">
             <input
@@ -190,6 +223,10 @@ export function ConfigPage() {
             </span>
           </label>
         ))}
+      </div>
+      <h2 className="mt-6 font-semibold">엽전</h2>
+      <div className="mt-2 space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+        {COIN_FIELDS.map(renderNumberField)}
       </div>
       {error !== null && (
         <p role="alert" className="mt-2 text-sm text-red-700">

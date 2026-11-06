@@ -342,13 +342,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     final l10n = AppLocalizations.of(context);
     UserPrivate? userPrivate;
+    int? coinCost;
+    var balance = 0;
     try {
       setState(() {
         _checkingNickname = true;
       });
       userPrivate = await repositories.userPrivateRepository.getUserPrivate(uid);
+      if (userPrivate != null && userPrivate.nicknameChangeCount >= NicknameRules.freeChangeCount) {
+        final (config, wallet) = await (
+          repositories.configRepository.getAppConfig(),
+          repositories.coinWalletRepository.getWallet(uid),
+        ).wait;
+        coinCost = config.coinNicknameChangeCost;
+        balance = wallet?.balance ?? 0;
+      }
     } catch (error, stackTrace) {
-      developer.log('UserPrivateRepository.getUserPrivate 실패', error: error, stackTrace: stackTrace);
+      developer.log('닉네임 바꾸기 확인 실패', error: error, stackTrace: stackTrace);
       if (mounted) {
         // 닉네임을 바꾸지 못했어요. 잠시 후 다시 해 주세요
         await DialogUtils.showMessage(context, message: l10n.errorChangeNickname);
@@ -364,22 +374,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) {
       return;
     }
-    final blockedMessage = userPrivate == null ? null : _getNicknameChangeBlock(l10n, userPrivate);
+    final blockedMessage = userPrivate == null ? null : _getNicknameChangeBlock(l10n, userPrivate, coinCost, balance);
     if (blockedMessage != null) {
       await DialogUtils.showMessage(context, message: blockedMessage);
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
     final changed = await Navigator.of(context)
-        .push<bool>(MaterialPageRoute<bool>(builder: (context) => const NicknameScreen.change()));
+        .push<bool>(MaterialPageRoute<bool>(builder: (context) => NicknameScreen.change(coinCost: coinCost)));
     if (changed == true) {
       // 닉네임을 바꿨어요
       messenger.showSnackBar(SnackBar(content: Text(l10n.nicknameChanged)));
     }
   }
 
-  /// 지금 닉네임을 바꿀 수 없으면 그 안내. 바꿀 수 있으면 null.
-  String? _getNicknameChangeBlock(AppLocalizations l10n, UserPrivate userPrivate) {
+  /// 지금 닉네임을 바꿀 수 없으면 그 안내. 바꿀 수 있으면 null. [coinCost]는 무료 변경을 이미 썼을 때의 값이다.
+  String? _getNicknameChangeBlock(AppLocalizations l10n, UserPrivate userPrivate, int? coinCost, int balance) {
     final changedAt = userPrivate.nicknameChangedAt;
     if (changedAt != null) {
       final availableAt = changedAt.add(const Duration(days: NicknameRules.changeCooldownDays));
@@ -388,9 +398,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return l10n.nicknameChangeAvailableAt(availableAt.toLocal());
       }
     }
-    if (userPrivate.nicknameChangeCount >= NicknameRules.freeChangeCount) {
-      // 무료 닉네임 변경을 이미 썼어요. 다시 바꾸는 기능은 준비 중이에요
-      return l10n.errorNicknameChangeNotFree;
+    if (coinCost != null && balance < coinCost) {
+      // 닉네임을 바꾸려면 300엽전이 필요해요. 지금 120엽전이 있어요
+      return l10n.nicknameChangeNeedCoins(coinCost, balance);
     }
     return null;
   }

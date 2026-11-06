@@ -42,9 +42,12 @@ class NicknameScreen extends StatefulWidget {
   /// 내 정보의 닉네임 바꾸기다.
   final bool changing;
 
-  const NicknameScreen({super.key, required this.purpose}) : changing = false;
+  /// 닉네임 바꾸기에 내는 엽전. 무료 변경이면 null.
+  final int? coinCost;
 
-  const NicknameScreen.change({super.key}) : purpose = LoginPurpose.profile, changing = true;
+  const NicknameScreen({super.key, required this.purpose}) : changing = false, coinCost = null;
+
+  const NicknameScreen.change({super.key, this.coinCost}) : purpose = LoginPurpose.profile, changing = true;
 
   @override
   State<NicknameScreen> createState() => _NicknameScreenState();
@@ -210,6 +213,11 @@ class _NicknameScreenState extends State<NicknameScreen> {
   /// 시작하기 버튼 위에 알리는 이어서 할 일. 이어서 할 일이 없으면 null. 바꾸기는 7일 제한을 알린다.
   String? _getStartHint(AppLocalizations l10n) {
     if (widget.changing) {
+      final coinCost = widget.coinCost;
+      if (coinCost != null) {
+        // 300엽전을 내고 바꿔요. 바꾸면 7일 동안 다시 바꿀 수 없어요
+        return l10n.nicknameChangePaidHint(coinCost, NicknameRules.changeCooldownDays);
+      }
       // 바꾸면 7일 동안 다시 바꿀 수 없어요
       return l10n.nicknameChangeHint(NicknameRules.changeCooldownDays);
     }
@@ -331,10 +339,23 @@ class _NicknameScreenState extends State<NicknameScreen> {
   Future<void> _onSubmit() async {
     final l10n = AppLocalizations.of(context);
     final nickname = _controller.text;
+    final coinCost = widget.coinCost;
+    if (coinCost != null) {
+      final confirmed = await DialogUtils.showConfirm(
+        context,
+        // 300엽전을 내고 장기신(으)로 바꿀까요?
+        message: l10n.nicknameChangeConfirm(coinCost, nickname),
+        // 바꾸기
+        confirmLabel: l10n.nicknameChangeSubmit,
+      );
+      if (!confirmed || !mounted) {
+        return;
+      }
+    }
     try {
       setState(() => _submitting = true);
       if (widget.changing) {
-        await managers.authManager.changeNickname(nickname);
+        await managers.authManager.changeNickname(nickname, coinCost: coinCost);
       } else {
         await managers.authManager.createProfile(nickname);
       }

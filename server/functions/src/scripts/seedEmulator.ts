@@ -1,7 +1,7 @@
 import {initializeApp} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
 import {INITIAL_APP_CONFIG} from "../models/appConfig";
-import {createAppConfigIfAbsent} from "../repositories/configsRepository";
+import {fillMissingAppConfig} from "../repositories/configsRepository";
 import {createProfile} from "../services/profileService";
 
 // 에뮬레이터 전용 프로젝트. demo-로 시작해야 운영에 닿지 않는다.
@@ -57,8 +57,8 @@ async function seedAccount(account: TestAccount): Promise<void> {
 async function main(): Promise<void> {
   useEmulator();
   initializeApp({projectId: process.env.GCLOUD_PROJECT});
-  const created = await createAppConfigIfAbsent(INITIAL_APP_CONFIG);
-  console.log(created ? "configs/app 생성" : "configs/app 이미 있음");
+  const filled = await fillMissingAppConfig(INITIAL_APP_CONFIG);
+  console.log(filled.length > 0 ? "configs/app 채움" : "configs/app 이미 있음");
   for (const account of TEST_ACCOUNTS) {
     await seedAccount(account);
     console.log(`${account.email} / ${account.nickname}${account.admin ? " (관리자)" : ""}`);
