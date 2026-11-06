@@ -278,6 +278,8 @@ flowchart LR
 - 찾으면 RTDB에 대국을 만들고, Firestore 트랜잭션으로 두 사람의 `quick_queue`가 그때 읽은 그대로 남아 있는지 확인한 뒤 지우고, `quickQueueJoinedAt`을 비우고 `player_states.gameId`를 쓴다. 상대가 그새 다른 사람과 묶였으면 대국을 지우고 다시 찾는다(최대 3번). 내가 그새 묶였으면 그만 찾는다.
 - 초와 한은 무작위로 정한다. 대국은 `mode: quick`, `rated: true`, `listed: true`다.
 
+- 3단계에서 바꾼다: 앱을 끈 사람을 대기열에 남기고 매칭되면 FCM으로 알린다([release.md](./release.md)의 알림).
+
 ### 방
 
 [matching.md](./game/matching.md)의 방 만들기, 링크, 방 유지를 따른다.
