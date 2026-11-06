@@ -1656,6 +1656,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSignOutConfirm => 'Sign out?';
 
   @override
+  String get settingsSignOutInGame => 'You cannot sign out during a game';
+
+  @override
   String get settingsInfoGroup => 'About';
 
   @override

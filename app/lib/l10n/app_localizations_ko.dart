@@ -1558,6 +1558,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsSignOutConfirm => '로그아웃할까요?';
 
   @override
+  String get settingsSignOutInGame => '대국 중에는 로그아웃할 수 없어요';
+
+  @override
   String get settingsInfoGroup => '정보';
 
   @override

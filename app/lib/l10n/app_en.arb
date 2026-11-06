@@ -572,6 +572,7 @@
   "signInMethodEmail": "Email",
   "settingsSignOut": "Sign out",
   "settingsSignOutConfirm": "Sign out?",
+  "settingsSignOutInGame": "You cannot sign out during a game",
   "settingsInfoGroup": "About",
   "settingsVersion": "Version",
   "settingsLicenses": "Open source licenses"

@@ -2152,6 +2152,10 @@
   "@settingsSignOutConfirm": {
     "description": "로그아웃 확인 창"
   },
+  "settingsSignOutInGame": "대국 중에는 로그아웃할 수 없어요",
+  "@settingsSignOutInGame": {
+    "description": "진행 중인 대국이 있을 때 로그아웃을 누르면 보여주는 안내"
+  },
   "settingsInfoGroup": "정보",
   "@settingsInfoGroup": {
     "description": "설정의 정보 묶음"

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:janggigo/app.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/app_language.dart';
+import 'package:janggigo/models/player_state.dart';
 import 'package:janggigo/models/sign_in_method.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
@@ -285,6 +286,42 @@ void main() {
     expect(find.byType(SettingsScreen), findsNothing);
     expect(find.byType(ProfileScreen), findsNothing);
     expect(find.text('로그인하면 급수와 전적이 저장돼요'), findsOneWidget);
+  });
+
+  testWidgets('진행 중인 대국이 있으면 로그아웃을 막고, 대국이 끝나면 로그아웃할 수 있다', (tester) async {
+    _useView(tester, const Size(390, 844));
+    final fakes = await _signIn();
+    await tester.pumpWidget(const JanggigoApp());
+    await _pumpFor(tester);
+    await _tap(tester, _inTabBar('내 정보'));
+    await _tap(tester, find.text('설정'));
+
+    PlayerState playerState(String? gameId) => PlayerState(
+      roomId: null,
+      gameId: gameId,
+      lastGameId: null,
+      outgoingChallengeId: null,
+      incomingChallengeId: null,
+      setupDraft: null,
+      lastRankChange: null,
+      gamePracticeGameId: null,
+      quickQueueJoinedAt: null,
+      updatedAt: DateTime.utc(2026, 11, 6),
+    );
+    fakes.playerStates.emit('me', playerState('g1'));
+    await _pumpFor(tester);
+
+    await _tap(tester, find.text('로그아웃'));
+    expect(find.text('대국 중에는 로그아웃할 수 없어요'), findsOneWidget);
+    expect(find.text('로그아웃할까요?'), findsNothing);
+    await _tap(tester, find.text('확인'));
+    expect(managers.authManager.signedIn, isTrue);
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    fakes.playerStates.emit('me', playerState(null));
+    await _pumpFor(tester);
+    await _tap(tester, find.text('로그아웃'));
+    expect(find.text('로그아웃할까요?'), findsOneWidget);
   });
 
   testWidgets('1024 이상은 탭 줄 대신 왼쪽 메뉴에 상점 자리와 설정을 둔다', (tester) async {

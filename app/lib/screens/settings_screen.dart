@@ -326,10 +326,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// 한 번 묻고 로그아웃한 뒤 홈으로 간다.
+  /// 한 번 묻고 로그아웃한 뒤 홈으로 간다. 진행 중인 대국이 있으면 알리고 로그아웃하지 않는다.
   Future<void> _onSignOut() async {
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
+    if (managers.playerStateManager.gameId != null) {
+      // 대국 중에는 로그아웃할 수 없어요
+      await DialogUtils.showMessage(context, message: l10n.settingsSignOutInGame);
+      return;
+    }
     final confirmed = await DialogUtils.showConfirm(
       context,
       // 로그아웃할까요?

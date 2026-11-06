@@ -2600,6 +2600,12 @@ abstract class AppLocalizations {
   /// **'로그아웃할까요?'**
   String get settingsSignOutConfirm;
 
+  /// 진행 중인 대국이 있을 때 로그아웃을 누르면 보여주는 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 중에는 로그아웃할 수 없어요'**
+  String get settingsSignOutInGame;
+
   /// 설정의 정보 묶음
   ///
   /// In ko, this message translates to:
