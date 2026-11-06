@@ -782,12 +782,6 @@ abstract class AppLocalizations {
   /// **'기권할까요? 이 대국은 지게 돼요'**
   String get resignConfirmOnline;
 
-  /// 온라인 대국 중 뒤로 가기 확인
-  ///
-  /// In ko, this message translates to:
-  /// **'화면을 나가도 대국은 계속돼요. 나갈까요?'**
-  String get leaveOnlineGameConfirm;
-
   /// 개발용 온라인 대국 만들기 실패
   ///
   /// In ko, this message translates to:

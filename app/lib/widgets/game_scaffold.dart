@@ -42,7 +42,10 @@ class GameScaffold extends StatelessWidget {
 /// 대국 화면 계열 맨 위의 제목 줄. 왼쪽에 뒤로 버튼을 둔다. [chip]이 있으면 제목 대신 가운데에 둔다(대국 결과 칩).
 class GameHeader extends StatelessWidget {
   final String title;
-  final VoidCallback onBack;
+
+  /// 없으면 뒤로 버튼을 두지 않는다. 온라인 대국의 상차림부터 대국이 끝날 때까지다(`docs/screens.md`의 대국 화면).
+  final VoidCallback? onBack;
+
   final Widget? chip;
 
   const GameHeader({super.key, required this.title, required this.onBack, this.chip});
@@ -50,16 +53,21 @@ class GameHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chip = this.chip;
+    final onBack = this.onBack;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: [
-          IconButton(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_ios_new, color: GameColors.text),
-            // 뒤로
-            tooltip: AppLocalizations.of(context).back,
-          ),
+          // 버튼이 없어도 줄 높이와 제목 자리가 그대로이게 같은 크기를 비워 둔다.
+          if (onBack == null)
+            const SizedBox.square(dimension: minTouchSize)
+          else
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_ios_new, color: GameColors.text),
+              // 뒤로
+              tooltip: AppLocalizations.of(context).back,
+            ),
           Expanded(
             child: chip != null
                 ? Center(child: chip)
@@ -237,7 +245,8 @@ class _GameSheetDialog extends StatelessWidget {
 /// 왼쪽 판 영역의 왼쪽 위에 뒤로 버튼을 두고, 그 아래에 정보 줄과 판([boardColumn])을 판 폭에 맞춰 가운데 놓는다.
 /// 오른쪽에는 폭 400 패널([panel])을 둔다.
 class GameWideLayout extends StatelessWidget {
-  final VoidCallback onBack;
+  /// 없으면 뒤로 버튼을 두지 않는다. [GameHeader.onBack]과 같다.
+  final VoidCallback? onBack;
 
   /// 위 정보 줄, 판, 아래 정보 줄. [BoardColumnBox]로 판과 같은 폭이 된다.
   final Widget boardColumn;
@@ -248,6 +257,7 @@ class GameWideLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onBack = this.onBack;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -257,12 +267,15 @@ class GameWideLayout extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: IconButton(
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back_ios_new, color: GameColors.text),
-                  // 뒤로
-                  tooltip: AppLocalizations.of(context).back,
-                ),
+                // 버튼이 없어도 판 크기가 그대로이게 같은 크기를 비워 둔다.
+                child: onBack == null
+                    ? const SizedBox.square(dimension: minTouchSize)
+                    : IconButton(
+                        onPressed: onBack,
+                        icon: const Icon(Icons.arrow_back_ios_new, color: GameColors.text),
+                        // 뒤로
+                        tooltip: AppLocalizations.of(context).back,
+                      ),
               ),
               Expanded(
                 child: Padding(

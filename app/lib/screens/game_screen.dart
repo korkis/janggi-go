@@ -177,7 +177,7 @@ class _GameScreenState extends State<GameScreen> {
         canPop: false,
         onPopInvokedWithResult: _onPopInvoked,
         child: GameWideLayout(
-          onBack: _onBack,
+          onBack: _getBackAction(board),
           boardColumn: Column(
             children: [
               _buildPlayerBar(context, board, bottomSide.opponent),
@@ -202,7 +202,7 @@ class _GameScreenState extends State<GameScreen> {
       onPopInvokedWithResult: _onPopInvoked,
       child: Column(
         children: [
-          GameHeader(title: title, onBack: _onBack, chip: resultChip),
+          GameHeader(title: title, onBack: _getBackAction(board), chip: resultChip),
           _buildPlayerBar(context, board, bottomSide.opponent),
           // 판과 아래 정보 줄을 붙여 두고 남는 높이는 버튼 줄 위에 둔다.
           Expanded(
@@ -887,6 +887,14 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// 뒤로 버튼이 할 일. 온라인 대국은 끝나기 전에 나갈 수 없어 버튼을 두지 않는다.
+  VoidCallback? _getBackAction(BoardManager board) {
+    if (_online != null && !board.isOver) {
+      return null;
+    }
+    return _onBack;
+  }
+
   void _onBack() {
     Navigator.of(context).maybePop();
   }
@@ -895,8 +903,8 @@ class _GameScreenState extends State<GameScreen> {
     Navigator.of(context).pop();
   }
 
-  /// 대국 중 뒤로 가기는 한 번 더 확인한 뒤 나간다. 온라인 대국은 나가도 대국이 계속된다고 알린다.
-  /// 대국이 끝난 뒤의 뒤로 가기는 나가기와 같다.
+  /// 대국이 끝난 뒤의 뒤로 가기는 나가기와 같다. 온라인 대국은 끝나기 전에 나갈 수 없다(`docs/screens.md`의 대국 화면).
+  /// 개발용 대국은 한 번 더 확인한 뒤 나간다.
   Future<void> _onPopInvoked(bool didPop, Object? result) async {
     if (didPop) {
       return;
@@ -905,11 +913,14 @@ class _GameScreenState extends State<GameScreen> {
       _onExit();
       return;
     }
+    if (_online != null) {
+      return;
+    }
     final l10n = AppLocalizations.of(context);
     final confirmed = await DialogUtils.showConfirm(
       context,
-      // 화면을 나가도 대국은 계속돼요. 나갈까요? / 대국을 그만두고 나갈까요?
-      message: _online != null ? l10n.leaveOnlineGameConfirm : l10n.leaveGameConfirm,
+      // 대국을 그만두고 나갈까요?
+      message: l10n.leaveGameConfirm,
       // 나가기
       confirmLabel: l10n.leaveGameAction,
     );

@@ -10,7 +10,6 @@ import '../managers/online_game_manager.dart';
 import '../managers/setup_manager.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
-import '../utils/dialog_utils.dart';
 import '../utils/game_clock.dart';
 import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
@@ -146,12 +145,12 @@ class _SetupScreenState extends State<SetupScreen> {
     final setupTurn = online.setupTurn;
     final flipped = mySide == Side.han;
     final myConfirmed = online.hasConfirmedFormation(mySide);
+    // 온라인 대국은 상차림부터 나갈 수 없어 뒤로 버튼도 두지 않는다(`docs/screens.md`의 대국 화면).
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: _onPopInvoked,
       child: _buildFrame(
         context,
-        onBack: _onBack,
+        onBack: null,
         details: getGameDetails(l10n, game.meta),
         layout: _SetupLayout(
           opponentBar: PlayerBar(
@@ -206,7 +205,7 @@ class _SetupScreenState extends State<SetupScreen> {
   /// 마·상 줄을 가리지 않게 그 줄 바로 위에 놓는다. 상대 연결이 끊긴 동안([disconnect])은 판 가운데에 끊김 카드를 띄운다.
   Widget _buildFrame(
     BuildContext context, {
-    required VoidCallback onBack,
+    required VoidCallback? onBack,
     required Widget layout,
     List<String> details = const [],
     Widget? dialog,
@@ -240,7 +239,7 @@ class _SetupScreenState extends State<SetupScreen> {
       fit: StackFit.expand,
       children: [
         frame,
-        // 뒤로 버튼은 막 아래에서도 누를 수 있게 둔다.
+        // 개발용 상차림의 뒤로 버튼은 막 아래에서도 누를 수 있게 둔다.
         if (dialog != null) const IgnorePointer(child: ColoredBox(color: GameColors.scrim)),
         _BoardOverlay(boardKey: _boardKey, dialog: dialog, disconnect: disconnect),
       ],
@@ -396,25 +395,6 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   void _onBackWithoutConfirm() {
-    Navigator.of(context).pop();
-  }
-
-  /// 온라인 대국의 뒤로 가기는 대국이 계속된다는 것을 알리고 확인을 받은 뒤 나간다.
-  Future<void> _onPopInvoked(bool didPop, Object? result) async {
-    if (didPop) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await DialogUtils.showConfirm(
-      context,
-      // 화면을 나가도 대국은 계속돼요. 나갈까요?
-      message: l10n.leaveOnlineGameConfirm,
-      // 나가기
-      confirmLabel: l10n.leaveGameAction,
-    );
-    if (!confirmed || !mounted) {
-      return;
-    }
     Navigator.of(context).pop();
   }
 }

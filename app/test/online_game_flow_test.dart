@@ -116,6 +116,78 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('온라인 대국은 상차림부터 끝날 때까지 뒤로 갈 수 없고, 끝나면 나갈 수 있다', (tester) async {
+    _usePhoneView(tester);
+    final fakes = setUpFakeApp();
+    await fakes.auth.signInWithEmail(email: 'opp', password: 'password');
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const SizedBox.shrink(),
+      ),
+    );
+    navigatorKey.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (context) => Theme(
+          data: gameTheme,
+          child: const SetupScreen.online(gameId: 'g1'),
+        ),
+      ),
+    );
+    await _pumpFor(tester);
+
+    fakes.games.emit('g1', buildGameJson());
+    await _pumpFor(tester);
+    expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
+    await tester.binding.handlePopRoute();
+    await _pumpFor(tester);
+    expect(find.byType(SetupScreen), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+
+    fakes.games.emit(
+      'g1',
+      buildGameJson(
+        phase: 'playing',
+        setupTurn: 'cho',
+        hanFormation: 'horseElephantHorseElephant',
+        choFormation: 'horseElephantHorseElephant',
+        turn: 'cho',
+        turnStartedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    await _pumpFor(tester);
+    expect(find.byType(GameScreen), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
+    await tester.binding.handlePopRoute();
+    await _pumpFor(tester);
+    expect(find.byType(GameScreen), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+
+    fakes.games.emit(
+      'g1',
+      buildGameJson(
+        phase: 'finished',
+        setupTurn: 'cho',
+        hanFormation: 'horseElephantHorseElephant',
+        choFormation: 'horseElephantHorseElephant',
+        turn: 'cho',
+        turnStartedAt: 1030000,
+        result: {'winner': 'han', 'reason': 'resignation', 'choScore': 72, 'hanScore': 73.5},
+        endedAt: 1040000,
+      ),
+    );
+    await _pumpFor(tester, const Duration(seconds: 4));
+    expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await _pumpFor(tester);
+    expect(find.byType(GameScreen), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('대국이 끝나면 진 쪽에게 내 진영 기준으로 패배 도장을 찍고 재대국 신청을 주 버튼으로 둔다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();

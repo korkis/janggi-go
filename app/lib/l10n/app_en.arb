@@ -114,7 +114,6 @@
   "setupSeconds": "{seconds}s",
   "setupOpponentChoosing": "Your opponent is choosing a setup",
   "resignConfirmOnline": "Resign? You will lose this game.",
-  "leaveOnlineGameConfirm": "The game continues if you leave. Leave anyway?",
   "errorCreateGame": "Could not create the game. Please try again later.",
   "errorGameLoad": "Could not load the game.",
   "errorPlayMove": "Could not send the move. The board was synced with the server.",

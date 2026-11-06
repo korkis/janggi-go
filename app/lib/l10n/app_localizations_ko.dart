@@ -464,9 +464,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get resignConfirmOnline => '기권할까요? 이 대국은 지게 돼요';
 
   @override
-  String get leaveOnlineGameConfirm => '화면을 나가도 대국은 계속돼요. 나갈까요?';
-
-  @override
   String get errorCreateGame => '대국을 만들지 못했어요. 잠시 후 다시 해 주세요';
 
   @override

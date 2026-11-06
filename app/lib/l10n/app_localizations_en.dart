@@ -487,10 +487,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resignConfirmOnline => 'Resign? You will lose this game.';
 
   @override
-  String get leaveOnlineGameConfirm =>
-      'The game continues if you leave. Leave anyway?';
-
-  @override
   String get errorCreateGame =>
       'Could not create the game. Please try again later.';
 
