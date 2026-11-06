@@ -37,5 +37,16 @@ abstract interface class TaskScheduler {
   Future<void> schedule(TaskName task, Map<String, Object?> payload, {required DateTime runAt, String? taskId});
 }
 
+/// [startAt]부터 [interval]마다 스스로 다시 예약하는 작업의 다음 회차와 그 시각.
+///
+/// 회차는 taskId에 들어가므로 이번 회차보다 커야 한다. 같은 회차를 다시 예약하면 건너뛰어 작업이 끊긴다. 시각을 밀리초로 맞춰
+/// 작업 본문의 `eventAt`과 같게 하면 `eventAt` 이후로 판정한 [now]의 다음 회차는 언제나 이번 회차보다 크다.
+({int step, DateTime runAt}) getNextPeriodicRun(DateTime startAt, Duration interval, DateTime now) {
+  final startMs = startAt.millisecondsSinceEpoch;
+  final intervalMs = interval.inMilliseconds;
+  final step = (now.millisecondsSinceEpoch - startMs) ~/ intervalMs + 1;
+  return (step: step, runAt: DateTime.fromMillisecondsSinceEpoch(startMs + intervalMs * step, isUtc: true));
+}
+
 /// [taskId]가 Cloud Tasks 작업 이름 규칙에 맞는지.
 bool isValidTaskId(String taskId) => RegExp(r'^[A-Za-z0-9_-]{1,500}$').hasMatch(taskId);

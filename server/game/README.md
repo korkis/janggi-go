@@ -31,7 +31,7 @@ Cloud Run에서 도는 Dart 대국 서버다. 설계는 [docs/server.md](../../d
 4. 로그인과 `users/{uid}` 확인은 `createCallableHandler`가 먼저 한다. 프로필이 없으면 `profileRequired`.
 5. 정상 처리에는 `logger.info` 성공 로그를 하나 남긴다.
 
-예약 작업은 `TaskName`에 이름을 더하고 `TaskEndpoint`를 만들어 `tasks`에 넣는다. 경로는 `POST /tasks/<name>`이다. 같은 작업이 늦게 돌거나 두 번 돌아도 결과가 같게 만든다.
+예약 작업은 `TaskName`에 이름을 더하고 `TaskEndpoint`를 만들어 `tasks`에 넣는다. 경로는 `POST /tasks/<name>`이다. 같은 작업이 늦게 돌거나 두 번 돌아도 결과가 같게 만든다. 일정한 간격으로 스스로 다시 예약하는 작업은 `getNextPeriodicRun`(`lib/tasks/task_scheduler.dart`)으로 다음 회차를 구한다. 회차가 taskId에 들어가므로 이번 회차와 같은 값이 나오면 예약을 건너뛰어 작업이 끊긴다.
 
 ## Firebase 연결
 
@@ -50,7 +50,7 @@ Dart용 Firebase Admin SDK가 공식으로 없어 REST API를 직접 부른다(`
 ### Firestore 에뮬레이터의 제약
 
 - 트랜잭션 안의 읽기는 `documents:batchGet`(POST)으로 한다. 에뮬레이터 REST는 GET의 `transaction` 쿼리를 읽지 못하고 연결을 끊는다.
-- 같은 문서를 두 트랜잭션이 동시에 바꾸면 에뮬레이터는 30초 뒤 `Transaction lock timeout`으로 끝내고 REST 연결을 끊는다. 운영 Firestore는 바로 `ABORTED`를 돌려주고 `FirestoreClient.runTransaction`이 다시 실행한다. 그래서 동시 매칭 같은 경합은 에뮬레이터에서 `callable 실패`(INTERNAL)로 보일 수 있다.
+- 같은 문서를 읽은 트랜잭션들이 동시에 커밋하면 서로의 읽기 잠금을 기다리다 약 2초 뒤 `409 ABORTED`(`Transaction lock timeout`)로 끝난다. 운영 Firestore는 바로 `ABORTED`를 돌려준다. `FirestoreClient.runTransaction`은 어느 쪽이든 무작위 시간(첫 상한 200ms, 재시도마다 두 배)을 기다려 다시 실행한다. 기다리지 않으면 부딪힌 요청들이 또 같이 부딪혀 5번을 다 쓰고 실패한다. 그래서 동시 매칭 같은 경합은 에뮬레이터에서 부딪힐 때마다 2초쯤 느려지고, 드물게 `callable 실패`(INTERNAL)로 보일 수 있다.
 
 ## 환경 변수
 

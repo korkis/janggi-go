@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
@@ -102,7 +103,15 @@ class FirestoreClient {
   final Uri baseUri;
   final String projectId;
 
-  const FirestoreClient({required this.httpClient, required this.baseUri, required this.projectId});
+  /// [runTransaction]이 다시 실행하기 전에 기다린다. 테스트가 기다린 시간을 볼 때 바꾼다.
+  final Future<void> Function(Duration delay) sleep;
+
+  const FirestoreClient({
+    required this.httpClient,
+    required this.baseUri,
+    required this.projectId,
+    this.sleep = _sleep,
+  });
 
   /// `projects/{p}/databases/(default)/documents`.
   String get documentsRoot => 'projects/$projectId/databases/(default)/documents';
@@ -218,6 +227,7 @@ class FirestoreClient {
   /// [work]를 트랜잭션 안에서 실행하고 쓰기를 커밋한다.
   ///
   /// 다른 요청과 부딪혀 커밋이 `ABORTED`로 실패하면 [maxAttempts]번까지 처음부터 다시 실행한다.
+  /// 바로 다시 실행하면 부딪힌 요청들이 같은 순서로 또 부딪히므로 무작위 시간을 기다려 어긋나게 한다.
   /// [work]는 다시 실행될 수 있으므로 트랜잭션 밖에 부수 효과를 남기지 않는다.
   Future<T> runTransaction<T>(Future<T> Function(FirestoreTransaction transaction) work, {int maxAttempts = 5}) async {
     String? retryTransaction;
@@ -238,7 +248,14 @@ class FirestoreClient {
         await _rollbackQuietly(transactionId);
         rethrow;
       }
+      await sleep(_getRetryDelay(attempt));
     }
+  }
+
+  /// [attempt]번째 실패 뒤 기다릴 시간. 0부터 상한 사이의 무작위 값이고 상한은 재시도마다 두 배로 늘린다.
+  static Duration _getRetryDelay(int attempt) {
+    final maxMs = _retryBaseDelay.inMilliseconds * (1 << (attempt - 1));
+    return Duration(milliseconds: _random.nextInt(maxMs + 1));
   }
 
   Future<String> _beginTransaction(String? retryTransaction) async {
@@ -321,6 +338,13 @@ class FirestoreClient {
   }
 
   static const _jsonHeaders = {'Content-Type': 'application/json'};
+
+  // 첫 재시도 전에 기다리는 시간의 상한.
+  static const _retryBaseDelay = Duration(milliseconds: 200);
+
+  static final _random = Random();
+
+  static Future<void> _sleep(Duration delay) => Future<void>.delayed(delay);
 }
 
 /// [FirestoreClient.runTransaction] 안에서 읽고 쓰기를 모은다. 쓰기는 [work]가 끝난 뒤 한꺼번에 커밋한다.

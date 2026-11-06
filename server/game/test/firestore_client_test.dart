@@ -9,8 +9,9 @@ void main() {
   const root = 'projects/p/databases/(default)/documents';
 
   /// 트랜잭션 요청을 기록하고 [commitStatuses] 순서대로 커밋에 답하는 가짜 Firestore.
-  ({FirestoreClient client, List<String> calls}) createClient(List<int> commitStatuses) {
+  ({FirestoreClient client, List<String> calls, List<Duration> delays}) createClient(List<int> commitStatuses) {
     final calls = <String>[];
+    final delays = <Duration>[];
     var transactionCount = 0;
     var commitCount = 0;
     final client = MockClient((request) async {
@@ -58,13 +59,19 @@ void main() {
       );
     });
     return (
-      client: FirestoreClient(httpClient: client, baseUri: Uri.parse('http://firestore.test'), projectId: 'p'),
+      client: FirestoreClient(
+        httpClient: client,
+        baseUri: Uri.parse('http://firestore.test'),
+        projectId: 'p',
+        sleep: (delay) async => delays.add(delay),
+      ),
       calls: calls,
+      delays: delays,
     );
   }
 
   test('커밋이 ABORTED면 retryTransaction으로 처음부터 다시 실행한다', () async {
-    final (:client, :calls) = createClient([409, 200]);
+    final (:client, :calls, delays: _) = createClient([409, 200]);
     var runs = 0;
 
     final result = await client.runTransaction((transaction) async {
@@ -79,17 +86,18 @@ void main() {
   });
 
   test('트랜잭션에서 여러 문서를 한 번에 읽는다', () async {
-    final (:client, :calls) = createClient([200]);
+    final (:client, :calls, :delays) = createClient([200]);
     final documents = await client.runTransaction((transaction) => transaction.getAll(['games/g1', 'games/g2']));
     expect(documents, {
       'games/g1': {'count': 1},
       'games/g2': null,
     });
     expect(calls, ['begin -', 'get t1', 'commit t1']);
+    expect(delays, isEmpty);
   });
 
   test('maxAttempts번 모두 ABORTED면 오류를 던진다', () async {
-    final (:client, :calls) = createClient([409, 409]);
+    final (:client, :calls, delays: _) = createClient([409, 409]);
     await expectLater(
       client.runTransaction((transaction) async => transaction.set('games/g1', {}), maxAttempts: 2),
       throwsA(isA<FirestoreException>().having((error) => error.status, 'status', 'ABORTED')),
@@ -97,8 +105,17 @@ void main() {
     expect(calls.where((call) => call.startsWith('commit')), hasLength(2));
   });
 
+  test('다시 실행하기 전에 상한을 두 배씩 늘린 무작위 시간을 기다린다', () async {
+    final (:client, calls: _, :delays) = createClient([409, 409, 409, 200]);
+    await client.runTransaction((transaction) async => transaction.set('games/g1', {}));
+    expect(delays, hasLength(3));
+    for (final (index, limitMs) in [200, 400, 800].indexed) {
+      expect(delays[index].inMilliseconds, inInclusiveRange(0, limitMs));
+    }
+  });
+
   test('쓰기 뒤에 읽으면 오류로 본다', () async {
-    final (:client, calls: _) = createClient([200]);
+    final (:client, calls: _, delays: _) = createClient([200]);
     await expectLater(
       client.runTransaction((transaction) async {
         transaction.set('games/g1', {});

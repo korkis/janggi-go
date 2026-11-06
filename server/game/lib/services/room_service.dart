@@ -396,14 +396,12 @@ class RoomService {
 
   /// 방을 만든 시각부터 [checkInterval]마다의 다음 시각에 `checkRoom`을 예약한다. 같은 시각은 한 번만 예약한다.
   Future<void> _scheduleCheck(String roomId, Room room, DateTime now) async {
-    final intervalMs = checkInterval.inMilliseconds;
-    final tick = now.difference(room.createdAt).inMilliseconds ~/ intervalMs + 1;
-    final runAt = room.createdAt.add(checkInterval * tick);
+    final next = getNextPeriodicRun(room.createdAt, checkInterval, now);
     await taskScheduler.schedule(
       TaskName.checkRoom,
-      {'roomId': roomId, 'eventAt': runAt.millisecondsSinceEpoch},
-      runAt: runAt,
-      taskId: 'room-$roomId-$tick',
+      {'roomId': roomId, 'eventAt': next.runAt.millisecondsSinceEpoch},
+      runAt: next.runAt,
+      taskId: 'room-$roomId-${next.step}',
     );
   }
 

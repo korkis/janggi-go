@@ -98,8 +98,8 @@ void main() {
         expect((await firestore.getDocument(path))?['count'], 2);
       });
 
-      // 같은 문서를 동시에 바꾸는 트랜잭션은 에뮬레이터에서 확인하지 않는다. 에뮬레이터는 읽기 잠금이 엇갈리면 30초 뒤
-      // `Transaction lock timeout`으로 끝내고 REST 연결을 끊는다. ABORTED 재시도는 test/firestore_client_test.dart에서 본다.
+      // 같은 문서를 동시에 바꾸는 트랜잭션은 여기서 확인하지 않는다. 에뮬레이터는 읽기 잠금이 엇갈리면 약 2초 뒤
+      // `Transaction lock timeout`(ABORTED)으로 끝낸다. ABORTED 재시도는 test/firestore_client_test.dart에서 본다.
 
       test('트랜잭션에서 오류가 나면 쓰지 않는다', () async {
         final firestore = server.firestore;

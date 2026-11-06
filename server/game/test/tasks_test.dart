@@ -138,6 +138,32 @@ void main() {
     });
   });
 
+  group('getNextPeriodicRun', () {
+    final startAt = DateTime.utc(2026, 1, 1, 0, 0, 0, 123, 700);
+    const interval = Duration(milliseconds: 500);
+
+    test('시작 직후의 다음 회차는 1이고 시각은 밀리초로 맞춘다', () {
+      final next = getNextPeriodicRun(startAt, interval, startAt);
+      expect(next.step, 1);
+      expect(next.runAt, DateTime.utc(2026, 1, 1, 0, 0, 0, 623));
+    });
+
+    test('eventAt에 맞춰 판정해도 다음 회차가 이번 회차보다 크다', () {
+      var current = getNextPeriodicRun(startAt, interval, startAt);
+      for (var round = 0; round < 5; round++) {
+        final eventAt = DateTime.fromMillisecondsSinceEpoch(current.runAt.millisecondsSinceEpoch, isUtc: true);
+        final next = getNextPeriodicRun(startAt, interval, eventAt);
+        expect(next.step, current.step + 1);
+        current = next;
+      }
+    });
+
+    test('늦게 돌면 지난 회차를 건너뛴다', () {
+      final next = getNextPeriodicRun(startAt, interval, startAt.add(const Duration(milliseconds: 1300)));
+      expect(next.step, 3);
+    });
+  });
+
   group('CloudTasksScheduler', () {
     final environment = CloudTasksEnvironment(
       location: 'asia-northeast3',

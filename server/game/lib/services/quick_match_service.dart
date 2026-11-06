@@ -262,14 +262,13 @@ class QuickMatchService {
 
   /// [joinedAt]에 들어온 사람의 다음 범위 넓히기 시각에 `retryQuickMatch`를 예약한다.
   Future<void> _scheduleRetry(String uid, DateTime joinedAt, DateTime now) async {
-    final step = now.difference(joinedAt).inMilliseconds ~/ stepInterval.inMilliseconds + 1;
-    final runAt = joinedAt.add(stepInterval * step);
+    final next = getNextPeriodicRun(joinedAt, stepInterval, now);
     final joinedAtMs = joinedAt.millisecondsSinceEpoch;
     await taskScheduler.schedule(
       TaskName.retryQuickMatch,
-      {'uid': uid, 'joinedAt': joinedAtMs, 'eventAt': runAt.millisecondsSinceEpoch},
-      runAt: runAt,
-      taskId: 'quick-$uid-$joinedAtMs-$step',
+      {'uid': uid, 'joinedAt': joinedAtMs, 'eventAt': next.runAt.millisecondsSinceEpoch},
+      runAt: next.runAt,
+      taskId: 'quick-$uid-$joinedAtMs-${next.step}',
     );
   }
 
