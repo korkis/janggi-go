@@ -10,6 +10,7 @@
 |---|---|
 | [plan.md](./plan.md) | 목표, 시장 분석, 차별화 전략, 기술 구성, 수익 모델, AI 방침, 로드맵 |
 | [monetization.md](./monetization.md) | 파는 상품, 가격, 광고 위치, 광고 보상, 엽전 |
+| [release.md](./release.md) | 출시 순서, 출시 범위, 운영 배포로만 확인할 것, 규정 확인 |
 
 ## 개발
 
