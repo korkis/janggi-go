@@ -6,6 +6,7 @@ import '../screens/profile_screen.dart';
 import '../screens/records_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/spectate_list_screen.dart';
+import '../screens/store_screen.dart';
 import '../theme/app_theme.dart';
 
 /// 화면 폭에 따른 배치 구간(`docs/ui.md`의 넓은 화면). 폭은 앱 창의 논리 픽셀이다.
@@ -405,14 +406,13 @@ class SideMenu extends StatelessWidget {
                   ],
                 ),
               ),
-              // 상점 화면이 생기면(구현 순서 5번) 잇는다.
               _SideMenuItem(
                 icon: Icons.storefront_outlined,
                 selectedIcon: Icons.storefront,
                 // 상점
                 label: l10n.menuStore,
                 selected: false,
-                onTap: null,
+                onTap: () => StoreScreen.open(context),
               ),
               _buildItem(context, l10n, AppMenu.settings),
               const SizedBox(height: 12),

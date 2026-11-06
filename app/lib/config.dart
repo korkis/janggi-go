@@ -162,5 +162,18 @@ String? getStoreUrl() {
   return defaultTargetPlatform == TargetPlatform.iOS ? appStoreUrl : playStoreUrl;
 }
 
+/// RevenueCat 공개 API 키(`docs/release.md`의 운영 배포 전에 채울 값). 공개 키라 앱에 넣는다.
+const revenueCatGoogleApiKey = '';
+const revenueCatAppleApiKey = '';
+
+/// 이 빌드의 RevenueCat 키. 웹과 에뮬레이터 빌드는 팔지 않으므로 null이다. 에뮬레이터로는 웹훅이 오지 않아 결제해도 지급되지 않는다.
+String? getRevenueCatApiKey() {
+  if (kIsWeb || useFirebaseEmulator) {
+    return null;
+  }
+  final key = defaultTargetPlatform == TargetPlatform.iOS ? revenueCatAppleApiKey : revenueCatGoogleApiKey;
+  return key.isEmpty ? null : key;
+}
+
 /// 채팅 메시지 최대 글자 수. Functions의 `CHAT_MAX_LENGTH`(`server/functions/src/config.ts`)와 같다.
 const chatMaxLength = 100;

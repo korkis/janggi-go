@@ -35,6 +35,10 @@ class AppConfigManager extends ChangeNotifier {
 
   bool get chatEnabled => _config?.chatEnabled ?? true;
   bool get signupEnabled => _config?.signupEnabled ?? true;
+  bool get coinSaleEnabled => _config?.coinSaleEnabled ?? true;
+
+  /// 웹이다. 상점에서 팔지 않는다.
+  bool get onWeb => web;
 
   /// 웹이고 `webEnabled`가 꺼져 있다. 안내 화면만 보여준다.
   bool get webClosed => web && _config?.webEnabled == false;

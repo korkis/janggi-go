@@ -67,6 +67,9 @@ class AppConfig {
   /// 웹을 쓸 수 있다. 끄면 웹은 안내 화면만 보여준다.
   final bool webEnabled;
 
+  /// 엽전 충전을 판다. 끄면 상점에서 충전 상품을 숨긴다.
+  final bool coinSaleEnabled;
+
   /// 이보다 낮은 앱에 업데이트 화면을 띄운다. `1.2.3` 모양이다.
   final String minAppVersion;
 
@@ -94,6 +97,7 @@ class AppConfig {
     required this.chatEnabled,
     required this.signupEnabled,
     required this.webEnabled,
+    required this.coinSaleEnabled,
     required this.minAppVersion,
     required this.serviceNotice,
   });

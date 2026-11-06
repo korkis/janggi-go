@@ -1,3 +1,5 @@
+import {PieceMaterial, StoreProduct} from "./models/store";
+
 // 서버만 쓰고 운영 중 바꿀 일이 없는 설정이다(docs/dev_rules.md의 설정 저장).
 
 // configs/app 문서를 메모리에 캐시하는 시간(초). 요청마다 Firestore를 읽지 않기 위해서다.
@@ -29,6 +31,26 @@ export const COIN_BALANCE_BUCKET_STARTS = [0, 10, 50, 100, 300, 1000, 3000];
 
 // Admin 웹의 엽전 지표가 하루 단위로 보여주는 날 수. 오늘 포함이다.
 export const COIN_STATS_DAYS = 7;
+
+// 스토어 상품 ID와 그 상품이 주는 것(docs/monetization.md의 상품, 현금 충전). 앱의 storeProducts(app/lib/config.dart)와 같다.
+// 충전 개수는 스토어 상품 이름에 들어가므로 configs/app에 두지 않는다. 바꾸려면 상품을 새로 등록한다.
+export const STORE_PRODUCTS: Record<string, StoreProduct> = {
+  coins_300: {kind: "coins", coins: 300},
+  coins_1100: {kind: "coins", coins: 1100},
+  coins_3000: {kind: "coins", coins: 3000},
+  pieces_wood: {kind: "material", material: PieceMaterial.wood},
+  pieces_aluminum: {kind: "material", material: PieceMaterial.aluminum},
+  remove_ads: {kind: "adsRemoved"},
+};
+
+// RevenueCat이 로그인 전 사용자에게 붙이는 ID의 앞부분. 앱은 로그인한 뒤에만 팔므로 웹훅에서 uid로 쓰지 않는다.
+export const REVENUECAT_ANONYMOUS_ID_PREFIX = "$RCAnonymousID:";
+
+// RevenueCat REST API 주소.
+export const REVENUECAT_API_URL = "https://api.revenuecat.com/v1";
+
+// RevenueCat REST API 응답을 기다리는 최대 시간(밀리초).
+export const REVENUECAT_API_TIMEOUT_MS = 10000;
 
 // 운영진을 사칭하는 단어. 닉네임에 들어 있으면(영문은 대소문자 무시) 쓸 수 없다.
 export const NICKNAME_IMPERSONATION_WORDS = [

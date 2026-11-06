@@ -31,6 +31,7 @@ export interface AppConfig {
   chatEnabled: boolean;
   signupEnabled: boolean;
   webEnabled: boolean;
+  coinSaleEnabled: boolean;
   minAppVersion: string;
   serviceNotice: ServiceNotice | null;
 }
@@ -57,6 +58,7 @@ export const INITIAL_APP_CONFIG: AppConfig = {
   chatEnabled: true,
   signupEnabled: true,
   webEnabled: true,
+  coinSaleEnabled: true,
   minAppVersion: "1.0.0",
   serviceNotice: null,
 };

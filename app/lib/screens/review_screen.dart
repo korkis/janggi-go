@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:janggi_core/janggi_core.dart';
 
 import '../l10n/app_localizations.dart';
+import '../managers/app_managers.dart';
 import '../managers/review_manager.dart';
 import '../theme/app_theme.dart';
 import '../utils/score_format.dart';
@@ -112,6 +113,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildBoard() {
     return BoardView(
+      materials: managers.storeManager.materials,
       position: _review.position,
       selected: _review.selected,
       targets: _review.targets,

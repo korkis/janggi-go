@@ -68,7 +68,7 @@
 
 | 설정 | 끄거나 바꾸면 | 쓰는 경우 | 구현 순서 |
 |---|---|---|---|
-| 엽전 숫자(지급, 대국 보상, 쓰는 값) | 앱 업데이트 없이 값이 바뀐다 | 밸런스 조정 | 1, 2, 5, 6 |
+| 엽전 숫자(지급, 대국 보상, 쓰는 값) | 앱 업데이트 없이 값이 바뀐다 | 밸런스 조정 | 1, 2, 6 |
 | `entryFeeEnabled` | 참가비를 받지 않는다 | 판돈 해석 지적 | 1 |
 | `timeExtensionEnabled` | 시간 연장을 멈춘다 | 대국 중 유료 혜택 지적 | 2 |
 | `gamePracticeEnabled` | 대국 중 놓아보기를 멈춘다 | 같은 지적, 공정성 불만 | 2 |
@@ -77,12 +77,13 @@
 | `webEnabled` | 웹은 안내 화면만 보여준다 | 웹 등급 분류 지적 | 4 |
 | `minAppVersion` | 옛 앱에 업데이트 화면을 띄운다 | 앱을 고친 뒤 옛 버전 차단 | 4 |
 | `serviceNotice` | 공지를 띄우고 대국 시작을 막을 수 있다 | 점검, 긴급 상황 | 4 |
-| `coinSaleEnabled` | 엽전 충전 판매를 멈춘다. 이미 산 엽전은 계속 쓴다 | 유상 재화 지적, 환불 문제 | 5 |
+| `coinSaleEnabled` | 상점에서 엽전 충전을 숨긴다. 이미 산 엽전은 계속 쓴다 | 유상 재화 지적, 환불 문제 | 5 |
 | `rewardedAdEnabled` | 보상형 광고를 멈춘다 | 광고 정책 문제, 보상 악용 | 6 |
 | `bannerAdEnabled` | 배너 광고를 멈춘다 | 광고 계정 문제 | 6 |
 | 앱을 끈 사람의 대기 시간 | 값이 바뀐다 | 오래된 매칭 알림 조정 | 8 |
 
 - 앱에서 숨기는 것으로 끝내지 않고 서버 API도 같은 설정을 확인해 거절한다. 옛 앱과 조작된 앱도 멈추기 위해서다.
+- `coinSaleEnabled`만 앱에서 숨기는 것으로 끝낸다(사용자 결정, 2026-11-07). 결제는 스토어로 바로 가므로 서버가 끼어들려면 결제 전에 Callable을 한 번 더 불러야 하고, 드물게 쓸 스위치 때문에 매번 결제가 콜드 스타트만큼 느려지기 때문이다. 웹훅에서 거절하면 돈만 나가고 엽전을 받지 못하므로 웹훅은 지급하고 경고 로그를 남긴다. 조작된 앱의 결제는 막지 못하지만 그 사람은 돈을 내고 엽전을 받는다.
 - 앱이 읽어 둔 값과 서버 캐시 때문에 화면에는 조금 늦게 반영될 수 있다. 바로 막는 것은 서버다.
 - `configs/app`은 누구나 읽으므로 악용될 값(어뷰징 탐지 기준 등)은 넣지 않는다.
 - 구현 순서 4번의 스위치가 앱과 서버에서 하는 일은 [server.md](./server.md)의 운영 스위치다. `minAppVersion`만 서버가 거절하지 않는다. 옛 앱은 버전을 보내지 않기 때문이다.
@@ -98,19 +99,54 @@
 - App Links, Universal Links, Install Referrer. 웹으로 받은 초대 링크가 앱의 같은 방으로 이어지는지.
 - `apple-app-site-association`의 Content-Type(Hosting 에뮬레이터는 headers를 적용하지 않는다).
 - 두 계정의 실제 대국, Cloud Tasks 예약 작업(시간패, 상차림 마감).
-- 실제 결제와 환불, AdMob 서버 콜백, FCM 알림.
+- AdMob 서버 콜백, FCM 알림.
+- 결제와 환불(아래 "앱 결제에서 확인할 것").
 - iOS의 애플 로그인 사용자 탈퇴와 토큰 철회, 되돌린 뒤 다시 로그인.
 - 탈퇴 뒤 구글, 애플 로그인이 막히는지, `purgeDeletedAccounts` 예약 작업, Firestore TTL.
 - 업데이트 안내의 스토어 열기.
 
+앱 결제에서 확인할 것(안드로이드 비공개 테스트와 TestFlight):
+
+- 충전 세 가지, 기물 두 가지, 광고 제거를 사면 몇 초 안에 지갑과 보관함에 들어오는지. 실제 웹훅에 `product_id`, `transaction_id`, `store`, `app_user_id`가 문서대로 오는지. Functions 로그의 `revenueCatWebhook 구매 완료`로 본다.
+- 환불이 `CANCELLATION`으로 오는지, 그때 `transaction_id`가 구매 때와 같은지. RevenueCat 문서에 한 번 사는 상품의 환불 사유 값이 적혀 있지 않아 사유는 보지 않게 만들었다. 로그에 `구매 기록 없는 환불`이 찍히면 번호가 다른 것이다. 구글은 Play 콘솔, 애플은 샌드박스의 환불 테스트로 일으킨다. 스토어 서버 알림을 RevenueCat에 연결해야 온다(아래 사용자 할 일).
+- 광고 제거와 기물을 산 뒤 다시 살 수 없는지, 구글에서 충전 상품은 되풀이해 살 수 있는지. 비소모품이 소모되면 RevenueCat의 상품 유형 설정을 다시 본다. RevenueCat 문서가 이 설정과 구글의 소모 처리의 관계를 적어 두지 않았다.
+- 다른 앱 계정으로 같은 스토어 계정을 쓸 때: 충전은 살 수 있고 산 기물은 "이 스토어 계정으로 이미 산 상품이에요"가 나오는지, 복원해도 다른 계정으로 옮겨지지 않는지(서버는 `TRANSFER`를 무시한다).
+- 구매 복원 버튼. 애플 심사가 비소모품에 요구한다.
+- 탈퇴자를 지울 때 RevenueCat 고객이 지워지는지. `REVENUECAT_SECRET_API_KEY`의 키 종류는 RevenueCat 문서에 적혀 있지 않아 비밀 키로 넣었다. 401이면 `purgeDeletedAccounts` 로그에 남고 그 사람을 지우지 않는다.
+- 외국 스토어 계정에서 현지 통화 가격이 보이는지.
+
 운영 배포 전에 채울 값:
 
 - `configs/app`의 새 필드. 서버를 배포하기 전에 `npm run init-app-config`를 실행한다([server.md](./server.md)의 `configs/app`).
+- `app/lib/config.dart`의 `revenueCatGoogleApiKey`, `revenueCatAppleApiKey`. 비어 있으면 앱은 "지금은 살 수 없어요"를 보여준다.
+- Secret Manager의 `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_SECRET_API_KEY`. 아래 사용자 할 일.
 - `assetlinks.json`의 Play App Signing SHA-256(지금은 개발 PC 디버그 키만 있다).
 - AASA의 `APPLE_TEAM_ID`, Associated Domains, `invite.html`의 `APP_STORE_URL`, `app/lib/config.dart`의 `appStoreUrl`.
 - 운영 Firestore 규칙. [server.md](./server.md) 구현 순서 1번에 2026-11-30까지 열려 있다고 적힌 규칙이 운영에 남아 있는지 확인한다.
 
 운영 배포는 사용자가 정한 때만 한다.
+
+## 앱 결제 준비 — 사용자 할 일 (2026-11-07)
+
+계정이 필요해 사용자가 직접 한다. 코드는 아래 값을 기다리고 있다.
+
+1. **스토어 상품 등록.** Play Console과 App Store Connect에 같은 ID로 만든다. 값은 [monetization.md](./monetization.md)다.
+
+   | 상품 ID | 이름 | 값 | 구글 | 애플 |
+   |---|---|---|---|---|
+   | `coins_300` | 300엽전 | 1,200원 | 일회성 제품 | 소모품 |
+   | `coins_1100` | 1,100엽전 | 3,900원 | 일회성 제품 | 소모품 |
+   | `coins_3000` | 3,000엽전 | 9,900원 | 일회성 제품 | 소모품 |
+   | `pieces_wood` | 나무 장기알 | 4,900원 | 일회성 제품 | 비소모품 |
+   | `pieces_aluminum` | 알루미늄 장기알 | 4,900원 | 일회성 제품 | 비소모품 |
+   | `remove_ads` | 광고 제거 | 4,900원 | 일회성 제품 | 비소모품 |
+
+2. **RevenueCat 프로젝트.** 안드로이드와 iOS 앱을 등록하고 스토어 자격 증명을 넣는다. 위 여섯 상품을 넣고 `pieces_wood`, `pieces_aluminum`, `remove_ads`의 유형을 Non-consumable로 둔다. Offering과 Entitlement는 쓰지 않는다. 복원 동작은 기본값(Transfer to new App User ID)을 그대로 둔다. 산 것은 서버가 Firebase 계정에 묶어 두므로 옮겨져도 바뀌지 않는다. "Keep with original App User ID"로 바꾸면 한 기기에서 다른 계정으로 충전을 살 수 없게 된다.
+3. **스토어 서버 알림.** RevenueCat 안내대로 구글 실시간 개발자 알림과 App Store Server Notifications를 RevenueCat으로 연결한다. RevenueCat 문서는 이것이 없으면 한 번 사는 상품의 환불을 모두 받지 못할 수 있다고 한다.
+4. **웹훅.** RevenueCat 대시보드에서 주소를 `https://asia-northeast3-janggi-go.cloudfunctions.net/revenueCatWebhook`로 정하고(첫 Functions 배포 뒤 콘솔에서 주소를 확인한다), Authorization 헤더 값을 임의의 긴 문자열로 정한다.
+5. **비밀값.** 위 Authorization 값을 `firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH`, RevenueCat의 v1 비밀 API 키를 `firebase functions:secrets:set REVENUECAT_SECRET_API_KEY`로 넣는다. 비용이 드는 Secret Manager API를 처음 켜는 경우 사용자가 켠다.
+6. **앱 키.** RevenueCat의 공개 SDK 키(`goog_...`, `appl_...`)를 `app/lib/config.dart`에 넣는다.
+7. **iOS.** 맥의 Xcode에서 Runner 타깃에 In-App Purchase capability를 더한다.
 
 ## HTML 페이지 — 초안
 
@@ -191,7 +227,7 @@ Firestore, 대국 서버, Functions는 서울에 있어 국외 이전이 아니�
 | 2 | 시간 연장과 놓아보기 (high) | `useTimeExtension`, 대국 중 놓아보기 결제, 버튼 줄 시안(폭 320 포함), 확인 창 | 1 |
 | 3 | 아래쪽 탭과 설정 (medium) | 탭, 상점 아이콘 자리, 설정 묶음(소리, 진동, 신청 받기, 계정, 정보) | 없음 |
 | 4 | 회원 탈퇴와 운영 스위치 (high) | 지울 범위 결정, `deleteAccount`, 앱 최소 버전 안내, 14세 동의 문구, 채팅·가입·웹·공지 스위치 | 3 |
-| 5 | 상점과 앱 결제 (high) | 상점 화면, RevenueCat, 기물·광고 제거·충전, 기물 적용과 7일 체험, 환불 처리, 웹 상점 표시, 탈퇴자를 지울 때 RevenueCat 고객도 지우기 | 1, 3 |
+| 5 | 상점과 앱 결제 (high) | 상점 화면, RevenueCat, 기물·광고 제거·충전, 기물 적용, 환불 처리, 웹 상점 표시, 탈퇴자를 지울 때 RevenueCat 고객도 지우기 | 1, 3 |
 | 6 | 앱 광고 (high) | AdMob 배너, 보상형과 서버 검증, UMP와 ATT, 광고 제거 연동, `app-ads.txt` | 1, 5 |
 | 7 | 효과음과 진동 (medium) | 무료 음원 후보, 파일만 바꾸면 되는 구조, 설정 연결 | 3 |
 | 8 | 매칭 알림 (high) | FCM, 앱 끈 사람의 대기열과 매칭, 알림 권한, 탈퇴 때 FCM 토큰 지우기 | 없음 |

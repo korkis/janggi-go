@@ -23,6 +23,7 @@ import '../widgets/room_condition_chips.dart';
 import 'online_users_tab.dart';
 import 'send_challenge_sheet.dart';
 import 'setup_screen.dart';
+import 'store_screen.dart';
 
 /// 방 대기실(`docs/screens.md`의 방 대기실). 밝은 화면이다.
 ///
@@ -481,10 +482,8 @@ class _RoomScreenState extends State<RoomScreen> {
     } catch (error, stackTrace) {
       developer.log('RoomRepository.startRoomGame 실패', error: error, stackTrace: stackTrace);
       if (mounted) {
-        final l10n = AppLocalizations.of(context);
         // 대국을 시작하지 못했어요. 잠시 후 다시 해 주세요
-        final message = error is AppException ? error.getMessage(l10n) : l10n.errorStartRoomGame;
-        await DialogUtils.showMessage(context, message: message);
+        await showActionError(context, error: error, fallback: AppLocalizations.of(context).errorStartRoomGame);
       }
     } finally {
       if (mounted) {

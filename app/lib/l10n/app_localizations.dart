@@ -2695,6 +2695,168 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'지금은 웹에서 이용할 수 없어요. 앱을 이용해 주세요'**
   String get webClosedMessage;
+
+  /// 상점 절 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'엽전 충전'**
+  String get storeCoinsTitle;
+
+  /// 상점 절 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'장기알'**
+  String get storePiecesTitle;
+
+  /// 상점 절 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'광고 제거'**
+  String get storeRemoveAdsTitle;
+
+  /// 광고 제거 상품 설명. 배너만 없앤다
+  ///
+  /// In ko, this message translates to:
+  /// **'배너 광고가 나오지 않아요'**
+  String get storeRemoveAdsDescription;
+
+  /// 충전 상품 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'{coins}엽전'**
+  String storeCoinsAmount(int coins);
+
+  /// 스토어 가격을 모를 때의 값
+  ///
+  /// In ko, this message translates to:
+  /// **'{price}원'**
+  String storePriceWon(int price);
+
+  /// 웹 상점의 구매 자리
+  ///
+  /// In ko, this message translates to:
+  /// **'앱에서 살 수 있어요'**
+  String get storeBuyInApp;
+
+  /// 기물 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 장기알'**
+  String get storeMaterialPlastic;
+
+  /// 기물 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'나무 장기알'**
+  String get storeMaterialWood;
+
+  /// 기물 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'알루미늄 장기알'**
+  String get storeMaterialAluminum;
+
+  /// 지금 고른 기물
+  ///
+  /// In ko, this message translates to:
+  /// **'쓰는 중'**
+  String get storeMaterialSelected;
+
+  /// 산 기물을 고르는 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'쓰기'**
+  String get storeMaterialSelect;
+
+  /// 이미 산 영구 상품
+  ///
+  /// In ko, this message translates to:
+  /// **'샀어요'**
+  String get storeOwned;
+
+  /// 결제가 끝났을 때. 지급은 서버가 웹훅을 받아 한다
+  ///
+  /// In ko, this message translates to:
+  /// **'결제했어요. 곧 들어와요'**
+  String get storePurchased;
+
+  /// 구매 복원 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'구매 복원'**
+  String get storeRestore;
+
+  /// 구매 복원이 끝났을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'구매를 다시 확인했어요'**
+  String get storeRestored;
+
+  /// 청약철회 안내(docs/release.md의 약관에 넣을 것)
+  ///
+  /// In ko, this message translates to:
+  /// **'쓰지 않은 엽전과 상품은 결제하고 7일 안에 구글 플레이나 앱스토어에서 환불을 신청할 수 있어요'**
+  String get storeWithdrawalNotice;
+
+  /// 엽전이 모자라요 창의 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'상점으로 가기'**
+  String get storeGo;
+
+  /// 결제 실패 기본 메시지
+  ///
+  /// In ko, this message translates to:
+  /// **'결제하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorPurchase;
+
+  /// 구매 복원 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'구매를 복원하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorRestorePurchases;
+
+  /// 기물 고르기 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'장기알을 바꾸지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorSelectMaterial;
+
+  /// 스토어를 쓸 수 없을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 살 수 없어요. 잠시 후 다시 해 주세요'**
+  String get errorStoreUnavailable;
+
+  /// 사용자가 결제를 취소했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'결제를 그만뒀어요'**
+  String get errorPurchaseCanceled;
+
+  /// 결제가 승인 대기 중일 때
+  ///
+  /// In ko, this message translates to:
+  /// **'결제가 끝나면 들어와요'**
+  String get errorPurchasePending;
+
+  /// 스토어가 이미 산 상품이라고 할 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이 스토어 계정으로 이미 산 상품이에요'**
+  String get errorPurchaseAlreadyOwned;
+
+  /// 로그인 창 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면\n상점을 쓸 수 있어요'**
+  String get loginSheetTitleStore;
+
+  /// 닉네임 정하기 안내
+  ///
+  /// In ko, this message translates to:
+  /// **'정하고 나면 상점으로 가요'**
+  String get nicknameStartHintStore;
 }
 
 class _AppLocalizationsDelegate

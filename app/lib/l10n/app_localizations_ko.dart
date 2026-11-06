@@ -1608,4 +1608,98 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get webClosedMessage => '지금은 웹에서 이용할 수 없어요. 앱을 이용해 주세요';
+
+  @override
+  String get storeCoinsTitle => '엽전 충전';
+
+  @override
+  String get storePiecesTitle => '장기알';
+
+  @override
+  String get storeRemoveAdsTitle => '광고 제거';
+
+  @override
+  String get storeRemoveAdsDescription => '배너 광고가 나오지 않아요';
+
+  @override
+  String storeCoinsAmount(int coins) {
+    final intl.NumberFormat coinsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String coinsString = coinsNumberFormat.format(coins);
+
+    return '$coinsString엽전';
+  }
+
+  @override
+  String storePriceWon(int price) {
+    final intl.NumberFormat priceNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String priceString = priceNumberFormat.format(price);
+
+    return '$priceString원';
+  }
+
+  @override
+  String get storeBuyInApp => '앱에서 살 수 있어요';
+
+  @override
+  String get storeMaterialPlastic => '기본 장기알';
+
+  @override
+  String get storeMaterialWood => '나무 장기알';
+
+  @override
+  String get storeMaterialAluminum => '알루미늄 장기알';
+
+  @override
+  String get storeMaterialSelected => '쓰는 중';
+
+  @override
+  String get storeMaterialSelect => '쓰기';
+
+  @override
+  String get storeOwned => '샀어요';
+
+  @override
+  String get storePurchased => '결제했어요. 곧 들어와요';
+
+  @override
+  String get storeRestore => '구매 복원';
+
+  @override
+  String get storeRestored => '구매를 다시 확인했어요';
+
+  @override
+  String get storeWithdrawalNotice =>
+      '쓰지 않은 엽전과 상품은 결제하고 7일 안에 구글 플레이나 앱스토어에서 환불을 신청할 수 있어요';
+
+  @override
+  String get storeGo => '상점으로 가기';
+
+  @override
+  String get errorPurchase => '결제하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorRestorePurchases => '구매를 복원하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorSelectMaterial => '장기알을 바꾸지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorStoreUnavailable => '지금은 살 수 없어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorPurchaseCanceled => '결제를 그만뒀어요';
+
+  @override
+  String get errorPurchasePending => '결제가 끝나면 들어와요';
+
+  @override
+  String get errorPurchaseAlreadyOwned => '이 스토어 계정으로 이미 산 상품이에요';
+
+  @override
+  String get loginSheetTitleStore => '로그인하면\n상점을 쓸 수 있어요';
+
+  @override
+  String get nicknameStartHintStore => '정하고 나면 상점으로 가요';
 }

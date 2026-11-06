@@ -159,6 +159,7 @@ export interface AppConfig {
   chatEnabled: boolean;
   signupEnabled: boolean;
   webEnabled: boolean;
+  coinSaleEnabled: boolean;
   minAppVersion: string;
   serviceNotice: ServiceNotice | null;
 }

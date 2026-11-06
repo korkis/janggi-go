@@ -587,5 +587,48 @@
   "errorGamesBlocked": "New games can't be started right now",
   "updateRequiredMessage": "Please update to the new version",
   "updateRequiredButton": "Update",
-  "webClosedMessage": "The web version isn't available right now. Please use the app"
+  "webClosedMessage": "The web version isn't available right now. Please use the app",
+  "storeCoinsTitle": "Buy coins",
+  "storePiecesTitle": "Pieces",
+  "storeRemoveAdsTitle": "Remove ads",
+  "storeRemoveAdsDescription": "No more banner ads",
+  "storeCoinsAmount": "{coins} coins",
+  "@storeCoinsAmount": {
+    "placeholders": {
+      "coins": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "storePriceWon": "₩{price}",
+  "@storePriceWon": {
+    "placeholders": {
+      "price": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "storeBuyInApp": "Available in the app",
+  "storeMaterialPlastic": "Standard pieces",
+  "storeMaterialWood": "Wood pieces",
+  "storeMaterialAluminum": "Aluminum pieces",
+  "storeMaterialSelected": "In use",
+  "storeMaterialSelect": "Use",
+  "storeOwned": "Purchased",
+  "storePurchased": "Payment complete. It will arrive shortly",
+  "storeRestore": "Restore purchases",
+  "storeRestored": "Purchases checked again",
+  "storeWithdrawalNotice": "Unused coins and items can be refunded within 7 days of payment through Google Play or the App Store",
+  "storeGo": "Go to store",
+  "errorPurchase": "Couldn't complete the payment. Please try again later",
+  "errorRestorePurchases": "Couldn't restore purchases. Please try again later",
+  "errorSelectMaterial": "Couldn't change pieces. Please try again later",
+  "errorStoreUnavailable": "Purchases aren't available right now. Please try again later",
+  "errorPurchaseCanceled": "Payment canceled",
+  "errorPurchasePending": "It will arrive once the payment completes",
+  "errorPurchaseAlreadyOwned": "This store account already owns this item",
+  "loginSheetTitleStore": "Sign in to use\nthe store",
+  "nicknameStartHintStore": "Next, we'll open the store"
 }

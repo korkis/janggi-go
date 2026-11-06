@@ -21,3 +21,6 @@ enum ChallengeStatus { pending, accepted, declined, expired, cancelled }
 
 /// 대국실 접속자의 상태(`online_users.status`). 대국(상차림 포함) 중이면 `playing`이다.
 enum OnlineStatus { waiting, playing }
+
+/// 기물 재질(`docs/ui.md`의 기물). 앱의 `PieceMaterial`, Functions의 `PieceMaterial`과 값을 일치시킨다.
+enum PieceMaterial { plastic, wood, aluminum }

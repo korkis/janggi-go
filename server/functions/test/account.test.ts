@@ -16,8 +16,19 @@ import {ReportWithTargetView, UserHistoryView} from "../src/models/admin";
 import {AppConfig, INITIAL_APP_CONFIG} from "../src/models/appConfig";
 import {setAppConfig} from "../src/repositories/configsRepository";
 import {getRtdb} from "../src/repositories/rtdb";
-import {purgeDeletedAccounts} from "../src/services/accountService";
+import {purgeDeletedAccounts as purgeDeletedAccountsWithKey} from "../src/services/accountService";
+import {deleteRevenueCatCustomer} from "../src/services/revenueCatApi";
 import {TEST_PROJECT_ID} from "./testEnv";
+
+// RevenueCat에 닿지 않게 한다.
+jest.mock("../src/services/revenueCatApi");
+const deleteRevenueCatCustomerMock = jest.mocked(deleteRevenueCatCustomer);
+
+const REVENUECAT_API_KEY = "test-revenuecat-key";
+
+function purgeDeletedAccounts(): Promise<void> {
+  return purgeDeletedAccountsWithKey(REVENUECAT_API_KEY);
+}
 
 // defineSecret("OPENAI_API_KEY").value()가 읽는 값.
 process.env.OPENAI_API_KEY = "test-openai-key";
@@ -250,6 +261,10 @@ describe("adminRestoreAccount", () => {
 });
 
 describe("purgeDeletedAccounts", () => {
+  beforeEach(() => {
+    deleteRevenueCatCustomerMock.mockClear();
+  });
+
   /** 지우고 남기는 것을 모두 확인할 탈퇴자와 관련 기록을 만든다. */
   async function createDeletedAccountWithRecords(): Promise<void> {
     await createAccount("me", "장기왕");
@@ -260,6 +275,18 @@ describe("purgeDeletedAccounts", () => {
     await db.collection("nickname_changes").add({uid: "me", before: "옛이름", after: "장기왕", changedAt: now});
     await db.doc("coin_transactions/signup_me").set({uid: "me", reason: "signup", createdAt: now});
     await db.doc("coin_transactions/signup_other").set({uid: "other", reason: "signup", createdAt: now});
+    await db
+      .doc("inventories/me")
+      .set({materials: ["wood"], selectedMaterial: "wood", adsRemoved: true, updatedAt: now});
+    await db
+      .doc("inventories/other")
+      .set({materials: [], selectedMaterial: "plastic", adsRemoved: true, updatedAt: now});
+    await db
+      .doc("purchases/PLAY_STORE_T1")
+      .set({uid: "me", productId: "pieces_wood", status: "granted", createdAt: now});
+    await db
+      .doc("purchases/PLAY_STORE_T2")
+      .set({uid: "other", productId: "remove_ads", status: "granted", createdAt: now});
     await db.doc("sanctions/s1").set({
       uid: "me",
       type: "warning",
@@ -291,6 +318,7 @@ describe("purgeDeletedAccounts", () => {
       "users/me/blocks/other",
       "users_private/me",
       "coin_wallets/me",
+      "inventories/me",
       "ratings/me",
       "player_states/me",
       "nicknames/장기왕",
@@ -310,16 +338,36 @@ describe("purgeDeletedAccounts", () => {
     const coinExpiresAt = (await getData("coin_transactions/signup_me"))?.expiresAt as Timestamp;
     const sanctionExpiresAt = (await getData("sanctions/s1"))?.expiresAt as Timestamp;
     expect(dayjs(coinExpiresAt.toDate()).diff(dayjs(), "year", true)).toBeCloseTo(5, 1);
+    const purchaseExpiresAt = (await getData("purchases/PLAY_STORE_T1"))?.expiresAt as Timestamp;
+    expect(dayjs(purchaseExpiresAt.toDate()).diff(dayjs(), "year", true)).toBeCloseTo(5, 1);
+    expect(deleteRevenueCatCustomerMock).toHaveBeenCalledTimes(1);
+    expect(deleteRevenueCatCustomerMock).toHaveBeenCalledWith("me", REVENUECAT_API_KEY);
     expect(dayjs(sanctionExpiresAt.toDate()).diff(dayjs(), "day")).toBeGreaterThanOrEqual(364);
 
     // 다른 사람의 것은 건드리지 않는다.
-    for (const path of ["users/other", "nicknames/상대", "rooms/r2", "challenges/c3"]) {
+    for (const path of ["users/other", "nicknames/상대", "rooms/r2", "challenges/c3", "inventories/other"]) {
       expect(await getData(path)).toBeDefined();
     }
     expect((await getData("coin_transactions/signup_other"))?.expiresAt).toBeUndefined();
+    expect((await getData("purchases/PLAY_STORE_T2"))?.expiresAt).toBeUndefined();
 
     // 남은 제재가 없으므로 재가입을 막는 기록을 남기지 않는다.
     expect((await db.collection("deleted_accounts").get()).empty).toBe(true);
+  });
+
+  test("RevenueCat 고객을 지우지 못하면 사람을 지우지 않고 다음에 다시 한다", async () => {
+    await createDeletedAccountWithRecords();
+    await backdateDeletion("me", 30);
+    deleteRevenueCatCustomerMock.mockRejectedValueOnce(new Error("RevenueCat 장애"));
+
+    await purgeDeletedAccounts();
+    expect(await getData("users/me")).toBeDefined();
+    expect(await getData("inventories/me")).toBeDefined();
+    expect((await getAuth().getUser("me")).uid).toBe("me");
+
+    await purgeDeletedAccounts();
+    expect(await getData("users/me")).toBeUndefined();
+    expect(await getData("inventories/me")).toBeUndefined();
   });
 
   test("30일이 지나지 않았으면 지우지 않는다", async () => {

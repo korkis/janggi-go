@@ -22,6 +22,7 @@ const BOOLEAN_KEYS: (keyof AppConfig)[] = [
   "chatEnabled",
   "signupEnabled",
   "webEnabled",
+  "coinSaleEnabled",
 ];
 
 /** 공지는 없거나, 두 언어의 문구가 1~SERVICE_NOTICE_MAX_LENGTH자이고 gamesBlocked가 boolean이어야 한다. 필드가 더 있으면 거절한다. */

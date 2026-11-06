@@ -11,6 +11,7 @@ import 'lobby_presence_manager.dart';
 import 'player_state_manager.dart';
 import 'rank_manager.dart';
 import 'sanction_manager.dart';
+import 'store_manager.dart';
 
 /// 앱 수명 동안 유지하는 Manager. `repositories`를 설정한 뒤에 설정한다.
 late AppManagers managers;
@@ -29,6 +30,7 @@ class AppManagers {
   final LanguageManager languageManager;
   final EffectSettingsManager effectSettingsManager;
   final CoinManager coinManager;
+  final StoreManager storeManager;
 
   AppManagers({
     required this.appConfigManager,
@@ -44,6 +46,7 @@ class AppManagers {
     required this.languageManager,
     required this.effectSettingsManager,
     required this.coinManager,
+    required this.storeManager,
   });
 
   factory AppManagers.createDefault() {
@@ -64,6 +67,7 @@ class AppManagers {
       languageManager: LanguageManager(),
       effectSettingsManager: EffectSettingsManager(),
       coinManager: CoinManager(authManager: authManager),
+      storeManager: StoreManager(authManager: authManager),
     );
   }
 }

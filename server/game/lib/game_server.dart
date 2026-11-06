@@ -183,6 +183,7 @@ class GameServer {
       configs: repositories.configs,
       coinWallets: repositories.coinWallets,
       coinTransactions: repositories.coinTransactions,
+      inventories: repositories.inventories,
       taskScheduler: taskScheduler,
       logger: logger,
     );

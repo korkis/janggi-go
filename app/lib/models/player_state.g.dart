@@ -12,9 +12,7 @@ PlayerState _$PlayerStateFromJson(Map<String, dynamic> json) => PlayerState(
   lastGameId: json['lastGameId'] as String?,
   outgoingChallengeId: json['outgoingChallengeId'] as String?,
   incomingChallengeId: json['incomingChallengeId'] as String?,
-  setupDraft: json['setupDraft'] == null
-      ? null
-      : SetupDraft.fromJson(json['setupDraft'] as Map<String, dynamic>),
+  setupDraft: json['setupDraft'] == null ? null : SetupDraft.fromJson(json['setupDraft'] as Map<String, dynamic>),
   lastRankChange: json['lastRankChange'] == null
       ? null
       : RankChange.fromJson(json['lastRankChange'] as Map<String, dynamic>),
@@ -23,20 +21,14 @@ PlayerState _$PlayerStateFromJson(Map<String, dynamic> json) => PlayerState(
     json['quickQueueJoinedAt'],
     const TimestampConverter().fromJson,
   ),
-  updatedAt: const TimestampConverter().fromJson(
-    json['updatedAt'] as Timestamp,
-  ),
+  updatedAt: const TimestampConverter().fromJson(json['updatedAt'] as Timestamp),
 );
 
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
+Value? _$JsonConverterFromJson<Json, Value>(Object? json, Value? Function(Json json) fromJson) =>
+    json == null ? null : fromJson(json as Json);
 
-SetupDraft _$SetupDraftFromJson(Map<String, dynamic> json) => SetupDraft(
-  gameId: json['gameId'] as String,
-  formation: $enumDecode(_$FormationEnumMap, json['formation']),
-);
+SetupDraft _$SetupDraftFromJson(Map<String, dynamic> json) =>
+    SetupDraft(gameId: json['gameId'] as String, formation: $enumDecode(_$FormationEnumMap, json['formation']));
 
 const _$FormationEnumMap = {
   Formation.horseElephantHorseElephant: 'horseElephantHorseElephant',

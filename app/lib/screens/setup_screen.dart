@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../managers/online_game_manager.dart';
 import '../managers/setup_manager.dart';
+import '../models/game_enums.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_exception.dart';
 import '../utils/game_clock.dart';
@@ -105,7 +106,12 @@ class _SetupScreenState extends State<SetupScreen> {
         opponentBar: PlayerBar(side: opponent, active: false),
         board: KeyedSubtree(
           key: _boardKey,
-          child: BoardView(position: setup.preview, flipped: flipped, highlighted: setup.getFormationSquares(chooser)),
+          child: BoardView(
+            materials: managers.storeManager.materials,
+            position: setup.preview,
+            flipped: flipped,
+            highlighted: setup.getFormationSquares(chooser),
+          ),
         ),
         myBar: PlayerBar(side: chooser, active: true),
       ),
@@ -119,7 +125,14 @@ class _SetupScreenState extends State<SetupScreen> {
             ? _getOrderedPieces(setup.getFormationSquares(opponent), setup.preview, flipped: flipped)
             : null,
         opponentChoosing: false,
-        grid: _buildFormationGrid(context, side: chooser, picked: setup.picked, onPick: setup.pick),
+        opponentMaterial: managers.storeManager.selectedMaterial,
+        grid: _buildFormationGrid(
+          context,
+          side: chooser,
+          material: managers.storeManager.selectedMaterial,
+          picked: setup.picked,
+          onPick: setup.pick,
+        ),
         onConfirm: _onConfirm,
       ),
     );
@@ -162,6 +175,7 @@ class _SetupScreenState extends State<SetupScreen> {
           board: KeyedSubtree(
             key: _boardKey,
             child: BoardView(
+              materials: game.meta.players.materials,
               position: online.setupPreview,
               flipped: flipped,
               highlighted: online.getFormationSquares(mySide),
@@ -186,9 +200,11 @@ class _SetupScreenState extends State<SetupScreen> {
                     ? _getOrderedPieces(online.getFormationSquares(opponentSide), online.setupPreview, flipped: flipped)
                     : null,
                 opponentChoosing: setupTurn == opponentSide,
+                opponentMaterial: game.meta.players.get(opponentSide).pieceMaterial ?? PieceMaterial.plastic,
                 grid: _buildFormationGrid(
                   context,
                   side: mySide,
+                  material: game.meta.players.get(mySide).pieceMaterial ?? PieceMaterial.plastic,
                   picked: online.picked,
                   onPick: online.canPickFormation ? _onPickOnline : null,
                 ),
@@ -298,6 +314,7 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget _buildFormationGrid(
     BuildContext context, {
     required Side side,
+    required PieceMaterial material,
     required Formation picked,
     required ValueChanged<Formation>? onPick,
   }) {
@@ -314,6 +331,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     child: _FormationButton(
                       formation: Formation.values[row * 2 + column],
                       side: side,
+                      material: material,
                       selected: Formation.values[row * 2 + column] == picked,
                       onPick: onPick,
                     ),
@@ -585,6 +603,9 @@ class _SetupDialog extends StatelessWidget {
   /// 상대가 먼저 고르는 중이라 아직 고를 수 없다.
   final bool opponentChoosing;
 
+  /// [decided]를 그릴 상대의 재질.
+  final PieceMaterial opponentMaterial;
+
   final Widget grid;
 
   /// null이면 누를 수 없다.
@@ -597,6 +618,7 @@ class _SetupDialog extends StatelessWidget {
     required this.timer,
     required this.decided,
     required this.opponentChoosing,
+    required this.opponentMaterial,
     required this.grid,
     required this.onConfirm,
   });
@@ -661,7 +683,7 @@ class _SetupDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  for (final piece in decided) PieceIcon(piece: piece, size: 28),
+                  for (final piece in decided) PieceIcon(piece: piece, size: 28, material: opponentMaterial),
                 ],
               ),
             ] else if (opponentChoosing) ...[
@@ -729,12 +751,19 @@ class _FormationButton extends StatelessWidget {
 
   final Formation formation;
   final Side side;
+  final PieceMaterial material;
   final bool selected;
 
   /// null이면 누를 수 없다.
   final ValueChanged<Formation>? onPick;
 
-  const _FormationButton({required this.formation, required this.side, required this.selected, required this.onPick});
+  const _FormationButton({
+    required this.formation,
+    required this.side,
+    required this.material,
+    required this.selected,
+    required this.onPick,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -775,7 +804,7 @@ class _FormationButton extends StatelessWidget {
         for (final type in pieces)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: _pieceGap),
-            child: PieceIcon(piece: Piece(side, type), size: size),
+            child: PieceIcon(piece: Piece(side, type), size: size, material: material),
           ),
       ],
     );

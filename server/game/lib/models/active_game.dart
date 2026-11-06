@@ -79,6 +79,22 @@ class GameMeta {
   factory GameMeta.fromJson(Map<String, dynamic> json) => _$GameMetaFromJson(json);
 
   Map<String, dynamic> toJson() => _$GameMetaToJson(this);
+
+  GameMeta copyWithPlayers(GamePlayers players) {
+    return GameMeta(
+      mode: mode,
+      rated: rated,
+      roomId: roomId,
+      listed: listed,
+      players: players,
+      handicap: handicap,
+      timeControl: timeControl,
+      disconnectLimitMs: disconnectLimitMs,
+      rematchOf: rematchOf,
+      rematchCount: rematchCount,
+      createdAt: createdAt,
+    );
+  }
 }
 
 @JsonSerializable(createToJson: true, explicitToJson: true, includeIfNull: false)
@@ -102,11 +118,23 @@ class GamePlayer {
   final String nickname;
   final int rankLevel;
 
-  const GamePlayer({required this.uid, required this.nickname, required this.rankLevel});
+  /// 산 기물을 고른 대국자의 재질. 대국을 만들 때의 값이다. 기본 기물이면 경로가 없다.
+  final PieceMaterial? pieceMaterial;
+
+  const GamePlayer({required this.uid, required this.nickname, required this.rankLevel, this.pieceMaterial});
 
   factory GamePlayer.fromJson(Map<String, dynamic> json) => _$GamePlayerFromJson(json);
 
   Map<String, dynamic> toJson() => _$GamePlayerToJson(this);
+
+  GamePlayer copyWithMaterial(PieceMaterial material) {
+    return GamePlayer(
+      uid: uid,
+      nickname: nickname,
+      rankLevel: rankLevel,
+      pieceMaterial: material == PieceMaterial.plastic ? null : material,
+    );
+  }
 }
 
 /// 시간 규칙(`docs/game/time.md`). 대국을 만들 때 대국 서버 설정을 복사한다.

@@ -5,6 +5,7 @@ import 'package:janggi_core/janggi_core.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../managers/board_manager.dart';
+import '../../models/game_enums.dart';
 import '../../utils/game_sounds.dart';
 import 'board_geometry.dart';
 import 'board_images.dart';
@@ -45,7 +46,9 @@ class BoardView extends StatefulWidget {
   final RejectedTap? rejectedTap;
 
   final ValueChanged<Square>? onSquareTap;
-  final PieceMaterial material;
+
+  /// 두 진영의 기물 재질.
+  final BoardMaterials materials;
 
   const BoardView({
     super.key,
@@ -59,7 +62,7 @@ class BoardView extends StatefulWidget {
     this.checkedSide,
     this.rejectedTap,
     this.onSquareTap,
-    this.material = PieceMaterial.plastic,
+    this.materials = plasticMaterials,
   });
 
   @override
@@ -81,7 +84,7 @@ class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
     super.initState();
     _moveController = AnimationController(vsync: this, duration: BoardView.moveDuration, value: 1);
     _checkController = AnimationController(vsync: this, duration: BigCheckStamp.duration);
-    _images = BoardImages.getLoaded(widget.material);
+    _images = BoardImages.getLoaded(widget.materials);
     if (_images == null) {
       _loadImages();
     }
@@ -97,7 +100,7 @@ class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(BoardView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.material != widget.material) {
+    if (oldWidget.materials != widget.materials) {
       _loadImages();
     }
     final moved = _startMoveAnimation(oldWidget);
@@ -217,13 +220,13 @@ class _BoardViewState extends State<BoardView> with TickerProviderStateMixin {
 
   Future<void> _loadImages() async {
     try {
-      final images = await BoardImages.load(widget.material);
+      final images = await BoardImages.load(widget.materials);
       if (!mounted) {
         return;
       }
       setState(() => _images = images);
     } catch (error, stackTrace) {
-      developer.log('BoardImages.load 실패: ${widget.material.name}', error: error, stackTrace: stackTrace);
+      developer.log('BoardImages.load 실패: ${widget.materials}', error: error, stackTrace: stackTrace);
     }
   }
 }

@@ -291,6 +291,7 @@ function parseAppConfig(value: unknown): AppConfig {
     chatEnabled: asBoolean(record.chatEnabled, "config.chatEnabled"),
     signupEnabled: asBoolean(record.signupEnabled, "config.signupEnabled"),
     webEnabled: asBoolean(record.webEnabled, "config.webEnabled"),
+    coinSaleEnabled: asBoolean(record.coinSaleEnabled, "config.coinSaleEnabled"),
     minAppVersion: asString(record.minAppVersion, "config.minAppVersion"),
     serviceNotice: asNullable(record.serviceNotice, "config.serviceNotice", (item, itemPath) => {
       const notice = asRecord(item, itemPath);

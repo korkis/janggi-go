@@ -18,10 +18,12 @@ import {setCoinTransactionsExpiry} from "../repositories/coinTransactionsReposit
 import {deleteConnections} from "../repositories/connectionsRepository";
 import {setDeletedAccount} from "../repositories/deletedAccountsRepository";
 import {runTransaction} from "../repositories/firestore";
+import {deleteInventoryInTransaction} from "../repositories/inventoriesRepository";
 import {deleteNicknameChangesByUid} from "../repositories/nicknameChangesRepository";
 import {deleteNicknameInTransaction, getNicknameInTransaction} from "../repositories/nicknamesRepository";
 import {deleteOnlineUser} from "../repositories/onlineUsersRepository";
 import {deletePlayerStateInTransaction, getPlayerStateInTransaction} from "../repositories/playerStatesRepository";
+import {setPurchasesExpiry} from "../repositories/purchasesRepository";
 import {deleteRatingInTransaction} from "../repositories/ratingsRepository";
 import {deleteRoomsByHost} from "../repositories/roomsRepository";
 import {setSanctionsExpiry} from "../repositories/sanctionsRepository";
@@ -36,6 +38,7 @@ import {
 import {deleteUserPrivateInTransaction, getUserPrivate} from "../repositories/usersPrivateRepository";
 import {getUserHistory} from "./adminUserService";
 import {getNicknameKey} from "./nicknameService";
+import {deleteRevenueCatCustomer} from "./revenueCatApi";
 import {isBlocking} from "./sanctionService";
 
 // `firebase-admin/auth`가 없는 사용자에게 던지는 오류 코드.
@@ -161,18 +164,21 @@ async function keepSanctionBlock(uid: string, now: dayjs.Dayjs): Promise<void> {
  * 탈퇴한 [uid]의 데이터를 지운다(docs/database.md의 회원 탈퇴). 앞 단계가 모두 끝나야 마지막 트랜잭션이 `users`를 지우므로, 중간에
  * 실패하면 다음 예약 작업이 처음부터 다시 한다. 그새 되돌렸으면 지우지 않는다.
  */
-export async function purgeAccount(uid: string, now: dayjs.Dayjs): Promise<void> {
+export async function purgeAccount(uid: string, now: dayjs.Dayjs, revenueCatApiKey: string): Promise<void> {
   const user = await getUser(uid);
   if (user?.deletedAt == null) {
     return;
   }
   await keepSanctionBlock(uid, now);
+  const purchaseExpiresAt = Timestamp.fromDate(now.add(COIN_TRANSACTION_RETENTION_YEARS, "year").toDate());
   await Promise.all([
     deleteUserBlocks(uid),
     deleteNicknameChangesByUid(uid),
     deleteChallengesByUid(uid),
     deleteRoomsByHost(uid),
-    setCoinTransactionsExpiry(uid, Timestamp.fromDate(now.add(COIN_TRANSACTION_RETENTION_YEARS, "year").toDate())),
+    setCoinTransactionsExpiry(uid, purchaseExpiresAt),
+    setPurchasesExpiry(uid, purchaseExpiresAt),
+    deleteRevenueCatCustomer(uid, revenueCatApiKey),
     setSanctionsExpiry(uid, Timestamp.fromDate(now.add(MODERATION_LOG_RETENTION_DAYS, "day").toDate())),
   ]);
   await deleteAuthUser(uid);
@@ -189,20 +195,21 @@ export async function purgeAccount(uid: string, now: dayjs.Dayjs): Promise<void>
     deleteUserInTransaction(transaction, uid);
     deleteUserPrivateInTransaction(transaction, uid);
     deleteWalletInTransaction(transaction, uid);
+    deleteInventoryInTransaction(transaction, uid);
     deleteRatingInTransaction(transaction, uid);
     deletePlayerStateInTransaction(transaction, uid);
   });
 }
 
 /** 탈퇴하고 30일 지난 사람들을 지운다. 한 사람이 실패해도 나머지는 지우고, 실패한 사람은 다음 예약 작업이 다시 한다. */
-export async function purgeDeletedAccounts(): Promise<void> {
+export async function purgeDeletedAccounts(revenueCatApiKey: string): Promise<void> {
   const now = dayjs();
   const cutoff = Timestamp.fromDate(now.subtract(ACCOUNT_DELETION_GRACE_DAYS, "day").toDate());
   const uids = await getUidsDeletedBefore(cutoff, ACCOUNT_PURGE_BATCH_SIZE);
   let purged = 0;
   for (const uid of uids) {
     try {
-      await purgeAccount(uid, now);
+      await purgeAccount(uid, now, revenueCatApiKey);
       purged += 1;
     } catch (error) {
       logger.error("purgeDeletedAccounts 실패", {uid, error});

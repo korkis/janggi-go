@@ -101,6 +101,44 @@ export function spendNicknameChangeInTransaction(
   );
 }
 
+/** 산 엽전을 유상으로 준다. [purchaseId] 영수증마다 한 번이다. 호출하기 전에 읽기를 모두 끝낸다. */
+export function grantPurchasedCoinsInTransaction(
+  transaction: Transaction,
+  uid: string,
+  wallet: CoinWallet,
+  coins: number,
+  purchaseId: string,
+  now: Timestamp,
+): void {
+  applyMoveInTransaction(
+    transaction,
+    wallet,
+    {uid, reason: CoinReason.coinPurchase, key: purchaseId, freeDelta: 0, paidDelta: coins},
+    now,
+  );
+}
+
+/**
+ * 환불된 충전의 엽전을 돌려받는다(docs/monetization.md의 환불). 유상에서 먼저 빼고 모자라면 무상에서 빼며, 그래도 모자라면 무상이 음수가
+ * 되어 메울 때까지 참가비를 낼 수 없다. 충전하고 쓴 뒤 환불받는 것을 되풀이해 이득을 볼 수 없게 하기 위해서다. 호출하기 전에 읽기를 모두 끝낸다.
+ */
+export function takeBackPurchasedCoinsInTransaction(
+  transaction: Transaction,
+  uid: string,
+  wallet: CoinWallet,
+  coins: number,
+  purchaseId: string,
+  now: Timestamp,
+): void {
+  const fromPaid = Math.min(wallet.paidCoins, coins);
+  applyMoveInTransaction(
+    transaction,
+    wallet,
+    {uid, reason: CoinReason.coinPurchaseRefund, key: purchaseId, freeDelta: fromPaid - coins, paidDelta: 0 - fromPaid},
+    now,
+  );
+}
+
 /**
  * 오늘의 출석을 준다. 연속 7째 날은 평소 값 대신 그 날의 값을 주고 다음 날 1로 돌아간다. 하루가 비면 1부터 다시 센다.
  * 오늘 이미 받았으면 아무것도 바꾸지 않고 granted false를 돌려주므로 여러 번 불려도 한 번만 받는다.

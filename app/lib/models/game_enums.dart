@@ -1,6 +1,14 @@
 // 앱과 대국 서버가 함께 쓰는 대국 enum이다(`docs/database.md`의 공통 enum).
 // 대국 서버의 같은 이름 enum(`server/game/lib/models/game_enums.dart`)과 값을 일치시키고, DB에는 `name`을 쓴다.
 
+/// 기물 재질(`docs/ui.md`의 기물). [name]이 `assets/pieces/` 아래 폴더 이름이다.
+enum PieceMaterial { plastic, wood, aluminum }
+
+/// 판에 그릴 두 진영의 재질.
+typedef BoardMaterials = ({PieceMaterial cho, PieceMaterial han});
+
+const BoardMaterials plasticMaterials = (cho: PieceMaterial.plastic, han: PieceMaterial.plastic);
+
 /// 대국을 만든 방법.
 enum GameMode { quick, room, challenge }
 

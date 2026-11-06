@@ -3,7 +3,7 @@ rules_version = '2';
 // 기본 거부에서 시작하고 필요한 경로만 연다(docs/database.md의 보안 규칙 방향).
 // 여기에 없는 컬렉션은 클라이언트가 읽지도 쓰지도 못한다. 서버(Admin SDK)는 규칙을 거치지 않는다.
 // 서버 전용: nicknames, ratings, nickname_changes, quick_queue, challenge_limits, reports,
-// moderation_logs, chat_checks, sanctions, coin_transactions, deleted_accounts. 관리자(admin claim)도 직접 읽지 않고 Admin Callable로만 다룬다.
+// moderation_logs, chat_checks, sanctions, coin_transactions, deleted_accounts, purchases. 관리자(admin claim)도 직접 읽지 않고 Admin Callable로만 다룬다.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -51,6 +51,16 @@ service cloud.firestore {
     // 엽전 잔액. 본인만 읽고 Functions와 대국 서버만 쓴다(docs/monetization.md의 지킬 선).
     match /coin_wallets/{uid} {
       allow read: if isOwner(uid);
+    }
+
+    // 산 상품과 고른 기물. 본인만 읽는다. 본인은 고른 기물만 바꿀 수 있고, 기본 기물이거나 산 기물이어야 한다.
+    // 지급과 환불은 Functions만 한다.
+    match /inventories/{uid} {
+      allow read: if isOwner(uid);
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['selectedMaterial'])
+        && (request.resource.data.selectedMaterial == 'plastic'
+          || request.resource.data.selectedMaterial in resource.data.materials);
     }
 
     // 사용자가 지금 무엇을 하고 있는지(대기열, 방, 대국, 신청). 본인만 읽고 대국 서버만 쓴다.

@@ -16,7 +16,8 @@ type BooleanField =
   | "gamePracticeEnabled"
   | "chatEnabled"
   | "signupEnabled"
-  | "webEnabled";
+  | "webEnabled"
+  | "coinSaleEnabled";
 
 interface NumberFieldInfo {
   key: NumberField;
@@ -75,6 +76,11 @@ const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
     help: "끄면 웹은 안내 화면만 보여주고 서버가 웹의 호출을 거절해요. 진행 중인 웹 대국은 끊김패나 시간패가 돼요.",
   },
   {
+    key: "coinSaleEnabled",
+    label: "엽전 충전 판매",
+    help: "끄면 앱의 상점에서 충전 상품이 사라져요. 이미 산 엽전은 계속 쓰고, 결제가 끝난 충전은 지급해요.",
+  },
+  {
     key: "onlineUsersVisible",
     label: "접속자 목록 보이기",
     help: "대국실 접속자 탭과 방 대기실의 접속자 초대하기를 보여줘요.",
@@ -125,6 +131,7 @@ function toDraft(config: AppConfig): Draft {
     chatEnabled: config.chatEnabled,
     signupEnabled: config.signupEnabled,
     webEnabled: config.webEnabled,
+    coinSaleEnabled: config.coinSaleEnabled,
     minAppVersion: config.minAppVersion,
     noticeEnabled: config.serviceNotice !== null,
     noticeMessageKo: config.serviceNotice?.messageKo ?? "",
@@ -172,6 +179,7 @@ function toConfig(draft: Draft): AppConfig | null {
     chatEnabled: draft.chatEnabled,
     signupEnabled: draft.signupEnabled,
     webEnabled: draft.webEnabled,
+    coinSaleEnabled: draft.coinSaleEnabled,
     minAppVersion: draft.minAppVersion,
     serviceNotice: draft.noticeEnabled
       ? {

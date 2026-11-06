@@ -1709,4 +1709,104 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get webClosedMessage =>
       'The web version isn\'t available right now. Please use the app';
+
+  @override
+  String get storeCoinsTitle => 'Buy coins';
+
+  @override
+  String get storePiecesTitle => 'Pieces';
+
+  @override
+  String get storeRemoveAdsTitle => 'Remove ads';
+
+  @override
+  String get storeRemoveAdsDescription => 'No more banner ads';
+
+  @override
+  String storeCoinsAmount(int coins) {
+    final intl.NumberFormat coinsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String coinsString = coinsNumberFormat.format(coins);
+
+    return '$coinsString coins';
+  }
+
+  @override
+  String storePriceWon(int price) {
+    final intl.NumberFormat priceNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String priceString = priceNumberFormat.format(price);
+
+    return '₩$priceString';
+  }
+
+  @override
+  String get storeBuyInApp => 'Available in the app';
+
+  @override
+  String get storeMaterialPlastic => 'Standard pieces';
+
+  @override
+  String get storeMaterialWood => 'Wood pieces';
+
+  @override
+  String get storeMaterialAluminum => 'Aluminum pieces';
+
+  @override
+  String get storeMaterialSelected => 'In use';
+
+  @override
+  String get storeMaterialSelect => 'Use';
+
+  @override
+  String get storeOwned => 'Purchased';
+
+  @override
+  String get storePurchased => 'Payment complete. It will arrive shortly';
+
+  @override
+  String get storeRestore => 'Restore purchases';
+
+  @override
+  String get storeRestored => 'Purchases checked again';
+
+  @override
+  String get storeWithdrawalNotice =>
+      'Unused coins and items can be refunded within 7 days of payment through Google Play or the App Store';
+
+  @override
+  String get storeGo => 'Go to store';
+
+  @override
+  String get errorPurchase =>
+      'Couldn\'t complete the payment. Please try again later';
+
+  @override
+  String get errorRestorePurchases =>
+      'Couldn\'t restore purchases. Please try again later';
+
+  @override
+  String get errorSelectMaterial =>
+      'Couldn\'t change pieces. Please try again later';
+
+  @override
+  String get errorStoreUnavailable =>
+      'Purchases aren\'t available right now. Please try again later';
+
+  @override
+  String get errorPurchaseCanceled => 'Payment canceled';
+
+  @override
+  String get errorPurchasePending =>
+      'It will arrive once the payment completes';
+
+  @override
+  String get errorPurchaseAlreadyOwned =>
+      'This store account already owns this item';
+
+  @override
+  String get loginSheetTitleStore => 'Sign in to use\nthe store';
+
+  @override
+  String get nicknameStartHintStore => 'Next, we\'ll open the store';
 }

@@ -91,6 +91,7 @@ GamePlayer _$GamePlayerFromJson(Map<String, dynamic> json) => $checkedCreate('Ga
     uid: $checkedConvert('uid', (v) => v as String),
     nickname: $checkedConvert('nickname', (v) => v as String),
     rankLevel: $checkedConvert('rankLevel', (v) => (v as num).toInt()),
+    pieceMaterial: $checkedConvert('pieceMaterial', (v) => $enumDecodeNullable(_$PieceMaterialEnumMap, v)),
   );
   return val;
 });
@@ -99,6 +100,13 @@ Map<String, dynamic> _$GamePlayerToJson(GamePlayer instance) => <String, dynamic
   'uid': instance.uid,
   'nickname': instance.nickname,
   'rankLevel': instance.rankLevel,
+  'pieceMaterial': ?_$PieceMaterialEnumMap[instance.pieceMaterial],
+};
+
+const _$PieceMaterialEnumMap = {
+  PieceMaterial.plastic: 'plastic',
+  PieceMaterial.wood: 'wood',
+  PieceMaterial.aluminum: 'aluminum',
 };
 
 TimeControl _$TimeControlFromJson(Map<String, dynamic> json) => $checkedCreate('TimeControl', json, ($checkedConvert) {

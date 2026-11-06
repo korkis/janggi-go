@@ -11,6 +11,7 @@ import 'login_flow.dart';
 import 'room_screen.dart';
 import 'sanction_dialog.dart';
 import 'spectate_screen.dart';
+import 'store_screen.dart';
 
 /// 로그인과 닉네임을 거쳐 [roomId]의 빈자리에 앉고 방 대기실을 연다. 초대 링크와 방 목록이 같이 쓴다.
 ///
@@ -41,7 +42,8 @@ Future<void> joinRoomAndOpen(BuildContext context, String roomId, LoginPurpose p
     if (await showSanctionDialogForError(context, error) || !context.mounted) {
       return;
     }
-    await DialogUtils.showMessage(context, message: _getJoinErrorMessage(l10n, error));
+    // 방에 들어가지 못했어요. 잠시 후 다시 해 주세요
+    await showActionError(context, error: error, fallback: l10n.errorJoinRoom);
     return;
   }
   if (context.mounted) {
@@ -61,15 +63,6 @@ Future<String?> _getPlayingGameId(String roomId, Object error) async {
     developer.log('RoomRepository.getRoom 실패', error: readError, stackTrace: stackTrace);
     return null;
   }
-}
-
-/// 방에 들어가지 못한 사유.
-String _getJoinErrorMessage(AppLocalizations l10n, Object error) {
-  if (error is! AppException) {
-    // 방에 들어가지 못했어요. 잠시 후 다시 해 주세요
-    return l10n.errorJoinRoom;
-  }
-  return error.getMessage(l10n);
 }
 
 /// "지금 대국 중인 방이에요. 관전할까요?"를 묻고 관전 화면을 연다.

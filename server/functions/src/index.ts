@@ -7,6 +7,7 @@ export {claimAttendance} from "./callables/claimAttendance";
 export {sendChatMessage} from "./callables/sendChatMessage";
 export {reportMessage} from "./callables/reportMessage";
 export {deleteAccount} from "./callables/deleteAccount";
+export {revenueCatWebhook} from "./webhooks/revenueCatWebhook";
 export {cleanupChats} from "./scheduled/cleanupChats";
 export {purgeDeletedAccounts} from "./scheduled/purgeDeletedAccounts";
 export {expireSanctions} from "./scheduled/expireSanctions";

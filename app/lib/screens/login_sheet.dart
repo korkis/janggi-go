@@ -155,6 +155,8 @@ class _LoginSheetState extends State<LoginSheet> {
     LoginPurpose.records => l10n.loginSheetTitleRecords,
     // 로그인하면\n급수와 전적을 볼 수 있어요
     LoginPurpose.profile => l10n.loginSheetTitleProfile,
+    // 로그인하면 상점을 쓸 수 있어요
+    LoginPurpose.store => l10n.loginSheetTitleStore,
   };
 
   void _onClose() {

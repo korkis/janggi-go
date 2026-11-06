@@ -117,6 +117,46 @@ void main() {
       });
     }
 
+    test('고른 기물을 대국에 싣고 수를 둔 뒤에도 남는다. 사지 않은 기물과 없는 보관함은 기본 기물이다', () async {
+      final cho = await createPlayer();
+      final han = await createPlayer();
+      await server.firestore.commit([
+        SetWrite('inventories/${cho.uid}', {
+          'materials': ['wood'],
+          'selectedMaterial': 'wood',
+          'adsRemoved': false,
+          'updatedAt': DateTime.now().toUtc(),
+        }),
+        SetWrite('inventories/${han.uid}', {
+          'materials': <String>[],
+          'selectedMaterial': 'aluminum',
+          'adsRemoved': false,
+          'updatedAt': DateTime.now().toUtc(),
+        }),
+      ]);
+
+      final gameId = await server.gameService.createGame(
+        buildGame(cho, han, mode: GameMode.challenge),
+        now: DateTime.now().toUtc(),
+      );
+      var game = (await server.repositories.activeGames.getGame(gameId))!;
+      expect(game.meta.players.cho.pieceMaterial, PieceMaterial.wood);
+      expect(game.meta.players.han.pieceMaterial, isNull);
+
+      await playFirstMove(gameId, cho, han);
+      game = (await server.repositories.activeGames.getGame(gameId))!;
+      expect(game.meta.players.cho.pieceMaterial, PieceMaterial.wood);
+
+      final other = await createPlayer();
+      final another = await createPlayer();
+      final plainGameId = await server.gameService.createGame(
+        buildGame(other, another, mode: GameMode.challenge),
+        now: DateTime.now().toUtc(),
+      );
+      final plainGame = (await server.repositories.activeGames.getGame(plainGameId))!;
+      expect(plainGame.meta.players.cho.pieceMaterial, isNull);
+    });
+
     test('신청 대국은 참가비를 받고, 끝나면 보상을 주며, 다시 불러도 한 번만 반영한다', () async {
       final cho = await createPlayer(free: 300);
       final han = await createPlayer(free: 5, paid: 100);

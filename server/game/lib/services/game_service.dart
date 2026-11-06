@@ -21,6 +21,7 @@ import '../repositories/coin_transactions_repository.dart';
 import '../repositories/coin_wallets_repository.dart';
 import '../repositories/configs_repository.dart';
 import '../repositories/connections_repository.dart';
+import '../repositories/inventories_repository.dart';
 import '../repositories/online_users_repository.dart';
 import '../repositories/player_states_repository.dart';
 import '../repositories/ratings_repository.dart';
@@ -84,6 +85,7 @@ class GameService {
   final ConfigsRepository configs;
   final CoinWalletsRepository coinWallets;
   final CoinTransactionsRepository coinTransactions;
+  final InventoriesRepository inventories;
   final TaskScheduler taskScheduler;
   final GameLogger logger;
 
@@ -103,6 +105,7 @@ class GameService {
     required this.configs,
     required this.coinWallets,
     required this.coinTransactions,
+    required this.inventories,
     required this.taskScheduler,
     required this.logger,
   });
@@ -117,13 +120,19 @@ class GameService {
   /// [InsufficientCoinsException]을 던진다.
   /// 묶은 뒤 두 사람의 `online_users` 상태를 `playing`으로 바꾼다.
   /// 공지가 새 대국을 막고 있으면 RTDB에 쓰기 전에 [GamesBlockedException]을 던진다.
-  Future<String> createGame(ActiveGame game, {required DateTime now, String? gameId, GameBindingCheck? check}) async {
-    final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
+  Future<String> createGame(
+    ActiveGame request, {
+    required DateTime now,
+    String? gameId,
+    GameBindingCheck? check,
+  }) async {
+    final uids = [request.meta.players.cho.uid, request.meta.players.han.uid];
     await settlePreviousGames(uids, now);
 
     final appConfig = await configs.getAppConfig();
     _checkGamesAllowed(appConfig);
     final newGameId = gameId ?? activeGames.createGameId();
+    final game = await _withPieceMaterials(request);
     await activeGames.createGame(newGameId, game);
     try {
       await firestore.runTransaction((transaction) async {
@@ -166,6 +175,27 @@ class GameService {
     );
     await _updateOnlineStatus(uids, OnlineStatus.playing);
     return newGameId;
+  }
+
+  /// 두 대국자가 고른 기물을 [request]의 `meta.players`에 넣는다. 상대와 관전자에게도 보이도록 대국에 싣는다. 대국 중에 기물을 바꾸거나 환불받아도
+  /// 그 대국은 시작할 때의 기물 그대로다(`docs/monetization.md`의 기물 표시).
+  Future<ActiveGame> _withPieceMaterials(ActiveGame request) async {
+    final meta = request.meta;
+    final (choMaterial, hanMaterial) = await (
+      inventories.getGameMaterial(meta.players.cho.uid),
+      inventories.getGameMaterial(meta.players.han.uid),
+    ).wait;
+    return ActiveGame(
+      meta: meta.copyWithPlayers(
+        GamePlayers(
+          cho: meta.players.cho.copyWithMaterial(choMaterial),
+          han: meta.players.han.copyWithMaterial(hanMaterial),
+        ),
+      ),
+      state: request.state,
+      moves: request.moves,
+      rematch: request.rematch,
+    );
   }
 
   /// 대국 판정을 다시 보고(`docs/server.md`의 판정 다시 보기) [action]을 적용해 RTDB에 쓴다. 쓴 뒤의 대국을 돌려준다.

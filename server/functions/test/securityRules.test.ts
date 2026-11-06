@@ -227,6 +227,52 @@ describe("서버 전용 컬렉션", () => {
   });
 });
 
+describe("산 상품", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, `inventories/${ALICE}`), {
+        materials: ["wood"],
+        selectedMaterial: "plastic",
+        adsRemoved: false,
+      });
+      await setDoc(doc(db, "purchases/PLAY_STORE_T1"), {uid: ALICE, productId: "pieces_wood", status: "granted"});
+    });
+  });
+
+  test("본인만 보관함을 읽는다", async () => {
+    await assertSucceeds(getDoc(doc(userDb(ALICE), `inventories/${ALICE}`)));
+    await assertFails(getDoc(doc(userDb(BOB), `inventories/${ALICE}`)));
+    await assertFails(getDoc(doc(guestDb(), `inventories/${ALICE}`)));
+    await assertFails(getDocs(collection(userDb(ALICE), "inventories")));
+  });
+
+  test("본인은 산 기물이나 기본 기물을 고른다", async () => {
+    const ref = doc(userDb(ALICE), `inventories/${ALICE}`);
+    await assertSucceeds(updateDoc(ref, {selectedMaterial: "wood"}));
+    await assertSucceeds(updateDoc(ref, {selectedMaterial: "plastic"}));
+  });
+
+  test("사지 않은 기물은 고르지 못한다", async () => {
+    await assertFails(updateDoc(doc(userDb(ALICE), `inventories/${ALICE}`), {selectedMaterial: "aluminum"}));
+  });
+
+  test("본인도 산 것을 늘리거나 광고 제거를 켜지 못하고, 다른 사람의 것은 바꾸지 못한다", async () => {
+    const ref = doc(userDb(ALICE), `inventories/${ALICE}`);
+    await assertFails(updateDoc(ref, {materials: ["wood", "aluminum"], selectedMaterial: "aluminum"}));
+    await assertFails(updateDoc(ref, {adsRemoved: true}));
+    await assertFails(deleteDoc(ref));
+    await assertFails(setDoc(doc(userDb(BOB), `inventories/${BOB}`), {materials: ["wood"], selectedMaterial: "wood"}));
+    await assertFails(updateDoc(doc(userDb(BOB), `inventories/${ALICE}`), {selectedMaterial: "wood"}));
+  });
+
+  test("구매 기록은 본인도 읽거나 쓰지 못한다", async () => {
+    await assertFails(getDoc(doc(userDb(ALICE), "purchases/PLAY_STORE_T1")));
+    await assertFails(getDocs(query(collection(userDb(ALICE), "purchases"), where("uid", "==", ALICE))));
+    await assertFails(setDoc(doc(userDb(ALICE), "purchases/x"), {uid: ALICE, productId: "coins_300"}));
+  });
+});
+
 describe("엽전", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {

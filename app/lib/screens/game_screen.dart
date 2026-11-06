@@ -30,6 +30,7 @@ import '../widgets/game_scaffold.dart';
 import '../widgets/player_bar.dart';
 import 'room_screen.dart';
 import 'setup_screen.dart';
+import 'store_screen.dart';
 
 /// 대국 화면. 개발용 대국과 온라인 대국이 같은 화면을 쓰고 모드에 따라 정보 줄과 버튼만 바꾼다(`docs/screens.md`의 대국 화면).
 ///
@@ -236,6 +237,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildBoard(BuildContext context, BoardManager board) {
     final review = _review;
     final online = _online;
+    final materials = online?.game?.meta.players.materials ?? managers.storeManager.materials;
     final mySide = online?.mySide;
     if (review != null) {
       final result = board.result!;
@@ -244,6 +246,7 @@ class _GameScreenState extends State<GameScreen> {
         clipBehavior: Clip.none,
         children: [
           BoardView(
+            materials: materials,
             position: review.position,
             flipped: board.flipped,
             lastMove: review.lastMove,
@@ -270,6 +273,7 @@ class _GameScreenState extends State<GameScreen> {
       children: [
         if (practice != null)
           BoardView(
+            materials: materials,
             position: practice.position,
             flipped: board.flipped,
             selected: practice.selected,
@@ -280,6 +284,7 @@ class _GameScreenState extends State<GameScreen> {
           )
         else
           BoardView(
+            materials: materials,
             position: board.position,
             flipped: board.flipped,
             selected: board.selected,
@@ -609,10 +614,8 @@ class _GameScreenState extends State<GameScreen> {
     } catch (error, stackTrace) {
       developer.log('GameRepository.requestRematch 실패', error: error, stackTrace: stackTrace);
       if (mounted) {
-        final l10n = AppLocalizations.of(context);
         // 재대국을 신청하지 못했어요. 잠시 후 다시 해 주세요
-        final message = error is AppException ? error.getMessage(l10n) : l10n.errorRematch;
-        await DialogUtils.showMessage(context, message: message);
+        await showActionError(context, error: error, fallback: AppLocalizations.of(context).errorRematch);
       }
     } finally {
       if (mounted) {

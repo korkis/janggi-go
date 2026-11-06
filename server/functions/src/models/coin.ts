@@ -5,7 +5,7 @@ import {Timestamp} from "firebase-admin/firestore";
  * 필드는 앱의 `CoinWallet`(app/lib/models/coin_wallet.dart), 대국 서버의 `CoinWallet`(server/game/lib/models/coin.dart)과 일치시킨다.
  */
 export interface CoinWallet {
-  // 받은 엽전(무상). 쓸 때 먼저 쓴다.
+  // 받은 엽전(무상). 쓸 때 먼저 쓴다. 산 엽전을 쓴 뒤 환불받으면 음수가 될 수 있다(docs/monetization.md의 환불).
   freeCoins: number;
   // 산 엽전(유상). 청약철회와 환불에 대비해 나눠 기록한다.
   paidCoins: number;
@@ -33,6 +33,8 @@ export const CoinReason = {
   timeExtensionRefund: "timeExtensionRefund",
   gamePractice: "gamePractice",
   rewardedAd: "rewardedAd",
+  coinPurchase: "coinPurchase",
+  coinPurchaseRefund: "coinPurchaseRefund",
 } as const;
 export type CoinReason = (typeof CoinReason)[keyof typeof CoinReason];
 

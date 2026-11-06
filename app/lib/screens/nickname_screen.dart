@@ -240,6 +240,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
     LoginPurpose.records => l10n.nicknameStartHintRecords,
     // 정하고 나면 내 정보로 가요
     LoginPurpose.profile => l10n.nicknameStartHintProfile,
+    // 정하고 나면 상점으로 가요
+    LoginPurpose.store => l10n.nicknameStartHintStore,
   };
 
   Widget _buildStatus(AppLocalizations l10n) {

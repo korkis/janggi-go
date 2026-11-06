@@ -40,6 +40,10 @@ enum AppErrorCode {
   nicknameChangeNotFree,
   coinPriceChanged,
   coinsInsufficient,
+  storeUnavailable,
+  purchaseCanceled,
+  purchasePending,
+  purchaseAlreadyOwned,
   opponentCoinsInsufficient,
   extensionLimit,
   featureDisabled,
@@ -172,6 +176,14 @@ class AppException implements Exception {
     AppErrorCode.coinPriceChanged => l10n.errorCoinPriceChanged,
     // 엽전이 모자라요
     AppErrorCode.coinsInsufficient => l10n.errorCoinsInsufficient,
+    // 지금은 살 수 없어요. 잠시 후 다시 해 주세요
+    AppErrorCode.storeUnavailable => l10n.errorStoreUnavailable,
+    // 결제를 그만뒀어요
+    AppErrorCode.purchaseCanceled => l10n.errorPurchaseCanceled,
+    // 결제가 끝나면 들어와요
+    AppErrorCode.purchasePending => l10n.errorPurchasePending,
+    // 이 스토어 계정으로 이미 산 상품이에요
+    AppErrorCode.purchaseAlreadyOwned => l10n.errorPurchaseAlreadyOwned,
     // 상대의 엽전이 모자라요
     AppErrorCode.opponentCoinsInsufficient => l10n.errorOpponentCoinsInsufficient,
     // 시간 연장을 더 쓸 수 없어요

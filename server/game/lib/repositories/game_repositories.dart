@@ -9,6 +9,7 @@ import 'coin_transactions_repository.dart';
 import 'coin_wallets_repository.dart';
 import 'configs_repository.dart';
 import 'connections_repository.dart';
+import 'inventories_repository.dart';
 import 'nicknames_repository.dart';
 import 'online_users_repository.dart';
 import 'player_states_repository.dart';
@@ -44,6 +45,7 @@ class GameRepositories {
   final SpectatorsRepository spectators;
   final CoinWalletsRepository coinWallets;
   final CoinTransactionsRepository coinTransactions;
+  final InventoriesRepository inventories;
 
   const GameRepositories({
     required this.users,
@@ -65,6 +67,7 @@ class GameRepositories {
     required this.spectators,
     required this.coinWallets,
     required this.coinTransactions,
+    required this.inventories,
   });
 
   factory GameRepositories.createDefault({
@@ -92,6 +95,7 @@ class GameRepositories {
       spectators: SpectatorsRepository(rtdb: rtdb),
       coinWallets: CoinWalletsRepository(firestore: firestore),
       coinTransactions: CoinTransactionsRepository(firestore: firestore),
+      inventories: InventoriesRepository(firestore: firestore),
     );
   }
 }

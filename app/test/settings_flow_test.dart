@@ -10,6 +10,7 @@ import 'package:janggigo/models/sign_in_method.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
 import 'package:janggigo/screens/home_screen.dart';
+import 'package:janggigo/screens/login_sheet.dart';
 import 'package:janggigo/screens/lobby_screen.dart';
 import 'package:janggigo/screens/profile_screen.dart';
 import 'package:janggigo/screens/records_screen.dart';
@@ -139,9 +140,8 @@ void main() {
     // 탭으로 옮긴 임시 버튼들이 없다.
     expect(find.text('전체 보기'), findsNothing);
     expect(find.widgetWithText(FilledButton, '대국실'), findsNothing);
-    // 상점은 아직 누를 수 없다.
     final store = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.storefront_outlined));
-    expect(store.onPressed, isNull);
+    expect(store.onPressed, isNotNull);
 
     await _tap(tester, _inTabBar('관전'));
     expect(find.byType(SpectateListScreen), findsOneWidget);
@@ -324,7 +324,7 @@ void main() {
     expect(find.text('로그아웃할까요?'), findsOneWidget);
   });
 
-  testWidgets('1024 이상은 탭 줄 대신 왼쪽 메뉴에 상점 자리와 설정을 둔다', (tester) async {
+  testWidgets('1024 이상은 탭 줄 대신 왼쪽 메뉴에 상점과 설정을 둔다', (tester) async {
     _useView(tester, const Size(1024, 720));
     setUpFakeApp();
     await tester.pumpWidget(const JanggigoApp());
@@ -334,8 +334,11 @@ void main() {
     expect(_inSideMenu('상점'), findsOneWidget);
     expect(find.widgetWithIcon(IconButton, Icons.storefront_outlined), findsNothing);
 
-    // 상점은 아직 눌러도 아무 일이 없다.
+    // 상점은 로그인이 필요하다.
     await _tap(tester, _inSideMenu('상점'));
+    expect(find.text('로그인하면\n상점을 쓸 수 있어요'), findsOneWidget);
+    Navigator.of(tester.element(find.byType(LoginSheet))).pop(false);
+    await _pumpFor(tester);
     expect(find.byType(HomeScreen), findsOneWidget);
 
     await _tap(tester, _inSideMenu('설정'));

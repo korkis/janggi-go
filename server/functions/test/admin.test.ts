@@ -454,6 +454,7 @@ describe("configs/app", () => {
     {...APP_CONFIG, chatEnabled: 1},
     {...APP_CONFIG, signupEnabled: "false"},
     {...APP_CONFIG, webEnabled: null},
+    {...APP_CONFIG, coinSaleEnabled: "false"},
     {...APP_CONFIG, minAppVersion: "1.0"},
     {...APP_CONFIG, minAppVersion: 1},
     {...APP_CONFIG, serviceNotice: "점검"},

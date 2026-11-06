@@ -331,7 +331,11 @@ class RecordTile extends StatelessWidget {
               SizedBox(
                 width: _previewWidth,
                 child: IgnorePointer(
-                  child: BoardView(position: item.record.position, flipped: item.mySide == Side.han),
+                  child: BoardView(
+                    position: item.record.position,
+                    flipped: item.mySide == Side.han,
+                    materials: managers.storeManager.materials,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),

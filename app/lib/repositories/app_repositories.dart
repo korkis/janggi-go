@@ -16,12 +16,14 @@ import 'connection_repository.dart';
 import 'deep_link_repository.dart';
 import 'device_settings_repository.dart';
 import 'game_repository.dart';
+import 'inventory_repository.dart';
 import 'online_user_repository.dart';
 import 'player_state_repository.dart';
 import 'room_repository.dart';
 import 'server_time_repository.dart';
 import 'spectate_list_repository.dart';
 import 'spectator_repository.dart';
+import 'store_purchase_repository.dart';
 import 'user_block_repository.dart';
 import 'user_private_repository.dart';
 import 'user_repository.dart';
@@ -49,6 +51,8 @@ class AppRepositories {
   final ArchivedGameRepository archivedGameRepository;
   final DeviceSettingsRepository deviceSettingsRepository;
   final CoinWalletRepository coinWalletRepository;
+  final InventoryRepository inventoryRepository;
+  final StorePurchaseRepository storePurchaseRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -70,6 +74,8 @@ class AppRepositories {
     required this.archivedGameRepository,
     required this.deviceSettingsRepository,
     required this.coinWalletRepository,
+    required this.inventoryRepository,
+    required this.storePurchaseRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -104,6 +110,8 @@ class AppRepositories {
       archivedGameRepository: ArchivedGameRepository(firestore: firestore),
       deviceSettingsRepository: DeviceSettingsRepository(preferences: SharedPreferencesAsync()),
       coinWalletRepository: CoinWalletRepository(firestore: firestore, functions: functions),
+      inventoryRepository: InventoryRepository(firestore: firestore),
+      storePurchaseRepository: StorePurchaseRepository(apiKey: getRevenueCatApiKey()),
     );
   }
 }

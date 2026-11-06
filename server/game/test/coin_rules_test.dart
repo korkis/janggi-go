@@ -28,6 +28,7 @@ AppConfig _config({bool entryFeeEnabled = true}) => AppConfig(
   chatEnabled: true,
   signupEnabled: true,
   webEnabled: true,
+  coinSaleEnabled: true,
   minAppVersion: '1.0.0',
   serviceNotice: null,
 );

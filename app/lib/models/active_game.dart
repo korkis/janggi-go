@@ -80,6 +80,10 @@ class GamePlayers {
   factory GamePlayers.fromJson(Map<String, dynamic> json) => _$GamePlayersFromJson(json);
 
   GamePlayer get(Side side) => side == Side.cho ? cho : han;
+
+  /// 판에 그릴 두 대국자의 재질.
+  BoardMaterials get materials =>
+      (cho: cho.pieceMaterial ?? PieceMaterial.plastic, han: han.pieceMaterial ?? PieceMaterial.plastic);
 }
 
 /// 대국자. 닉네임과 급수는 대국을 만들 때의 값이다.
@@ -89,7 +93,11 @@ class GamePlayer {
   final String nickname;
   final int rankLevel;
 
-  const GamePlayer({required this.uid, required this.nickname, required this.rankLevel});
+  /// 대국을 만들 때 고른 산 기물. 기본 기물이면 없다. 이 앱이 모르는 재질도 기본 기물로 그린다.
+  @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
+  final PieceMaterial? pieceMaterial;
+
+  const GamePlayer({required this.uid, required this.nickname, required this.rankLevel, this.pieceMaterial});
 
   factory GamePlayer.fromJson(Map<String, dynamic> json) => _$GamePlayerFromJson(json);
 }

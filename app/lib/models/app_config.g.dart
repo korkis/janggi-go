@@ -27,6 +27,7 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => AppConfig(
   chatEnabled: json['chatEnabled'] as bool,
   signupEnabled: json['signupEnabled'] as bool,
   webEnabled: json['webEnabled'] as bool,
+  coinSaleEnabled: json['coinSaleEnabled'] as bool,
   minAppVersion: json['minAppVersion'] as String,
   serviceNotice: json['serviceNotice'] == null
       ? null

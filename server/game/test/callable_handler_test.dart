@@ -58,7 +58,11 @@ void main() {
     return Request(
       method,
       Uri.parse('http://localhost/devPing'),
-      headers: {'Content-Type': contentType, 'Authorization': ?token == null ? null : 'Bearer $token', 'Origin': ?origin},
+      headers: {
+        'Content-Type': contentType,
+        'Authorization': ?token == null ? null : 'Bearer $token',
+        'Origin': ?origin,
+      },
       body: body is String ? body : jsonEncode(body),
     );
   }
@@ -309,6 +313,7 @@ class _FakeConfigsRepository implements ConfigsRepository {
     chatEnabled: true,
     signupEnabled: true,
     webEnabled: webEnabled,
+    coinSaleEnabled: true,
     minAppVersion: '1.0.0',
     serviceNotice: null,
   );

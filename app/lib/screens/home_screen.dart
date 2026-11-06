@@ -27,6 +27,7 @@ import 'room_join_flow.dart';
 import 'room_screen.dart';
 import 'setup_screen.dart';
 import 'spectate_screen.dart';
+import 'store_screen.dart';
 
 /// 홈 화면. 지금은 내 카드, 빠른 대국·방 만들기 버튼, 지금 볼 만한 대국, 최근 내 대국과, 개발 빌드에서만 보이는 개발용 대국
 /// 카드들을 보여준다. 대국실·관전·기보·내 정보는 아래쪽 탭으로 간다.
@@ -67,9 +68,8 @@ class HomeScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
-            // 상점 화면이 생기면(구현 순서 5번) 잇는다.
             IconButton(
-              onPressed: null,
+              onPressed: () => StoreScreen.open(context),
               // 상점
               tooltip: l10n.menuStore,
               icon: const Icon(Icons.storefront_outlined),

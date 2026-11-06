@@ -19,6 +19,7 @@ import 'login_flow.dart';
 import 'nickname_screen.dart';
 import 'records_screen.dart';
 import 'settings_screen.dart';
+import 'store_screen.dart';
 
 /// 내 정보(`docs/screens.md`의 내 정보). 프로필 카드, 전적, 메뉴를 둔다. 로그인하지 않았으면 프로필 카드 자리에 로그인 버튼을 두고
 /// 메뉴에는 설정만 둔다. 설정은 로그인 없이 쓰기 때문이다.
@@ -312,6 +313,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
+          ListTile(
+            minTileHeight: 56,
+            leading: const Icon(Icons.storefront_outlined),
+            // 상점
+            title: Text(l10n.menuStore, style: const TextStyle(fontSize: AppTextSizes.body)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _onStore,
+          ),
           if (hasProfile)
             ListTile(
               minTileHeight: 56,
@@ -332,6 +341,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  void _onStore() {
+    StoreScreen.open(context);
   }
 
   /// 프로필이 생기면(화면을 열 때 또는 로그인 카드에서 로그인해서) 그 사용자의 전적을 읽는다.

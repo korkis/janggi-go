@@ -17,6 +17,7 @@ import '../widgets/room_condition_chips.dart';
 import 'room_screen.dart';
 import 'sanction_dialog.dart';
 import 'setup_screen.dart';
+import 'store_screen.dart';
 
 /// 앱의 어느 화면에서든 받은 대국 신청의 수락 팝업을 띄운다(`docs/screens.md`의 대국 신청). `JanggigoApp`이 모든 화면을 감싼다.
 ///
@@ -104,17 +105,13 @@ class _ChallengeListenerState extends State<ChallengeListener> {
       final context = widget.navigatorKey.currentContext;
       if (context != null && context.mounted && !await showSanctionDialogForError(context, error) && context.mounted) {
         final l10n = AppLocalizations.of(context);
-        final String message;
         if (error is AppException && error.code == AppErrorCode.gameNotFound) {
           // 이미 끝난 신청이에요
-          message = l10n.challengeEnded;
-        } else if (error is AppException) {
-          message = error.getMessage(l10n);
+          await DialogUtils.showMessage(context, message: l10n.challengeEnded);
         } else {
           // 신청에 응답하지 못했어요. 잠시 후 다시 해 주세요
-          message = l10n.errorRespondChallenge;
+          await showActionError(context, error: error, fallback: l10n.errorRespondChallenge);
         }
-        await DialogUtils.showMessage(context, message: message);
       }
     }
   }

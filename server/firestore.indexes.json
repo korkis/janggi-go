@@ -87,6 +87,7 @@
     {"collectionGroup": "moderation_logs", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "reports", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "coin_transactions", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
+    {"collectionGroup": "purchases", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "sanctions", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "deleted_accounts", "fieldPath": "expiresAt", "ttl": true, "indexes": []}
   ]

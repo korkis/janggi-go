@@ -51,7 +51,9 @@
 | `ChatChannel` | `lobby`, `game`, `spectator` | 앱, Functions |
 | `SanctionType` | `warning`, `chatRestriction`, `suspension`, `permanentBan` | 앱, Functions, 대국 서버, Admin 웹 |
 | `ReportStatus` | `pending`, `resolved` | Functions, Admin 웹 |
-| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `timeExtensionRefund`, `gamePractice`, `rewardedAd` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`, `timeExtension`, `timeExtensionRefund`, `gamePractice`). `rewardedAd`는 그 기능이 생기면 쓴다 |
+| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `timeExtensionRefund`, `gamePractice`, `rewardedAd`, `coinPurchase`, `coinPurchaseRefund` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`, `timeExtension`, `timeExtensionRefund`, `gamePractice`). `rewardedAd`는 그 기능이 생기면 쓴다 |
+| `PieceMaterial` | `plastic`, `wood`, `aluminum` | 앱, Functions, 대국 서버. [ui.md](./ui.md)의 기물 폴더 이름과 같다 |
+| `PurchaseStatus` | `granted`, `refunded`, `ungranted` | Functions |
 
 - `rankLevel`은 급수를 `number` 1~27로 저장한다. 1이 18급, 18이 1급, 19가 1단, 27이 9단이다([rank.md](./game/rank.md)). 앱이 글자로 바꿔 보여준다.
 - 서버는 새 enum 값을 옛 앱이 받을 수 있는 곳에 쓰지 않는다([dev_rules.md](./dev_rules.md)의 커밋과 배포). 그래서 앱은 모르는 enum 값과 모르는 오류 코드를 받아도 멈추지 않고 기본 표시를 하도록 만든다.
@@ -113,7 +115,7 @@
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `freeCoins` | number | 받은 엽전(무상). 쓸 때 먼저 쓴다 |
+| `freeCoins` | number | 받은 엽전(무상). 쓸 때 먼저 쓴다. 산 엽전을 쓴 뒤 환불받으면 음수가 될 수 있다([monetization.md](./monetization.md)의 환불) |
 | `paidCoins` | number | 산 엽전(유상). 청약철회와 환불에 대비해 나눠 기록한다 |
 | `balance` | number | `freeCoins` + `paidCoins`. 앱의 표시와 Admin 웹의 잔액 분포(세기 쿼리)에 쓴다 |
 | `attendanceDay` | string? | 마지막으로 출석한 날(서울 기준 yyyy-MM-dd) |
@@ -153,8 +155,43 @@
 | `timeExtension` | `{대국 ID}_{그 대국에서 몇 번째}`(1부터) | − (무상부터) |
 | `timeExtensionRefund` | `timeExtension`과 같다 | `timeExtension`을 낸 그대로 + |
 | `gamePractice` | 대국 ID | − (무상부터) |
+| `coinPurchase` | 구매 ID(`purchases`의 문서 ID) | 유상 + |
+| `coinPurchaseRefund` | 구매 ID | − (유상부터, 모자라면 무상. 무상은 음수가 될 수 있다) |
 
 - 색인: `reason` + `createdAt` 오름차순(Admin 웹의 하루별 사용 수).
+
+### `inventories/{uid}`
+
+산 영구 상품과 고른 기물이다. 첫 구매 때 만든다. 문서가 없으면 산 것이 없고 기본 기물을 쓴다.
+
+| 필드 | 타입 | 쓰는 쪽 | 설명 |
+|---|---|---|---|
+| `materials` | array | Functions | 산 재질(PieceMaterial). 기본 기물(`plastic`)은 넣지 않는다 |
+| `selectedMaterial` | PieceMaterial | 앱(본인), Functions | 고른 재질. `plastic`이거나 `materials` 안의 값이다. 사면 그 재질로, 쓰던 재질이 환불되면 `plastic`으로 Functions가 바꾼다 |
+| `adsRemoved` | boolean | Functions | 광고 제거를 샀다. 배너만 없앤다([monetization.md](./monetization.md)의 광고 제거) |
+| `updatedAt` | timestamp | Functions | 지급과 환불 때 쓴다. 앱이 기물을 고를 때는 쓰지 않는다 |
+
+- 읽기: 본인. 쓰기: 본인은 `selectedMaterial`만 바꾸고 `plastic`이거나 `materials` 안의 값이어야 한다. 나머지는 Functions.
+- 대국 서버가 대국을 만들 때 읽어 `meta.players`에 복사한다.
+
+### `purchases/{purchaseId}` — 서버 전용
+
+스토어 구매 기록이다. `revenueCatWebhook`이 지갑·보관함과 같은 트랜잭션에서 쓴다([server.md](./server.md)의 앱 결제).
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `uid` | string | 처음 산 사람. 환불은 이 사람에게서 돌려받는다 |
+| `productId` | string | 스토어 상품 ID |
+| `store` | string | RevenueCat의 `store`(`PLAY_STORE`, `APP_STORE`) |
+| `transactionId` | string | 스토어의 영수증 번호 |
+| `environment` | string? | RevenueCat의 `environment`(`PRODUCTION`, `SANDBOX`) |
+| `status` | PurchaseStatus | `granted` 지급했다, `refunded` 환불됐다, `ungranted` 지갑이 없어 지급하지 못했다 |
+| `createdAt` | timestamp | |
+| `refundedAt` | timestamp? | |
+| `expiresAt` | timestamp? | 탈퇴한 사용자를 지울 때 5년 뒤로 정한다. TTL 정책으로 지운다 |
+
+- 문서 ID는 `{store}_{transactionId}`(영수증 번호는 URL 인코딩)다. 고정 ID라 같은 영수증이 두 번 지급되지 않는다.
+- 같은 사람과 상품의 다른 구매를 찾는 조회는 같음 조건 셋이라 복합 색인이 없어도 된다.
 
 ### `ratings/{uid}` — 서버 전용
 
@@ -408,7 +445,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `rated` | boolean | |
 | `roomId` | string? | |
 | `listed` | boolean | 관전 목록에 보인다. 비공개 방 대국은 false |
-| `players` | map | `cho`, `han` 각각 `uid`, `nickname`, `rankLevel` |
+| `players` | map | `cho`, `han` 각각 `uid`, `nickname`, `rankLevel`, `pieceMaterial`(PieceMaterial?, 산 기물을 골랐으면 그 재질. 기본 기물이면 없다) |
 | `handicap` | array? | 한에서 뗀 HandicapPiece |
 | `timeControl` | map | `baseMs`(기본 시간), `periodMs`(초읽기 한 번), `periods`(초읽기 횟수), `setupMs`(상차림 시간), `extensionPeriods`(연장 1회에 늘어나는 횟수), `extensionLimit`(연장 최대 횟수) |
 | `disconnectLimitMs` | number | 대국을 만들 때의 `configs/app.disconnectLimitSeconds`. 대국 중에 설정이 바뀌어도 이 값을 쓴다 |
@@ -538,11 +575,12 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `users/{uid}/blocks` | | | 읽기, 만들기, 지우기 | 대국 서버 읽기 |
 | `users_private` | | | 읽기, `challengesEnabled` 쓰기, 경고 지우기 | Functions, 대국 서버 쓰기 |
 | `coin_wallets` | | | 읽기 | Functions, 대국 서버 쓰기 |
+| `inventories` | | | 읽기, `selectedMaterial` 쓰기 | Functions 쓰기, 대국 서버 읽기 |
 | `player_states` | | | 읽기 | 대국 서버 쓰기 |
 | `rooms` | | ID 읽기, 공개 대기 방 목록 | | 대국 서버 쓰기 |
 | `challenges` | | | 보낸 사람·받는 사람 읽기 | 대국 서버 쓰기 |
 | `games_archived` | | 읽기 | | 대국 서버 쓰기 |
-| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions`, `deleted_accounts` | | | | 서버 전용 |
+| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions`, `purchases`, `deleted_accounts` | | | | 서버 전용 |
 | RTDB `games_active`, `spectate_list` | 읽기 | 읽기 | | 대국 서버 쓰기 |
 | RTDB `spectators` | 만들기, 지우기 | 만들기, 지우기 | | 대국 서버 읽기 |
 | RTDB `connections` | | 읽기 | 쓰기 | 대국 서버 읽기 |
@@ -563,6 +601,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `reports` | 처리 뒤 1년 | Firestore TTL |
 | `games_archived` | 계속 | |
 | `coin_transactions` | 탈퇴자를 지운 뒤 5년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
+| `purchases` | 탈퇴자를 지운 뒤 5년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
 | `sanctions` | 탈퇴자를 지운 뒤 1년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
 | `deleted_accounts` | 남은 제재가 끝날 때까지, 영구 정지면 계속 | Firestore TTL (`expiresAt`) |
 
@@ -583,14 +622,15 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 
 | 데이터 | 처리 | 이유 |
 |---|---|---|
-| `users`, `users/{uid}/blocks`, `users_private`, `coin_wallets`, `ratings`, `player_states`, `nickname_changes`, 내가 방장이었던 `rooms`, 내가 보내거나 받은 `challenges`, Firebase Auth 계정 | 지운다 | |
+| `users`, `users/{uid}/blocks`, `users_private`, `coin_wallets`, `inventories`, `ratings`, `player_states`, `nickname_changes`, 내가 방장이었던 `rooms`, 내가 보내거나 받은 `challenges`, Firebase Auth 계정 | 지운다 | |
 | `nicknames` | 지운다. 닉네임은 바로 다른 사람이 쓸 수 있다 | 닉네임을 바꿀 때와 같다 |
 | `coin_transactions` | uid와 함께 5년 보관한 뒤 지운다 | 환불과 분쟁에 대비한다. 전자상거래법 시행령 제6조의 대금결제·재화 공급·청약철회 기록 5년(2차 자료로 확인, 원문은 처리방침을 쓸 때 다시 본다) |
 | `games_archived` | uid 그대로 둔다. 앱은 "탈퇴한 사용자"로 보여준다 | 상대의 전적과 복기 자료다. 닉네임이 없고, 프로필과 이메일을 지우면 uid로 사람을 찾을 수 없다 |
 | `reports`, `moderation_logs`, `chat_checks`, RTDB `chats_*` | 원래 보관 기간(1년, 90일)대로 둔다 | 탈퇴해서 신고를 무력화하지 못하게 한다. 대국·관전 채팅은 사람별로 찾을 수 없다 |
 | `sanctions` | 1년 보관한 뒤 지운다 | 이의 제기와 분쟁에 대비한다 |
 | `users/{다른 사람}/blocks/{uid}`, `challenge_limits` | 그대로 둔다 | uid뿐이고 사람별로 찾을 수 없다. 차단 목록에는 "탈퇴한 사용자"로 보인다 |
-| 구매 기록(구현 순서 5번) | `coin_transactions`와 같다 | RevenueCat 고객도 함께 지운다. 그때 넣는다 |
+| `purchases` | uid와 함께 5년 보관한 뒤 지운다 | `coin_transactions`와 같다 |
+| RevenueCat 고객 | 지운다 | RevenueCat에 있는 uid와 구매 내역. 지우지 못하면 그 사람을 지우지 않고 다음 날 다시 한다 |
 
 - 남은 엽전과 산 상품은 돌려주지 않고 없어진다. 탈퇴 확인 창에 적는다. 산 엽전 환불은 스토어 절차다.
 - 이때 제재(채팅 제한, 이용 정지, 영구 정지)가 남아 있으면 `deleted_accounts`를 남겨 제재가 끝날 때까지 같은 계정의 재가입을 막는다. 영구 정지면 계속 막는다. 탈퇴로 제재를 풀 수 없게 하기 위해서다. 남은 제재가 없으면 기록을 남기지 않고, 다시 가입하면 새 사용자로 보고 가입 엽전도 다시 준다.

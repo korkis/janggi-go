@@ -16,6 +16,7 @@ import 'package:janggigo/models/chat_message.dart';
 import 'package:janggigo/models/coin_wallet.dart';
 import 'package:janggigo/models/connection.dart';
 import 'package:janggigo/models/game_enums.dart';
+import 'package:janggigo/models/inventory.dart';
 import 'package:janggigo/models/nickname_reject_reason.dart';
 import 'package:janggigo/models/online_user.dart';
 import 'package:janggigo/models/player_state.dart';
@@ -35,12 +36,14 @@ import 'package:janggigo/repositories/connection_repository.dart';
 import 'package:janggigo/repositories/deep_link_repository.dart';
 import 'package:janggigo/repositories/device_settings_repository.dart';
 import 'package:janggigo/repositories/game_repository.dart';
+import 'package:janggigo/repositories/inventory_repository.dart';
 import 'package:janggigo/repositories/online_user_repository.dart';
 import 'package:janggigo/repositories/player_state_repository.dart';
 import 'package:janggigo/repositories/room_repository.dart';
 import 'package:janggigo/repositories/server_time_repository.dart';
 import 'package:janggigo/repositories/spectate_list_repository.dart';
 import 'package:janggigo/repositories/spectator_repository.dart';
+import 'package:janggigo/repositories/store_purchase_repository.dart';
 import 'package:janggigo/repositories/user_block_repository.dart';
 import 'package:janggigo/repositories/user_private_repository.dart';
 import 'package:janggigo/repositories/user_repository.dart';
@@ -275,6 +278,9 @@ class FakeConfigRepository implements ConfigRepository {
   /// `configs/app.webEnabled`.
   var webEnabled = true;
 
+  /// `configs/app.coinSaleEnabled`.
+  var coinSaleEnabled = true;
+
   /// `configs/app.minAppVersion`.
   var minAppVersion = '1.0.0';
 
@@ -320,6 +326,7 @@ class FakeConfigRepository implements ConfigRepository {
     chatEnabled: chatEnabled,
     signupEnabled: signupEnabled,
     webEnabled: webEnabled,
+    coinSaleEnabled: coinSaleEnabled,
     minAppVersion: minAppVersion,
     serviceNotice: serviceNotice,
   );
@@ -1150,6 +1157,98 @@ class FakeDeviceSettingsRepository implements DeviceSettingsRepository {
   }
 }
 
+class FakeInventoryRepository implements InventoryRepository {
+  final _controllers = <String, StreamController<Inventory?>>{};
+  final _latest = <String, Inventory?>{};
+
+  /// 다음 고르기가 이 오류로 실패한다.
+  Object? nextSelectError;
+
+  @override
+  FirebaseFirestore get firestore => throw UnimplementedError();
+
+  @override
+  Stream<Inventory?> watchInventory(String uid) async* {
+    if (_latest.containsKey(uid)) {
+      yield _latest[uid];
+    }
+    yield* _getController(uid).stream;
+  }
+
+  @override
+  Future<void> updateSelectedMaterial(String uid, PieceMaterial material) async {
+    final error = nextSelectError;
+    if (error != null) {
+      nextSelectError = null;
+      throw error;
+    }
+    final inventory = _latest[uid]!;
+    emit(uid, materials: inventory.materials, selected: material, adsRemoved: inventory.adsRemoved);
+  }
+
+  /// 서버가 [uid]의 보관함을 바꾼 것처럼 보낸다.
+  void emit(
+    String uid, {
+    List<PieceMaterial> materials = const [],
+    PieceMaterial selected = PieceMaterial.plastic,
+    bool adsRemoved = false,
+  }) {
+    final inventory = Inventory(materials: materials, selectedMaterial: selected, adsRemoved: adsRemoved);
+    _latest[uid] = inventory;
+    _getController(uid).add(inventory);
+  }
+
+  StreamController<Inventory?> _getController(String uid) =>
+      _controllers.putIfAbsent(uid, StreamController<Inventory?>.broadcast);
+}
+
+class FakeStorePurchaseRepository implements StorePurchaseRepository {
+  /// 스토어가 알려 주는 가격.
+  Map<String, String> prices = const {};
+
+  /// 다음 결제가 이 오류로 실패한다.
+  Object? nextPurchaseError;
+
+  /// 다음 복원이 이 오류로 실패한다.
+  Object? nextRestoreError;
+
+  /// 산 상품 ID와 사용자.
+  final purchases = <({String uid, String productId})>[];
+  final restores = <String>[];
+  var logOutCalls = 0;
+
+  @override
+  String? get apiKey => 'fake';
+
+  @override
+  Future<Map<String, String>> getPrices(List<String> productIds) async => prices;
+
+  @override
+  Future<void> purchase(String uid, String productId) async {
+    final error = nextPurchaseError;
+    if (error != null) {
+      nextPurchaseError = null;
+      throw error;
+    }
+    purchases.add((uid: uid, productId: productId));
+  }
+
+  @override
+  Future<void> restore(String uid) async {
+    final error = nextRestoreError;
+    if (error != null) {
+      nextRestoreError = null;
+      throw error;
+    }
+    restores.add(uid);
+  }
+
+  @override
+  Future<void> logOut() async {
+    logOutCalls++;
+  }
+}
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -1170,6 +1269,8 @@ typedef FakeApp = ({
   FakeArchivedGameRepository archivedGames,
   FakeDeviceSettingsRepository deviceSettings,
   FakeCoinWalletRepository coinWallets,
+  FakeInventoryRepository inventories,
+  FakeStorePurchaseRepository storePurchases,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -1192,6 +1293,8 @@ FakeApp setUpFakeApp() {
   final archivedGameRepository = FakeArchivedGameRepository();
   final deviceSettingsRepository = FakeDeviceSettingsRepository();
   final coinWalletRepository = FakeCoinWalletRepository();
+  final inventoryRepository = FakeInventoryRepository();
+  final storePurchaseRepository = FakeStorePurchaseRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -1212,6 +1315,8 @@ FakeApp setUpFakeApp() {
     archivedGameRepository: archivedGameRepository,
     deviceSettingsRepository: deviceSettingsRepository,
     coinWalletRepository: coinWalletRepository,
+    inventoryRepository: inventoryRepository,
+    storePurchaseRepository: storePurchaseRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -1233,5 +1338,7 @@ FakeApp setUpFakeApp() {
     archivedGames: archivedGameRepository,
     deviceSettings: deviceSettingsRepository,
     coinWallets: coinWalletRepository,
+    inventories: inventoryRepository,
+    storePurchases: storePurchaseRepository,
   );
 }

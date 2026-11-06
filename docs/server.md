@@ -32,7 +32,7 @@ flowchart LR
 | 구성 | 맡는 일 |
 |---|---|
 | 대국 서버 (`server/game`) | 대국 상태와 매칭에 관한 모든 쓰기. 빠른 대국, 방, 신청, 접속자 목록, 상차림, 수, 시계, 접속 끊김, 결과, 레이팅, 다시 두기, 참가비와 대국 보상 |
-| Functions (`server/functions`) | 대국 밖의 서버 기능. 프로필과 닉네임, 가입·출석 엽전, 채팅 검사와 저장, 신고, 제재, Admin 웹 Callable, 보관 기간 정리 |
+| Functions (`server/functions`) | 대국 밖의 서버 기능. 프로필과 닉네임, 가입·출석 엽전, 앱 결제 웹훅, 채팅 검사와 저장, 신고, 제재, Admin 웹 Callable, 보관 기간 정리 |
 | 앱이 직접 쓰는 것 | 접속 상태(`connections`), 관전자 표시(`spectators`), 차단 목록, 신청 받기 설정 |
 | Cloud Tasks | 대국 서버가 정한 시각에 대국 서버를 다시 부른다. 시간패, 상차림 마감, 접속 끊김 마감, 매칭 범위 넓히기, 신청 응답 마감 |
 
@@ -270,6 +270,7 @@ flowchart LR
 | 대국 보상, 참가비 돌려주기 | 대국 서버 `finalizeGame` | 기보를 저장하는 트랜잭션 |
 | 시간 연장, 대국 중 놓아보기 | 대국 서버 `useTimeExtension`, `useGamePractice` | 아래 "시간 연장과 놓아보기" |
 | 반영하지 못한 시간 연장 돌려주기 | 대국 서버 `useTimeExtension`, `finalizeGame` | 아래 "시간 연장과 놓아보기" |
+| 충전, 충전 환불 | Functions `revenueCatWebhook` | 아래 "앱 결제" |
 
 틀어지지 않게 하는 방법:
 
@@ -287,7 +288,8 @@ flowchart LR
   - `startRoomGame`: 내가 모자라면 `coinsInsufficient`, 상대가 모자라면 `opponentCoinsInsufficient`다. 방은 그대로 `waiting`이다.
   - `respondChallenge`: 내가 모자라면 `coinsInsufficient`이고 신청이 남아 거절할 수 있다. 보낸 사람이 모자라면 신청을 `cancelled`로 끝내고 `opponentCoinsInsufficient`다.
   - 다시 두기: 내가 모자라면 `coinsInsufficient`다. 상대가 모자라면 새 대국을 만들 때 취소되어 `rematchUnavailable`이다.
-- 광고와 상점으로 가는 버튼은 구현 순서 5, 6에서 앱의 안내 창에 붙인다.
+- 앱은 `coinsInsufficient`를 받으면 안내 창에 상점으로 가는 버튼을 붙인다(`showActionError`, 2026-11-07 구현). 광고 버튼은 구현 순서 6에서 붙인다.
+- 지갑의 무상이 음수일 수 있다(아래 "앱 결제"의 환불). 쓸 때의 계산은 그대로다. 잔액이 값보다 적으면 거절하고, 무상이 음수인 채 유상으로 쓰면 무상을 0으로 메운 만큼 유상에서 더 나간다.
 
 대국 끝 규칙(`finalizeGame`):
 
@@ -451,9 +453,9 @@ flowchart LR
 `purgeDeletedAccounts`(예약 작업): `users.deletedAt`이 30일 지난 사람을 지운다. 사람마다 다음 순서로 한다. 중간에 실패해도 `users` 문서가 남아 다음 날 처음부터 다시 하고, 모두 여러 번 해도 결과가 같다.
 
 1. 제재가 남아 있으면 `deleted_accounts`를 쓴다. Auth 계정을 읽어야 하므로 먼저 한다.
-2. `blocks`, `nickname_changes`, `challenges`, `rooms`를 지우고 `coin_transactions`, `sanctions`에 `expiresAt`을 쓴다.
+2. `blocks`, `nickname_changes`, `challenges`, `rooms`를 지우고 `coin_transactions`, `purchases`, `sanctions`에 `expiresAt`을 쓴다. RevenueCat 고객을 지운다(이미 없으면 성공으로 본다).
 3. Auth 계정을 지운다.
-4. 한 트랜잭션에서 `deletedAt`이 그대로인지 확인하고 `users`, `users_private`, `coin_wallets`, `ratings`, `player_states`, `nicknames`를 지운다.
+4. 한 트랜잭션에서 `deletedAt`이 그대로인지 확인하고 `users`, `users_private`, `coin_wallets`, `inventories`, `ratings`, `player_states`, `nicknames`를 지운다.
 
 `createProfile`은 호출자의 로그인 수단으로 `deleted_accounts`를 찾아 아직 막혀 있으면 `signupBlocked`로 거절한다.
 
@@ -464,6 +466,52 @@ flowchart LR
 | `inGame` | 진행 중인 대국이 있다 |
 | `busy` | 대기열, 방, 신청에 남아 있다 |
 | `signupBlocked` | `createProfile`: 제재가 남은 채 지워진 계정이라 아직 가입할 수 없다 |
+
+### 앱 결제 — 확정 (2026-11-07 구현)
+
+상품과 환불 규칙은 [monetization.md](./monetization.md), 저장 구조는 [database.md](./database.md)의 `purchases`, `inventories`, 사용자 할 일은 [release.md](./release.md)의 앱 결제 준비다. 흐름은 `purchaseService.ts`에 있다.
+
+```mermaid
+sequenceDiagram
+    participant A as 앱
+    participant S as 스토어
+    participant R as RevenueCat
+    participant F as revenueCatWebhook
+    participant D as Firestore
+    A->>R: logIn(Firebase uid)
+    A->>S: 결제
+    S-->>A: 결제 끝
+    R->>F: NON_RENEWING_PURCHASE
+    F->>D: 트랜잭션: purchases, coin_wallets 또는 inventories
+    D-->>A: 지갑, 보관함을 듣다 바뀐 것을 본다
+```
+
+- 엽전과 상품은 웹훅에서만 지급하고 돌려받는다. 앱은 결제가 끝나면 "결제했어요. 곧 들어와요"만 알리고 듣고 있는 지갑과 보관함으로 안다. RevenueCat 문서에 따르면 웹훅은 보통 1분 안에 온다.
+- 상품 ID와 주는 것은 `config.ts`의 `STORE_PRODUCTS`와 앱의 `StoreItem`에 있다. 모르는 상품은 200으로 받고 오류 로그를 남긴다.
+- 앱은 로그인한 뒤에만 팔고 결제 직전에 언제나 `Purchases.logIn(uid)`을 불러 `app_user_id`가 Firebase uid가 되게 한다. 익명 ID가 오면 `aliases`에서 uid를 찾고, 없으면 오류 로그만 남긴다.
+- 웹과 에뮬레이터 빌드는 결제하지 않는다. 에뮬레이터로는 웹훅이 오지 않아 지급되지 않기 때문이다.
+
+`revenueCatWebhook`(HTTP POST, 공개 주소):
+
+- `Authorization` 헤더가 `REVENUECAT_WEBHOOK_AUTH`와 다르면 401이다. 처리에 실패하면 500이고 RevenueCat이 80분 동안 다섯 번까지 다시 보낸다. 다시 보내도 같은 잘못된 요청(필수 필드 없음)은 400이다.
+- `NON_RENEWING_PURCHASE`만 지급하고 `CANCELLATION`만 환불한다. 나머지(`TEST`, `TRANSFER`, `REFUND_REVERSED` 등)는 200으로 받고 하는 일이 없다. 애플이 환불을 되돌린 경우(`REFUND_REVERSED`)는 아주 드물어 필요하면 그때 손으로 처리한다.
+- 심사와 비공개 테스트의 결제가 `SANDBOX`로 오므로 환경을 가리지 않고 지급한다. `purchases.environment`에 남긴다. TestFlight와 라이선스 테스터는 돈을 내지 않고 엽전을 받는다.
+
+틀어지지 않게 하는 방법:
+
+- `purchases/{스토어}_{영수증 번호}`를 지급과 같은 트랜잭션에서 `create`로 쓴다. 이미 있으면 아무것도 하지 않는다. 그래서 같은 웹훅이 여러 번 오거나, 동시에 오거나, 같은 영수증이 다른 계정으로 와도 한 번만 지급된다.
+- 환불은 같은 문서를 보고 `granted`일 때만 돌려받은 뒤 `refunded`로 바꾼다. 돌려받는 사람은 웹훅의 사용자가 아니라 문서의 `uid`다.
+- 환불이 먼저 오면 `refunded`로 문서를 만들어 뒤에 오는 구매가 지급되지 않게 한다. RevenueCat 문서는 순서를 보장한다고 적지 않았다.
+- 지갑이 없으면(지운 계정) `ungranted`로 기록하고 200으로 받는다. 다시 보내도 같기 때문이다. 오류 로그로 찾는다.
+- 탈퇴를 눌렀어도 지우기 전이면 지급한다. 되돌리면 그대로 있어야 하기 때문이다.
+
+- `coinSaleEnabled`: 앱이 충전을 숨긴다. 웹훅은 꺼져 있어도 지급하고 경고 로그를 남긴다([release.md](./release.md)의 운영 설정과 멈춤 스위치).
+- 복원 동작은 RevenueCat 기본값(옮기기)을 쓴다. 옮겨져도 `TRANSFER`를 무시하므로 산 것은 처음 산 Firebase 계정에 남는다. 탈퇴하고 지운 뒤 같은 스토어 계정으로 새 계정을 만들면 비소모품은 스토어가 이미 샀다고 하고 서버도 같은 영수증을 다시 주지 않는다. 탈퇴 확인 창에 없어진다고 적은 대로다.
+
+기물 고르기와 대국:
+
+- 고른 기물은 앱이 `inventories.selectedMaterial`을 직접 바꾼다. 보안 규칙이 기본 기물이나 산 기물만 허용한다. Callable을 두지 않아 콜드 스타트 없이 바로 바뀐다.
+- 대국 서버의 `createGame`이 두 사람의 보관함을 읽어 `meta.players.{side}.pieceMaterial`에 쓴다. 고른 기물을 갖고 있지 않으면 쓰지 않는다. 옛 앱은 모르는 필드를 무시하고 기본 기물로 그린다.
 
 ### 운영 스위치 — 확정 (2026-11-06)
 
@@ -561,10 +609,10 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | 이름 | 주기 | 하는 일 |
 |---|---|---|
 | `cleanupChats` | 하루 한 번 (04:00 서울) | 90일 지난 RTDB 채팅을 지운다. 로비 채팅은 `sentAt`(색인)으로 지난 메시지를 지운다. 대국·관전 채팅은 대국 ID를 얕게(`shallow`) 읽고 마지막 메시지가 90일 지난 대국의 채팅을 통째로 지운다 |
-| `purgeDeletedAccounts` | 하루 한 번 (04:30 서울) | 탈퇴하고 30일 지난 사람을 지운다. 한 번에 100명까지(위 "회원 탈퇴") |
+| `purgeDeletedAccounts` | 하루 한 번 (04:30 서울) | 탈퇴하고 30일 지난 사람을 지운다. 한 번에 100명까지(위 "회원 탈퇴"). RevenueCat 고객 지우기가 실패하면 그 사람을 다음 날 다시 한다 |
 | `expireSanctions` | 한 시간마다 | 끝난 제재(`sanction.endsAt`이 지난 채팅 제한·이용 정지)를 `users_private.sanction`에서 지운다. 한 번에 500명까지 읽고 트랜잭션에서 다시 확인한다. 이력(`sanctions`)은 남긴다(2026-11-03 구현) |
 
-Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`, `coin_transactions`, `sanctions`, `deleted_accounts`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
+Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`, `coin_transactions`, `purchases`, `sanctions`, `deleted_accounts`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
 
 ## Admin 웹 — 확정 (2026-11-03 구현)
 
@@ -714,6 +762,7 @@ sequenceDiagram
 | `chatEnabled` | boolean | `true` | 채팅을 받는다. 위 "운영 스위치" | [release.md](./release.md) |
 | `signupEnabled` | boolean | `true` | 새 가입을 받는다. 위 "운영 스위치" | [release.md](./release.md) |
 | `webEnabled` | boolean | `true` | 웹을 연다. 위 "운영 스위치" | [release.md](./release.md) |
+| `coinSaleEnabled` | boolean | `true` | 엽전 충전을 판다. 끄면 앱은 상점에서 충전을 숨긴다. 서버는 결제가 끝난 충전을 지급한다. 위 "앱 결제" | [release.md](./release.md) |
 | `minAppVersion` | string | `1.0.0` | 이보다 낮은 앱에 업데이트 화면을 띄운다. `1.2.3` 모양 | [release.md](./release.md) |
 | `serviceNotice` | map? | `null` | 공지. `messageKo`, `messageEn`(string, 1~200자), `gamesBlocked`(boolean, 새 대국을 막는다). 앱 언어가 한국어면 `messageKo`, 그 밖에는 `messageEn`을 보여준다 | [release.md](./release.md) |
 
@@ -769,9 +818,11 @@ sequenceDiagram
 | 공지 문구 길이 | 200자 (`SERVICE_NOTICE_MAX_LENGTH`) | 이 문서 |
 | 연속 출석 한 바퀴 | 7일 (`COIN_ATTENDANCE_STREAK_DAYS`) | [monetization.md](./monetization.md) |
 | 출석의 하루 기준 | 서울 0시 (`COIN_DAY_UTC_OFFSET_HOURS`, 앱 `coinDayUtcOffset`) | [monetization.md](./monetization.md) |
-| 잔액 분포 구간, 지표의 날 수 | `COIN_BALANCE_BUCKET_STARTS`, 7일 (`COIN_STATS_DAYS`) | 이 문서 |
+| 잔액 분포 구간, 지표의 날 수 | `COIN_BALANCE_BUCKET_STARTS`, 7일 (`COIN_STATS_DAYS`). 환불로 잔액이 음수인 지갑은 구간에 들어가지 않는다 | 이 문서 |
+| 스토어 상품 | `STORE_PRODUCTS`. 앱의 `StoreItem`과 같다 | [monetization.md](./monetization.md) |
+| RevenueCat REST 주소와 기다리는 시간 | `REVENUECAT_API_URL`, 10초 (`REVENUECAT_API_TIMEOUT_MS`) | 이 문서 |
 
-OpenAI API 키는 Secret Manager에 둔다.
+OpenAI API 키, RevenueCat 웹훅 인증 값(`REVENUECAT_WEBHOOK_AUTH`), RevenueCat 비밀 API 키(`REVENUECAT_SECRET_API_KEY`)는 Secret Manager에 둔다. 에뮬레이터는 `server/functions/.secret.local`(Git에 올리지 않는다)에서 읽으므로 개발 PC마다 아무 값으로 두 줄을 넣어 둔다.
 
 ## 개발 환경 — 초안
 

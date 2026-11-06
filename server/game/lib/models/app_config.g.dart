@@ -28,6 +28,7 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => $checkedCreate('AppC
     chatEnabled: $checkedConvert('chatEnabled', (v) => v as bool),
     signupEnabled: $checkedConvert('signupEnabled', (v) => v as bool),
     webEnabled: $checkedConvert('webEnabled', (v) => v as bool),
+    coinSaleEnabled: $checkedConvert('coinSaleEnabled', (v) => v as bool),
     minAppVersion: $checkedConvert('minAppVersion', (v) => v as String),
     serviceNotice: $checkedConvert(
       'serviceNotice',

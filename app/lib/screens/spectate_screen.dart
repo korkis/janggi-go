@@ -11,6 +11,7 @@ import '../managers/online_game_manager.dart';
 import '../managers/review_manager.dart';
 import '../managers/spectate_manager.dart';
 import '../models/chat_message.dart';
+import '../models/game_enums.dart';
 import '../theme/app_theme.dart';
 import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
@@ -178,6 +179,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
   }
 
   Widget _buildBoard(BuildContext context, BoardManager board) {
+    final materials = _online.game?.meta.players.materials ?? plasticMaterials;
     final review = _review;
     if (review != null) {
       return Stack(
@@ -185,6 +187,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
         clipBehavior: Clip.none,
         children: [
           BoardView(
+            materials: materials,
             position: review.position,
             flipped: board.flipped,
             lastMove: review.lastMove,
@@ -216,6 +219,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
       alignment: Alignment.center,
       children: [
         BoardView(
+          materials: materials,
           position: board.position,
           flipped: board.flipped,
           lastMove: board.lastMove,
