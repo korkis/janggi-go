@@ -127,7 +127,7 @@ class GameService {
         } else if (uids.any((uid) => isBusy(states[uid]))) {
           throw const CallableException.failedPrecondition(GameErrorCode.busy, '이미 대국이나 매칭 중인 대국자가 있습니다');
         }
-        _writeCoinPlanInTransaction(transaction, coinPlan);
+        writeCoinPlanInTransaction(transaction, coinPlan);
         for (final uid in uids) {
           playerStates.setPlayerStateInTransaction(
             transaction,
@@ -256,7 +256,7 @@ class GameService {
           ? await _applyRatingsInTransaction(transaction, gameId, game, now)
           : const <String, RankChange>{};
       archivedGames.createArchivedGameInTransaction(transaction, gameId, _buildArchivedGame(game));
-      _writeCoinPlanInTransaction(transaction, coinPlan);
+      writeCoinPlanInTransaction(transaction, coinPlan);
       _updateRecordsInTransaction(transaction, gameId, game, profiles, rankChanges);
       for (final uid in uids) {
         final state = states[uid];
@@ -320,15 +320,17 @@ class GameService {
     AppConfig appConfig,
     DateTime now,
   ) async {
-    final (wallets, feeTransactions) = await (
+    final (wallets, feeTransactions, extensionTransactions) = await (
       coinWallets.getWalletsInTransaction(transaction, uids),
       _getFeeTransactionsInTransaction(transaction, gameId, uids),
+      coinTransactions.getTransactionsInTransaction(transaction, getTimeExtensionTransactionIds(gameId, game)),
     ).wait;
     return planGameEnd(
       gameId: gameId,
       game: game,
       wallets: wallets,
       feeTransactions: feeTransactions,
+      extensionTransactions: extensionTransactions,
       config: appConfig,
       now: now,
     );
@@ -343,7 +345,8 @@ class GameService {
     return coinTransactions.getTransactionsInTransaction(transaction, ids);
   }
 
-  void _writeCoinPlanInTransaction(FirestoreTransaction transaction, CoinPlan plan) {
+  /// [plan]의 지갑과 내역을 트랜잭션에 쓴다.
+  void writeCoinPlanInTransaction(FirestoreTransaction transaction, CoinPlan plan) {
     for (final MapEntry(key: uid, value: wallet) in plan.wallets.entries) {
       coinWallets.setWalletInTransaction(transaction, uid, wallet);
     }
@@ -728,6 +731,7 @@ class GameService {
       incomingChallengeId: clearChallenges ? null : state?.incomingChallengeId,
       setupDraft: setupDraft,
       lastRankChange: lastRankChange ?? state?.lastRankChange,
+      gamePracticeGameId: state?.gamePracticeGameId,
       quickQueueJoinedAt: quickQueueJoinedAt,
       updatedAt: now,
     );

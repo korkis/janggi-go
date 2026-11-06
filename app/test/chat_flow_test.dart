@@ -150,10 +150,10 @@ void main() {
     await _pumpFor(tester);
     expect(find.descendant(of: preview, matching: find.text('잘 두시네요')), findsOneWidget);
     expect(find.descendant(of: preview, matching: find.text('2')), findsOneWidget);
-    // 버튼 줄에는 한수쉼과 더보기만 둔다.
+    // 버튼 줄에 채팅 버튼을 두지 않는다.
     expect(find.widgetWithText(GameBarButton, '채팅'), findsNothing);
     expect(find.widgetWithText(GameBarButton, '한수쉼'), findsOneWidget);
-    expect(find.widgetWithText(GameBarButton, '더보기'), findsOneWidget);
+    expect(find.widgetWithText(GameBarButton, '메뉴'), findsOneWidget);
 
     await _tap(tester, preview);
     expect(find.descendant(of: find.byType(ChatView), matching: find.text('빠르시네요')), findsOneWidget);

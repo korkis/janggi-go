@@ -30,6 +30,8 @@ import 'endpoints/retry_quick_match.dart';
 import 'endpoints/room_endpoints.dart';
 import 'endpoints/send_challenge.dart';
 import 'endpoints/set_formation.dart';
+import 'endpoints/use_game_practice.dart';
+import 'endpoints/use_time_extension.dart';
 import 'firebase/access_token.dart';
 import 'firebase/firestore_client.dart';
 import 'firebase/rtdb_client.dart';
@@ -42,6 +44,7 @@ import 'models/active_game.dart';
 import 'repositories/game_repositories.dart';
 import 'server_environment.dart';
 import 'services/challenge_service.dart';
+import 'services/game_item_service.dart';
 import 'services/game_service.dart';
 import 'services/lobby_service.dart';
 import 'services/quick_match_service.dart';
@@ -245,6 +248,16 @@ class GameServer {
       responseTime: (production ? null : testChallengeResponse) ?? const Duration(seconds: challengeResponseSeconds),
       blockTime: (production ? null : testChallengeBlock) ?? const Duration(minutes: challengeBlockMinutes),
     );
+    final gameItemService = GameItemService(
+      firestore: firestore,
+      gameService: gameService,
+      archivedGames: repositories.archivedGames,
+      playerStates: repositories.playerStates,
+      configs: repositories.configs,
+      coinWallets: repositories.coinWallets,
+      coinTransactions: repositories.coinTransactions,
+      logger: logger,
+    );
     final lobbyService = LobbyService(
       onlineUsers: repositories.onlineUsers,
       playerStates: repositories.playerStates,
@@ -269,6 +282,8 @@ class GameServer {
         PlayMoveEndpoint(gameService: gameService, logger: logger),
         ResignEndpoint(gameService: gameService, logger: logger),
         CheckGameEndpoint(gameService: gameService, logger: logger),
+        UseTimeExtensionEndpoint(gameItemService: gameItemService),
+        UseGamePracticeEndpoint(gameItemService: gameItemService),
         JoinQuickQueueEndpoint(quickMatchService: quickMatchService),
         LeaveQuickQueueEndpoint(quickMatchService: quickMatchService),
         RequestRematchEndpoint(rematchService: rematchService),

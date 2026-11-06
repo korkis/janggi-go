@@ -139,7 +139,7 @@ export interface CoinBalanceBucketView {
   count: number;
 }
 
-/** 하루(서울 기준)의 엽전 지표. timeExtensions, gamePractices, rewardedAds는 그 기능이 생기면 쌓인다. */
+/** 하루(서울 기준)의 엽전 지표. rewardedAds는 그 기능이 생기면 쌓인다. */
 export interface CoinDayStatsView {
   // yyyy-MM-dd.
   day: string;

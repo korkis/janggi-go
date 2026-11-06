@@ -283,6 +283,7 @@ class QuickMatchService {
       incomingChallengeId: state?.incomingChallengeId,
       setupDraft: state?.setupDraft,
       lastRankChange: state?.lastRankChange,
+      gamePracticeGameId: state?.gamePracticeGameId,
       quickQueueJoinedAt: joinedAt,
       updatedAt: now,
     );

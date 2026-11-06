@@ -21,6 +21,10 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => $checkedCreate('AppC
     coinAttendanceReward: $checkedConvert('coinAttendanceReward', (v) => (v as num).toInt()),
     coinAttendanceStreakReward: $checkedConvert('coinAttendanceStreakReward', (v) => (v as num).toInt()),
     coinNicknameChangeCost: $checkedConvert('coinNicknameChangeCost', (v) => (v as num).toInt()),
+    timeExtensionEnabled: $checkedConvert('timeExtensionEnabled', (v) => v as bool),
+    gamePracticeEnabled: $checkedConvert('gamePracticeEnabled', (v) => v as bool),
+    coinTimeExtensionCost: $checkedConvert('coinTimeExtensionCost', (v) => (v as num).toInt()),
+    coinGamePracticeCost: $checkedConvert('coinGamePracticeCost', (v) => (v as num).toInt()),
   );
   return val;
 });

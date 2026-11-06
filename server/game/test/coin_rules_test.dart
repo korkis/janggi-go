@@ -21,6 +21,10 @@ AppConfig _config({bool entryFeeEnabled = true}) => AppConfig(
   coinAttendanceReward: 30,
   coinAttendanceStreakReward: 100,
   coinNicknameChangeCost: 300,
+  timeExtensionEnabled: true,
+  gamePracticeEnabled: true,
+  coinTimeExtensionCost: 30,
+  coinGamePracticeCost: 30,
 );
 
 final _now = DateTime.utc(2026, 11, 6, 3);
@@ -87,7 +91,16 @@ CoinPlan _planEnd(
   ActiveGame game, {
   required Map<String, CoinWallet?> wallets,
   Map<String, CoinTransaction?> fees = const {},
-}) => planGameEnd(gameId: 'g1', game: game, wallets: wallets, feeTransactions: fees, config: _config(), now: _now);
+  Map<String, CoinTransaction?> extensions = const {},
+}) => planGameEnd(
+  gameId: 'g1',
+  game: game,
+  wallets: wallets,
+  feeTransactions: fees,
+  extensionTransactions: extensions,
+  config: _config(),
+  now: _now,
+);
 
 void main() {
   group('참가비', () {
@@ -170,6 +183,76 @@ void main() {
       final plan = _planEnd(_finishedGame(moves: false), wallets: {'cho': _wallet(free: 5), 'han': _wallet()});
       expect(plan.wallets, isEmpty);
       expect(plan.moves, isEmpty);
+    });
+
+    test('값을 받았지만 반영되지 않은 시간 연장은 보상과 함께 낸 그대로 돌려준다', () {
+      final extension = _fee(free: -10, paid: -20);
+      final plan = _planEnd(
+        _finishedGame(moves: true),
+        wallets: {'cho': _wallet(free: 0, paid: 5), 'han': _wallet()},
+        extensions: {'timeExtension_cho_g1_1': extension},
+      );
+      expect(plan.wallets['cho']?.freeCoins, 22);
+      expect(plan.wallets['cho']?.paidCoins, 25);
+      expect(plan.moves.map((move) => move.transactionId), [
+        'gameReward_cho_g1',
+        'timeExtensionRefund_cho_g1_1',
+        'gameReward_han_g1',
+      ]);
+    });
+
+    test('이미 돌려줬거나 시계에 반영된 시간 연장은 돌려주지 않는다', () {
+      final extension = _fee(free: -30, paid: 0);
+      final game = _finishedGame(moves: false);
+      final extended = game.copyWith(
+        state: game.state.copyWith(
+          clock: game.state.clock.copyWithSide(Side.cho, const SideClock(baseMs: 60000, periods: 5, extensionsUsed: 1)),
+        ),
+      );
+      final plan = _planEnd(
+        extended,
+        wallets: {'cho': _wallet(free: 5), 'han': _wallet(free: 5)},
+        extensions: {
+          'timeExtension_cho_g1_1': extension,
+          'timeExtension_han_g1_1': extension,
+          'timeExtensionRefund_han_g1_1': extension,
+        },
+      );
+      expect(plan.wallets, isEmpty);
+      expect(plan.moves, isEmpty);
+    });
+  });
+
+  group('대국 중 값', () {
+    test('무상부터 내고 열쇠로 내역 문서 ID를 정한다', () {
+      final plan = planGameItemSpend(
+        uid: 'u1',
+        wallet: _wallet(free: 10, paid: 25),
+        reason: CoinReason.timeExtension,
+        gameId: 'g1',
+        key: getTimeExtensionKey('g1', 1),
+        cost: 30,
+        now: _now,
+      );
+      expect(plan.wallets['u1']?.freeCoins, 0);
+      expect(plan.wallets['u1']?.paidCoins, 5);
+      expect(plan.moves.single.transactionId, 'timeExtension_u1_g1_2');
+      expect(plan.moves.single.transaction.gameId, 'g1');
+    });
+
+    test('모자라면 거절한다', () {
+      expect(
+        () => planGameItemSpend(
+          uid: 'u1',
+          wallet: _wallet(free: 29),
+          reason: CoinReason.gamePractice,
+          gameId: 'g1',
+          key: 'g1',
+          cost: 30,
+          now: _now,
+        ),
+        throwsA(isA<InsufficientCoinsException>()),
+      );
     });
   });
 }

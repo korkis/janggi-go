@@ -363,6 +363,56 @@ ActiveGame resign(ActiveGame game, Side side, int now) {
   return _finish(game, result, now);
 }
 
+/// [side]가 [extensionIndex]번째 시간 연장(0부터)을 이미 썼는지. 같은 요청을 다시 보낸 경우다.
+bool isTimeExtensionApplied(ActiveGame game, Side side, int extensionIndex) {
+  return extensionIndex < game.state.clock.get(side).extensionsUsed;
+}
+
+/// [side]가 [extensionIndex]번째 시간 연장을 지금 쓸 수 있는지 확인한다. 아니면 [CallableException]을 던진다.
+/// 기본 시간 중에도, 초읽기 중에도, 내 차례에도 상대 차례에도 쓴다(`docs/game/time.md`).
+void checkCanExtendTime(ActiveGame game, Side side, int extensionIndex) {
+  final state = game.state;
+  if (state.phase == GamePhase.finished) {
+    throw const CallableException.failedPrecondition(GameErrorCode.gameOver, '이미 끝난 대국입니다');
+  }
+  if (state.phase != GamePhase.playing) {
+    throw const CallableException.failedPrecondition(GameErrorCode.notYourTurn, '아직 대국이 시작되지 않았습니다');
+  }
+  final used = state.clock.get(side).extensionsUsed;
+  if (used >= game.meta.timeControl.extensionLimit) {
+    throw const CallableException.failedPrecondition(GameErrorCode.extensionLimit, '시간 연장을 더 쓸 수 없습니다');
+  }
+  if (extensionIndex != used) {
+    throw const CallableException.failedPrecondition(GameErrorCode.moveConflict, '시간 연장 번호가 서버와 다릅니다');
+  }
+}
+
+/// [side]의 초읽기 횟수를 늘리고 상대 화면에 알릴 기록을 남긴 대국(`docs/server.md`의 시간 연장과 놓아보기).
+///
+/// 차례와 `turnStartedAt`은 건드리지 않는다. 내 차례면 시간패 시각이 그만큼 뒤로 가고, 상대 차례면 내 차례가 왔을 때 쓸 횟수만
+/// 늘어난다. 이미 쓴 번호면 바꾸지 않고 [game]을 그대로 돌려준다.
+ActiveGame extendTime(ActiveGame game, Side side, int extensionIndex, int now) {
+  if (isTimeExtensionApplied(game, side, extensionIndex)) {
+    return game;
+  }
+  checkCanExtendTime(game, side, extensionIndex);
+  final state = game.state;
+  final clock = state.clock.get(side);
+  return game.copyWith(
+    state: state.copyWith(
+      clock: state.clock.copyWithSide(
+        side,
+        SideClock(
+          baseMs: clock.baseMs,
+          periods: clock.periods + game.meta.timeControl.extensionPeriods,
+          extensionsUsed: clock.extensionsUsed + 1,
+        ),
+      ),
+      extensionNotice: ExtensionNotice(side: side, at: now),
+    ),
+  );
+}
+
 /// [moveIndex]번째 수를 두는 진영. 초부터 번갈아 두고 한수쉼도 한 수로 센다.
 Side getMoveSide(int moveIndex) => moveIndex.isEven ? Side.cho : Side.han;
 

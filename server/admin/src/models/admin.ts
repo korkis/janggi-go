@@ -150,6 +150,10 @@ export interface AppConfig {
   coinAttendanceReward: number;
   coinAttendanceStreakReward: number;
   coinNicknameChangeCost: number;
+  timeExtensionEnabled: boolean;
+  gamePracticeEnabled: boolean;
+  coinTimeExtensionCost: number;
+  coinGamePracticeCost: number;
 }
 
 /** 잔액이 [min] 이상 [max] 미만인 지갑 수. [max]가 null이면 위가 열려 있다. */

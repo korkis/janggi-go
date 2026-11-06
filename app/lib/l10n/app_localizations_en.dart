@@ -107,7 +107,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passFailed => 'You can\'t pass right now';
 
   @override
-  String get more => 'More';
+  String get more => 'Menu';
 
   @override
   String get resign => 'Resign';
@@ -1586,4 +1586,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moveRejectedRepetition => 'Repetition is not allowed';
+
+  @override
+  String get gameTimeExtension => 'Extend';
+
+  @override
+  String get gamePractice => 'Try';
+
+  @override
+  String timeExtensionConfirm(int cost, int periods) {
+    return 'Pay $cost coins to add $periods byoyomi periods?';
+  }
+
+  @override
+  String get timeExtensionAction => 'Extend';
+
+  @override
+  String gamePracticeConfirm(int cost) {
+    return 'Pay $cost coins to try moves for the rest of this game';
+  }
+
+  @override
+  String get opponentExtendedTime => 'Your opponent extended their time';
+
+  @override
+  String get errorTimeExtension =>
+      'Could not extend your time. Please try again.';
+
+  @override
+  String get errorGamePractice => 'Could not open try moves. Please try again.';
+
+  @override
+  String get errorExtensionLimit => 'You cannot extend your time any more';
+
+  @override
+  String get errorFeatureDisabled => 'Not available right now';
 }

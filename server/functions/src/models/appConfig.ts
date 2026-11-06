@@ -16,6 +16,10 @@ export interface AppConfig {
   coinAttendanceReward: number;
   coinAttendanceStreakReward: number;
   coinNicknameChangeCost: number;
+  timeExtensionEnabled: boolean;
+  gamePracticeEnabled: boolean;
+  coinTimeExtensionCost: number;
+  coinGamePracticeCost: number;
 }
 
 /** configs/app의 처음 값(docs/server.md의 "configs/app"). */
@@ -33,4 +37,8 @@ export const INITIAL_APP_CONFIG: AppConfig = {
   coinAttendanceReward: 30,
   coinAttendanceStreakReward: 100,
   coinNicknameChangeCost: 300,
+  timeExtensionEnabled: true,
+  gamePracticeEnabled: true,
+  coinTimeExtensionCost: 30,
+  coinGamePracticeCost: 30,
 };

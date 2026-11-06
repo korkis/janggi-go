@@ -279,6 +279,10 @@ function parseAppConfig(value: unknown): AppConfig {
     coinAttendanceReward: asNumber(record.coinAttendanceReward, "config.coinAttendanceReward"),
     coinAttendanceStreakReward: asNumber(record.coinAttendanceStreakReward, "config.coinAttendanceStreakReward"),
     coinNicknameChangeCost: asNumber(record.coinNicknameChangeCost, "config.coinNicknameChangeCost"),
+    timeExtensionEnabled: asBoolean(record.timeExtensionEnabled, "config.timeExtensionEnabled"),
+    gamePracticeEnabled: asBoolean(record.gamePracticeEnabled, "config.gamePracticeEnabled"),
+    coinTimeExtensionCost: asNumber(record.coinTimeExtensionCost, "config.coinTimeExtensionCost"),
+    coinGamePracticeCost: asNumber(record.coinGamePracticeCost, "config.coinGamePracticeCost"),
   };
 }
 

@@ -51,7 +51,7 @@
 | `ChatChannel` | `lobby`, `game`, `spectator` | 앱, Functions |
 | `SanctionType` | `warning`, `chatRestriction`, `suspension`, `permanentBan` | 앱, Functions, 대국 서버, Admin 웹 |
 | `ReportStatus` | `pending`, `resolved` | Functions, Admin 웹 |
-| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `gamePractice`, `rewardedAd` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`). `timeExtension`, `gamePractice`, `rewardedAd`는 그 기능이 생기면 쓴다 |
+| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `timeExtensionRefund`, `gamePractice`, `rewardedAd` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`, `timeExtension`, `timeExtensionRefund`, `gamePractice`). `rewardedAd`는 그 기능이 생기면 쓴다 |
 
 - `rankLevel`은 급수를 `number` 1~27로 저장한다. 1이 18급, 18이 1급, 19가 1단, 27이 9단이다([rank.md](./game/rank.md)). 앱이 글자로 바꿔 보여준다.
 - 서버는 새 enum 값을 옛 앱이 받을 수 있는 곳에 쓰지 않는다([dev_rules.md](./dev_rules.md)의 커밋과 배포). 그래서 앱은 모르는 enum 값과 모르는 오류 코드를 받아도 멈추지 않고 기본 표시를 하도록 만든다.
@@ -148,6 +148,9 @@
 | `entryFeeRefund` | 대국 ID | `entryFee`를 낸 그대로 + |
 | `gameReward` | 대국 ID | 무상 + |
 | `nicknameChange` | 몇 번째 변경인지 | − (무상부터) |
+| `timeExtension` | `{대국 ID}_{그 대국에서 몇 번째}`(1부터) | − (무상부터) |
+| `timeExtensionRefund` | `timeExtension`과 같다 | `timeExtension`을 낸 그대로 + |
+| `gamePractice` | 대국 ID | − (무상부터) |
 
 - 색인: `reason` + `createdAt` 오름차순(Admin 웹의 하루별 사용 수).
 
@@ -199,6 +202,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `incomingChallengeId` | string? | 내가 받고 응답하지 않은 신청 |
 | `setupDraft` | map? | 상차림 화면에서 골라 둔 것. `gameId`, `formation`(Formation). 상대에게 보이면 안 되므로 여기 둔다 |
 | `lastRankChange` | map? | 마지막 급수 대국의 변동. `gameId`, `rankLevelBefore`, `rankLevelAfter`, `rankProgressBefore`, `rankProgressAfter` |
+| `gamePracticeGameId` | string? | 놓아보기 값을 낸 마지막 대국. 지금 대국과 같으면 그 판 내내 쓴다. 상대에게 보이면 안 되므로 여기 둔다 |
 | `updatedAt` | timestamp | |
 
 - 읽기: 본인. 쓰기: 대국 서버.
@@ -408,7 +412,7 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `initialFen` | string? | 양쪽 상차림이 끝나면 쓴다 |
 | `turn` | Side? | 둘 차례 |
 | `turnStartedAt` | ms? | 지금 차례가 시작된 서버 시각 |
-| `clock` | map | `cho`, `han` 각각 `baseMs`(남은 기본 시간), `periods`(남은 초읽기 횟수), `extensionsUsed`. 차례가 넘어갈 때만 바꾼다 |
+| `clock` | map | `cho`, `han` 각각 `baseMs`(남은 기본 시간), `periods`(남은 초읽기 횟수), `extensionsUsed`. 차례가 넘어갈 때와 시간 연장을 쓸 때만 바꾼다 |
 | `disconnect` | map | `cho`, `han` 각각 `usedMs`(지금까지 끊긴 시간 합계), `since`(ms?, 지금 끊겨 있으면 끊긴 시각) |
 | `extensionNotice` | map? | 마지막 시간 연장. `side`, `at`(ms). 상대 화면 표시용 |
 | `result` | map? | `winner`, `reason`, `choScore`, `hanScore` |

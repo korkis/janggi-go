@@ -21,7 +21,9 @@ enum GameErrorCode {
   rematchUnavailable,
   extensionLimit,
   coinsInsufficient,
-  opponentCoinsInsufficient;
+  opponentCoinsInsufficient,
+  coinPriceChanged,
+  featureDisabled;
 
   /// 서버가 보낸 이름에 맞는 값. 모르는 값이면 null이다.
   static GameErrorCode? fromName(Object? name) => values.asNameMap()[name];

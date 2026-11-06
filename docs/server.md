@@ -89,8 +89,10 @@ flowchart LR
 | `targetUnavailable` | 상대가 접속해 있지 않거나, 대국 중이거나, 신청을 받지 않거나, 다른 신청을 받고 있다 |
 | `rematchUnavailable` | 상대가 나갔거나 다시 두기 횟수에 닿았다 |
 | `extensionLimit` | 시간 연장을 더 쓸 수 없다 |
-| `coinsInsufficient` | 내 엽전이 참가비보다 적다 |
+| `coinsInsufficient` | 내 엽전이 내야 할 값보다 적다 |
 | `opponentCoinsInsufficient` | 상대의 엽전이 참가비보다 적다 |
+| `coinPriceChanged` | 앱이 보여준 값이 지금 값과 다르다 |
+| `featureDisabled` | 운영 스위치로 멈춘 기능이다 |
 
 ## 대국 서버 API — 초안
 
@@ -134,7 +136,8 @@ flowchart LR
 | `setFormation` | `gameId`, `formation`, `confirmed` | 상차림을 골라 둔다(`confirmed: false`, `player_states.setupDraft`에 저장) 또는 확정한다 |
 | `playMove` | `gameId`, `moveIndex`, `move` | 수 또는 `pass`를 둔다. `moveIndex`는 이 수가 몇 번째 수인지(0부터)다. 같은 수를 다시 보내면 성공으로 본다 |
 | `resign` | `gameId` | 기권한다 |
-| `useTimeExtension` | `gameId` | 엽전을 내고 시간 연장을 쓴다. 엽전이 3단계이므로 2단계에는 만들지 않는다 |
+| `useTimeExtension` | `gameId`, `extensionIndex`, `coinCost` | 엽전을 내고 시간 연장을 쓴다. `extensionIndex`는 앱이 본 `clock.extensionsUsed`(0부터), `coinCost`는 앱이 보여준 값이다. 같은 번호를 다시 보내면 성공으로 본다. 아래 "시간 연장과 놓아보기" |
+| `useGamePractice` | `gameId`, `coinCost` | 이 판의 놓아보기 값을 낸다. 이미 냈으면 다시 받지 않고 성공한다. 아래 "시간 연장과 놓아보기" |
 | `checkGame` | `gameId` | 대국 판정을 다시 보게 한다(아래 "판정 다시 보기"). 대국자만 부를 수 있고, 끝난 대국이면 아무것도 하지 않고 성공한다. 앱이 부르는 때는 아래 "접속 끊김" |
 | `requestRematch` | `gameId` | 다시 두기를 누른다. 두 사람이 모두 누르면 새 대국을 만든다. 결과 `gameId`(새 대국이 정해졌으면 그 ID, 상대를 기다리면 null). 끝나지 않은 대국, 상대가 나갔거나 앱에 없을 때, 횟수에 닿았을 때는 `rematchUnavailable` |
 | `leaveResult` | `gameId` | 결과 화면을 나간다. 기다리던 다시 두기를 취소하고, 방 대국이면 방 대기실로 돌린다. 대국이 이미 지워졌으면 그대로 성공한다 |
@@ -184,7 +187,7 @@ flowchart LR
 
 [time.md](./game/time.md)를 서버가 계산한다. 앱은 같은 식으로 표시만 한다. 앱은 RTDB `.info/serverTimeOffset`으로 서버 시각을 어림한다.
 
-- 차례가 시작될 때 둘 쪽의 `baseMs`(남은 기본 시간)와 `periods`(남은 초읽기 횟수)를 기록한다.
+- 차례가 시작될 때 둘 쪽의 `baseMs`(남은 기본 시간)와 `periods`(남은 초읽기 횟수)를 기록한다. 시간 연장을 쓰면 그때 `periods`가 늘어난다.
 - 그 차례에 쓴 시간 `spent` = 수를 받은 시각 − `turnStartedAt`.
 - `spent`가 `baseMs` 이하면 `baseMs`에서 뺀다.
 - 넘으면 `over` = `spent` − `baseMs`, `baseMs` = 0, 초읽기 횟수를 `over ÷ periodMs`의 몫만큼 줄인다. 30초 안에 두면 줄지 않는다.
@@ -264,6 +267,8 @@ flowchart LR
 | 닉네임 유료 변경 | Functions `changeNickname` | 닉네임을 바꾸는 트랜잭션 |
 | 참가비 | 대국 서버 `createGame` | 두 대국자를 묶는 트랜잭션 |
 | 대국 보상, 참가비 돌려주기 | 대국 서버 `finalizeGame` | 기보를 저장하는 트랜잭션 |
+| 시간 연장, 대국 중 놓아보기 | 대국 서버 `useTimeExtension`, `useGamePractice` | 아래 "시간 연장과 놓아보기" |
+| 반영하지 못한 시간 연장 돌려주기 | 대국 서버 `useTimeExtension`, `finalizeGame` | 아래 "시간 연장과 놓아보기" |
 
 틀어지지 않게 하는 방법:
 
@@ -292,6 +297,36 @@ flowchart LR
 
 - `changeNickname`의 선택 파라미터 `coinCost`(앱이 보여준 값)가 있어야 엽전을 받는다. 없으면 지금까지처럼 `nicknameChangeNotFree`로 거절하므로 값을 보여주지 못하는 옛 앱에서 엽전이 나가지 않는다.
 - `coinCost`가 지금 `coinNicknameChangeCost`와 다르면 `coinPriceChanged`, 잔액이 모자라면 `coinsInsufficient`로 거절한다.
+
+### 시간 연장과 놓아보기 — 확정 (2026-11-06 구현)
+
+규칙은 [time.md](./game/time.md)의 시간 연장, [screens.md](./screens.md)의 대국 화면, 값은 `configs/app`이다. 흐름은 `game_item_service.dart`, 계산은 `game_rules.dart`와 `coin_rules.dart`에 있다.
+
+시간 연장의 시계:
+
+- `clock.{side}.periods`에 `extensionPeriods`를 더하고 `extensionsUsed`를 1 늘린다. 차례와 `turnStartedAt`은 건드리지 않는다.
+- 내 차례면 시간패 시각(`turnStartedAt` + `baseMs` + (`periods` + 1) × `periodMs`)이 그만큼 뒤로 간다. 판정이 쓸 때 다음 `evaluateGame`을 새 시각으로 예약하고, 먼저 예약한 작업은 돌아도 아무것도 하지 않는다.
+- 상대 차례면 내 시계는 멈춰 있으므로 쓰는 쪽의 횟수만 늘어나고 상대 시계와 시간패 시각은 그대로다. 이 경우를 따로 처리하지 않아도 같은 쓰기로 된다.
+- `state.extensionNotice`에 `side`, `at`을 쓴다. 상대 앱은 새 기록을 보면 잠깐 알린다. 화면을 열 때 이미 있던 기록은 알리지 않는다.
+
+엽전과 시계가 틀어지지 않게 하는 방법(엽전은 Firestore, 시계는 RTDB라 한 트랜잭션으로 묶을 수 없다):
+
+1. `updateGame`으로 판정을 먼저 본다. 시간이 이미 지났으면 여기서 시간패로 끝나고 값을 받지 않는다. `extensionIndex`가 `extensionsUsed`보다 작으면 이미 반영된 요청이므로 그대로 성공한다.
+2. Firestore 트랜잭션으로 값을 받는다. 내역 ID가 `timeExtension_{uid}_{gameId}_{몇 번째}`로 고정이라 이미 있으면 값도 스위치도 보지 않고 넘어간다. 그래서 동시에 온 요청과 다시 보낸 요청이 값을 두 번 내지 않는다. 기보(`games_archived`)가 있으면 받지 않는다.
+3. RTDB 조건부 쓰기로 시계를 바꾼다. 번호로 확인하므로 한 번만 늘어난다.
+4. 3에서 대국이 먼저 끝나 거절되면 바로 낸 그대로 돌려준다(`timeExtensionRefund`).
+5. 2와 3 사이에 서버가 멈추거나 RTDB 쓰기가 실패하면 값만 받은 상태가 된다. 앱이 같은 번호로 다시 보내면 값을 다시 받지 않고 3부터 이어 간다. 다시 보내지 않으면 대국이 끝날 때 `finalizeGame`이 `extensionsUsed`보다 뒤 번호의 내역을 찾아 기보를 저장하는 트랜잭션에서 돌려준다. 2가 기보를 확인하므로 `finalizeGame`이 놓치는 값은 없다.
+
+놓아보기:
+
+- 값(`gamePractice_{uid}_{gameId}`)과 `player_states.gamePracticeGameId`를 한 트랜잭션으로 쓴다. 이미 낸 판이면 다시 받지 않는다. 앱은 이 필드로 낸 판인지 안다.
+- 상대가 볼 수 있는 RTDB에는 아무것도 쓰지 않는다. `games_active`는 누구나 읽기 때문이다. 놓아 본 수도 앱 안에만 있고 서버에 보내지 않는다.
+
+공통:
+
+- 진행 중인 대국의 대국자만 쓴다. 대국자가 아니면 `notPlayer`, 상차림 중이면 `notYourTurn`, 끝났으면 `gameOver`다. 시간 연장은 횟수에 닿으면 `extensionLimit`, 번호가 앞서 있으면 `moveConflict`다.
+- `timeExtensionEnabled`, `gamePracticeEnabled`가 꺼져 있으면 `featureDisabled`, `coinCost`가 지금 값과 다르면 `coinPriceChanged`, 엽전이 모자라면 `coinsInsufficient`다. 이미 값을 받은 요청은 이어서 처리한다.
+- 수 없이 끝나 참가비를 돌려주는 대국에서도 반영된 시간 연장과 놓아보기의 값은 돌려주지 않는다. 산 것을 이미 썼기 때문이다.
 
 ### 다시 두기
 
@@ -448,7 +483,7 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | `adminSanctionUser` | `uid`, `type`, `durationDays?`, `reason` | 신고 없이 제재를 건다. 결과는 바뀐 사용자 기록 |
 | `adminGetAppConfig` | 없음 | `configs/app`을 캐시 없이 읽는다 |
 | `adminUpdateAppConfig` | `config`(모든 필드) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록, 엽전 숫자는 아래 "configs/app"의 범위) |
-| `adminGetCoinStats` | 없음 | 엽전 지표. 잔액 구간별 지갑 수(`balanceBuckets`)와 최근 7일의 끝난 대국 수, 시간 연장·놓아보기 내역 수, 광고 시청 내역 수(`days`). 모두 세기 쿼리다. 시간 연장, 놓아보기, 광고는 그 기능이 생기면 쌓인다 |
+| `adminGetCoinStats` | 없음 | 엽전 지표. 잔액 구간별 지갑 수(`balanceBuckets`)와 최근 7일의 끝난 대국 수, 시간 연장·놓아보기 내역 수, 광고 시청 내역 수(`days`). 모두 세기 쿼리다. 광고는 그 기능이 생기면 쌓인다 |
 
 - 사용자 기록: 프로필(`users`, 없으면 null), 지금 제재(`users_private.sanction`, 끝났지만 예약 작업이 아직 지우지 않은 것도 그대로), 최근 제재 이력·신고된 기록·검사 기록·닉네임 변경 각각 20개.
 - 목록의 `cursor`는 앞 쪽 마지막 항목의 정렬 시각과 문서 ID(`afterMs`, `afterId`)다. 다음 쪽이 없으면 `nextCursor`가 null이다.
@@ -614,6 +649,10 @@ sequenceDiagram
 | `coinAttendanceReward` | number | `30` | 하루 출석. 0~300 | [monetization.md](./monetization.md) |
 | `coinAttendanceStreakReward` | number | `100` | 연속 7째 날의 출석. 평소 값 대신 준다. 0~1000 | [monetization.md](./monetization.md) |
 | `coinNicknameChangeCost` | number | `300` | 두 번째부터의 닉네임 변경 값. 1~3000 | [monetization.md](./monetization.md) |
+| `timeExtensionEnabled` | boolean | `true` | 시간 연장을 받는다. 끄면 앱은 버튼을 숨기고 서버는 새 연장을 거절한다 | [release.md](./release.md) |
+| `gamePracticeEnabled` | boolean | `true` | 대국 중 놓아보기를 받는다. 끄면 앱은 버튼을 숨기고 서버는 새 결제를 거절한다 | [release.md](./release.md) |
+| `coinTimeExtensionCost` | number | `30` | 시간 연장 1회 값. 1~300 | [monetization.md](./monetization.md) |
+| `coinGamePracticeCost` | number | `30` | 대국 중 놓아보기 판당 값. 1~300 | [monetization.md](./monetization.md) |
 
 뒤 순서의 멈춤 스위치는 그 기능을 만들 때 더한다([release.md](./release.md)의 운영 설정과 멈춤 스위치).
 

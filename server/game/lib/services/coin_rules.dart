@@ -26,7 +26,7 @@ class CoinPlan {
   static const empty = CoinPlan(wallets: {}, moves: []);
 }
 
-/// [uid]의 엽전이 참가비보다 적다. 앱에는 `coinsInsufficient`로 간다. 상대 때문에 막힌 호출은 [uid]를 보고 사유를 바꾼다.
+/// [uid]의 엽전이 내야 할 값보다 적다. 앱에는 `coinsInsufficient`로 간다. 상대 때문에 막힌 호출은 [uid]를 보고 사유를 바꾼다.
 class InsufficientCoinsException extends CallableException {
   final String uid;
 
@@ -64,12 +64,88 @@ CoinPlan planEntryFees({
     if (wallet == null || wallet.balance < fee) {
       throw InsufficientCoinsException(uid);
     }
-    final fromFree = wallet.freeCoins < fee ? wallet.freeCoins : fee;
-    final next = _apply(wallet, freeDelta: -fromFree, paidDelta: -(fee - fromFree), now: now);
+    final next = _spend(wallet, fee, now);
     nextWallets[uid] = next;
-    moves.add(_createMove(uid, CoinReason.entryFee, gameId, next, -fromFree, -(fee - fromFree), now));
+    moves.add(
+      _createMove(
+        uid,
+        CoinReason.entryFee,
+        gameId,
+        gameId,
+        next,
+        next.freeCoins - wallet.freeCoins,
+        next.paidCoins - wallet.paidCoins,
+        now,
+      ),
+    );
   }
   return CoinPlan(wallets: nextWallets, moves: moves);
+}
+
+/// 시간 연장의 내역 열쇠. [extensionIndex]는 그 대국에서 몇 번째 연장인지(0부터)다.
+String getTimeExtensionKey(String gameId, int extensionIndex) => '${gameId}_${extensionIndex + 1}';
+
+/// [uid]가 대국 [gameId]에서 [cost]를 내는 움직임을 정한다(시간 연장, 대국 중 놓아보기). 무상부터 쓴다. 내역 열쇠는 [key]다.
+/// 모자라면 [InsufficientCoinsException]을 던진다. 지갑은 가입할 때 만들므로 없으면 잔액이 없는 것으로 본다.
+CoinPlan planGameItemSpend({
+  required String uid,
+  required CoinWallet? wallet,
+  required CoinReason reason,
+  required String gameId,
+  required String key,
+  required int cost,
+  required DateTime now,
+}) {
+  if (wallet == null || wallet.balance < cost) {
+    throw InsufficientCoinsException(uid);
+  }
+  final next = _spend(wallet, cost, now);
+  final move = _createMove(
+    uid,
+    reason,
+    gameId,
+    key,
+    next,
+    next.freeCoins - wallet.freeCoins,
+    next.paidCoins - wallet.paidCoins,
+    now,
+  );
+  return CoinPlan(wallets: {uid: next}, moves: [move]);
+}
+
+/// 값을 받았지만 대국에 반영하지 못한 시간 연장 [extension]을 낸 그대로 돌려주는 움직임을 정한다.
+CoinPlan planTimeExtensionRefund({
+  required String uid,
+  required CoinWallet wallet,
+  required CoinTransaction extension,
+  required String gameId,
+  required String key,
+  required DateTime now,
+}) {
+  final next = _apply(wallet, freeDelta: -extension.freeDelta, paidDelta: -extension.paidDelta, now: now);
+  final move = _createMove(
+    uid,
+    CoinReason.timeExtensionRefund,
+    gameId,
+    key,
+    next,
+    -extension.freeDelta,
+    -extension.paidDelta,
+    now,
+  );
+  return CoinPlan(wallets: {uid: next}, moves: [move]);
+}
+
+/// [gameId]에서 두 대국자의 시간 연장 내역과 그 돌려주기 내역의 문서 ID. 연장 최대 횟수만큼이다.
+List<String> getTimeExtensionTransactionIds(String gameId, ActiveGame game) {
+  final players = game.meta.players;
+  return [
+    for (final uid in [players.cho.uid, players.han.uid])
+      for (var index = 0; index < game.meta.timeControl.extensionLimit; index++) ...[
+        getCoinTransactionId(CoinReason.timeExtension, uid, getTimeExtensionKey(gameId, index)),
+        getCoinTransactionId(CoinReason.timeExtensionRefund, uid, getTimeExtensionKey(gameId, index)),
+      ],
+  ];
 }
 
 /// 끝난 대국의 참가비 돌려주기나 보상을 정한다(`docs/server.md`의 엽전).
@@ -77,11 +153,15 @@ CoinPlan planEntryFees({
 /// 수가 하나도 없이 끝나면 대국이 성립하지 않은 것으로 보고 참가비를 낸 그대로(무상은 무상으로, 유상은 유상으로) 돌려주며 보상은
 /// 없다. 끝낸 쪽이 누구든 같다. 그 밖에는 이긴 쪽과 진 쪽에게 보상을 무상으로 준다. 한 번만 반영되는 것은 부르는 쪽(`finalizeGame`)이
 /// 기보 저장과 같은 트랜잭션에서 보장한다.
+///
+/// [extensionTransactions]는 [getTimeExtensionTransactionIds]의 내역이다. 값을 받았지만 대국에 반영되지 않은 시간 연장(값을 받은 뒤
+/// 서버가 멈췄거나 그 사이 대국이 끝났다)은 여기서 낸 그대로 돌려준다.
 CoinPlan planGameEnd({
   required String gameId,
   required ActiveGame game,
   required Map<String, CoinWallet?> wallets,
   required Map<String, CoinTransaction?> feeTransactions,
+  required Map<String, CoinTransaction?> extensionTransactions,
   required AppConfig config,
   required DateTime now,
 }) {
@@ -91,28 +171,58 @@ CoinPlan planGameEnd({
   final established = game.moves.isNotEmpty;
   for (final side in Side.values) {
     final uid = players.get(side).uid;
-    final wallet = wallets[uid];
+    var wallet = wallets[uid];
     if (wallet == null) {
       continue;
     }
     if (established) {
       final amount = side == game.state.result!.winner ? config.coinWinReward : config.coinLossReward;
       if (amount > 0) {
-        final next = _apply(wallet, freeDelta: amount, paidDelta: 0, now: now);
-        nextWallets[uid] = next;
-        moves.add(_createMove(uid, CoinReason.gameReward, gameId, next, amount, 0, now));
+        wallet = _apply(wallet, freeDelta: amount, paidDelta: 0, now: now);
+        nextWallets[uid] = wallet;
+        moves.add(_createMove(uid, CoinReason.gameReward, gameId, gameId, wallet, amount, 0, now));
       }
-      continue;
+    } else {
+      final fee = feeTransactions[getCoinTransactionId(CoinReason.entryFee, uid, gameId)];
+      if (fee != null) {
+        wallet = _apply(wallet, freeDelta: -fee.freeDelta, paidDelta: -fee.paidDelta, now: now);
+        nextWallets[uid] = wallet;
+        moves.add(
+          _createMove(uid, CoinReason.entryFeeRefund, gameId, gameId, wallet, -fee.freeDelta, -fee.paidDelta, now),
+        );
+      }
     }
-    final fee = feeTransactions[getCoinTransactionId(CoinReason.entryFee, uid, gameId)];
-    if (fee == null) {
-      continue;
+    final applied = game.state.clock.get(side).extensionsUsed;
+    for (var index = applied; index < game.meta.timeControl.extensionLimit; index++) {
+      final key = getTimeExtensionKey(gameId, index);
+      final extension = extensionTransactions[getCoinTransactionId(CoinReason.timeExtension, uid, key)];
+      final refunded = extensionTransactions[getCoinTransactionId(CoinReason.timeExtensionRefund, uid, key)] != null;
+      if (extension == null || refunded) {
+        continue;
+      }
+      wallet = _apply(wallet!, freeDelta: -extension.freeDelta, paidDelta: -extension.paidDelta, now: now);
+      nextWallets[uid] = wallet;
+      moves.add(
+        _createMove(
+          uid,
+          CoinReason.timeExtensionRefund,
+          gameId,
+          key,
+          wallet,
+          -extension.freeDelta,
+          -extension.paidDelta,
+          now,
+        ),
+      );
     }
-    final next = _apply(wallet, freeDelta: -fee.freeDelta, paidDelta: -fee.paidDelta, now: now);
-    nextWallets[uid] = next;
-    moves.add(_createMove(uid, CoinReason.entryFeeRefund, gameId, next, -fee.freeDelta, -fee.paidDelta, now));
   }
   return CoinPlan(wallets: nextWallets, moves: moves);
+}
+
+/// [cost]를 무상부터 낸 지갑.
+CoinWallet _spend(CoinWallet wallet, int cost, DateTime now) {
+  final fromFree = wallet.freeCoins < cost ? wallet.freeCoins : cost;
+  return _apply(wallet, freeDelta: -fromFree, paidDelta: -(cost - fromFree), now: now);
 }
 
 CoinWallet _apply(CoinWallet wallet, {required int freeDelta, required int paidDelta, required DateTime now}) {
@@ -132,6 +242,7 @@ CoinMove _createMove(
   String gameUid,
   CoinReason reason,
   String gameId,
+  String key,
   CoinWallet after,
   int freeDelta,
   int paidDelta,
@@ -139,7 +250,7 @@ CoinMove _createMove(
 ) {
   return CoinMove(
     uid: gameUid,
-    transactionId: getCoinTransactionId(reason, gameUid, gameId),
+    transactionId: getCoinTransactionId(reason, gameUid, key),
     transaction: CoinTransaction(
       uid: gameUid,
       reason: reason,

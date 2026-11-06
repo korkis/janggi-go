@@ -449,6 +449,7 @@ class RoomService {
       incomingChallengeId: state?.incomingChallengeId,
       setupDraft: state?.setupDraft,
       lastRankChange: state?.lastRankChange,
+      gamePracticeGameId: state?.gamePracticeGameId,
       quickQueueJoinedAt: state?.quickQueueJoinedAt,
       updatedAt: now,
     );

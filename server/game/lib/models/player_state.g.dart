@@ -18,6 +18,7 @@ PlayerState _$PlayerStateFromJson(Map<String, dynamic> json) => $checkedCreate('
       'lastRankChange',
       (v) => v == null ? null : RankChange.fromJson(v as Map<String, dynamic>),
     ),
+    gamePracticeGameId: $checkedConvert('gamePracticeGameId', (v) => v as String?),
     quickQueueJoinedAt: $checkedConvert(
       'quickQueueJoinedAt',
       (v) => _$JsonConverterFromJson<DateTime, DateTime>(v, const TimestampConverter().fromJson),
@@ -35,6 +36,7 @@ Map<String, dynamic> _$PlayerStateToJson(PlayerState instance) => <String, dynam
   'incomingChallengeId': instance.incomingChallengeId,
   'setupDraft': instance.setupDraft?.toJson(),
   'lastRankChange': instance.lastRankChange?.toJson(),
+  'gamePracticeGameId': instance.gamePracticeGameId,
   'quickQueueJoinedAt': _$JsonConverterToJson<DateTime, DateTime>(
     instance.quickQueueJoinedAt,
     const TimestampConverter().toJson,

@@ -28,6 +28,9 @@ class PlayerState {
   /// 마지막 급수 대국의 변동. 결과 창의 급수 변동에 쓴다.
   final RankChange? lastRankChange;
 
+  /// 놓아보기 값을 낸 대국.
+  final String? gamePracticeGameId;
+
   @TimestampConverter()
   final DateTime? quickQueueJoinedAt;
 
@@ -42,6 +45,7 @@ class PlayerState {
     required this.incomingChallengeId,
     required this.setupDraft,
     required this.lastRankChange,
+    required this.gamePracticeGameId,
     required this.quickQueueJoinedAt,
     required this.updatedAt,
   });

@@ -40,6 +40,8 @@ enum AppErrorCode {
   coinPriceChanged,
   coinsInsufficient,
   opponentCoinsInsufficient,
+  extensionLimit,
+  featureDisabled,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -77,6 +79,9 @@ class AppException implements Exception {
       GameErrorCode.targetUnavailable => AppErrorCode.targetUnavailable,
       GameErrorCode.coinsInsufficient => AppErrorCode.coinsInsufficient,
       GameErrorCode.opponentCoinsInsufficient => AppErrorCode.opponentCoinsInsufficient,
+      GameErrorCode.coinPriceChanged => AppErrorCode.coinPriceChanged,
+      GameErrorCode.extensionLimit => AppErrorCode.extensionLimit,
+      GameErrorCode.featureDisabled => AppErrorCode.featureDisabled,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -161,5 +166,9 @@ class AppException implements Exception {
     AppErrorCode.coinsInsufficient => l10n.errorCoinsInsufficient,
     // 상대의 엽전이 모자라요
     AppErrorCode.opponentCoinsInsufficient => l10n.errorOpponentCoinsInsufficient,
+    // 시간 연장을 더 쓸 수 없어요
+    AppErrorCode.extensionLimit => l10n.errorExtensionLimit,
+    // 지금은 쓸 수 없어요
+    AppErrorCode.featureDisabled => l10n.errorFeatureDisabled,
   };
 }

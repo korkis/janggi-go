@@ -20,7 +20,7 @@ export interface CoinWallet {
 
 /**
  * 엽전이 움직인 이유. Functions와 대국 서버가 같은 값을 쓴다(docs/database.md의 공통 enum).
- * timeExtension, gamePractice, rewardedAd는 아직 쓰는 곳이 없다. Admin 웹의 지표가 미리 센다.
+ * timeExtension, timeExtensionRefund, gamePractice는 대국 서버가 쓰고 Admin 웹의 지표가 센다. rewardedAd는 아직 쓰는 곳이 없다.
  */
 export const CoinReason = {
   signup: "signup",
@@ -30,6 +30,7 @@ export const CoinReason = {
   gameReward: "gameReward",
   nicknameChange: "nicknameChange",
   timeExtension: "timeExtension",
+  timeExtensionRefund: "timeExtensionRefund",
   gamePractice: "gamePractice",
   rewardedAd: "rewardedAd",
 } as const;

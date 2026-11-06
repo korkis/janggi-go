@@ -57,4 +57,7 @@ const _$CoinReasonEnumMap = {
   CoinReason.entryFee: 'entryFee',
   CoinReason.entryFeeRefund: 'entryFeeRefund',
   CoinReason.gameReward: 'gameReward',
+  CoinReason.timeExtension: 'timeExtension',
+  CoinReason.timeExtensionRefund: 'timeExtensionRefund',
+  CoinReason.gamePractice: 'gamePractice',
 };

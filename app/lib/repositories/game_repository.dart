@@ -39,6 +39,17 @@ class GameRepository {
     await _call('resign', {'gameId': gameId});
   }
 
+  /// [extensionIndex]번째 시간 연장(0부터, 지금까지 쓴 횟수)을 쓴다. 같은 번호를 다시 보내도 서버가 한 번만 반영한다.
+  /// [coinCost]는 화면에 보여준 값이다.
+  Future<void> useTimeExtension(String gameId, {required int extensionIndex, required int coinCost}) async {
+    await _call('useTimeExtension', {'gameId': gameId, 'extensionIndex': extensionIndex, 'coinCost': coinCost});
+  }
+
+  /// 이 판의 놓아보기 값을 낸다. 이미 냈으면 서버가 다시 받지 않는다. [coinCost]는 화면에 보여준 값이다.
+  Future<void> useGamePractice(String gameId, {required int coinCost}) async {
+    await _call('useGamePractice', {'gameId': gameId, 'coinCost': coinCost});
+  }
+
   /// 대국 판정을 다시 보게 한다. 상대 연결이 끊기거나 돌아온 것, 상대 시계가 0이 된 것, 내가 돌아온 것을 보면 부른다.
   Future<void> checkGame(String gameId) async {
     await _call('checkGame', {'gameId': gameId});

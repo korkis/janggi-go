@@ -127,6 +127,10 @@ Future<void> ensureAppConfig(FirestoreClient firestore) async {
         'coinAttendanceReward': 30,
         'coinAttendanceStreakReward': 100,
         'coinNicknameChangeCost': 300,
+        'timeExtensionEnabled': true,
+        'gamePracticeEnabled': true,
+        'coinTimeExtensionCost': 30,
+        'coinGamePracticeCost': 30,
       }),
     ]);
   } on FirestoreException catch (error) {

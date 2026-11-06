@@ -86,7 +86,10 @@ class GameHeader extends StatelessWidget {
 class GameButtonBar extends StatelessWidget {
   final List<Widget> children;
 
-  const GameButtonBar({super.key, required this.children});
+  /// 버튼마다의 폭 비율. 없으면 같은 폭이다. 글자 길이가 다른 버튼이 폭 320에 들어가게 할 때 쓴다.
+  final List<int>? flexes;
+
+  const GameButtonBar({super.key, required this.children, this.flexes});
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +97,12 @@ class GameButtonBar extends StatelessWidget {
       decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(4),
-        child: Row(children: [for (final child in children) Expanded(child: child)]),
+        child: Row(
+          children: [
+            for (var index = 0; index < children.length; index++)
+              Expanded(flex: flexes?[index] ?? 1, child: children[index]),
+          ],
+        ),
       ),
     );
   }
@@ -107,7 +115,10 @@ class GameBarButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool emphasized;
 
-  /// 아이콘 위에 보여줄 수(채팅의 새 메시지 수). 0이면 보여주지 않는다.
+  /// 흐리게 보여준다. [onPressed]가 있으면 그대로 누를 수 있다(엽전이 모자란 버튼).
+  final bool dimmed;
+
+  /// 아이콘 위에 보여줄 수. 0이면 보여주지 않는다.
   final int badgeCount;
 
   const GameBarButton({
@@ -116,13 +127,14 @@ class GameBarButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.emphasized = false,
+    this.dimmed = false,
     this.badgeCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     var color = GameColors.buttonText;
-    if (onPressed == null) {
+    if (onPressed == null || dimmed) {
       color = GameColors.inactiveText;
     } else if (emphasized) {
       color = Colors.white;
@@ -131,6 +143,7 @@ class GameBarButton extends StatelessWidget {
       onPressed: onPressed,
       style: TextButton.styleFrom(
         minimumSize: const Size(minTouchSize, 60),
+        padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: emphasized ? GameColors.raisedButton : null,
         foregroundColor: GameColors.buttonText,
@@ -142,17 +155,24 @@ class GameBarButton extends StatelessWidget {
           Badge(
             isLabelVisible: badgeCount > 0,
             label: Text('$badgeCount'),
-            backgroundColor: GameColors.accent,
-            textColor: GameColors.onAccent,
+            largeSize: 18,
+            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            backgroundColor: GameColors.outline,
+            textColor: GameColors.text,
             child: Icon(icon, color: color, size: emphasized ? 26 : 24),
           ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: AppTextSizes.body,
-              fontWeight: emphasized ? FontWeight.w700 : FontWeight.w500,
-              color: color,
+          // 큰 글자 설정에서 넘칠 때만 글자를 줄인다(`docs/ui.md`의 터치).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: AppTextSizes.body,
+                fontWeight: emphasized ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
             ),
           ),
         ],

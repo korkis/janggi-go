@@ -8,7 +8,12 @@ import {useConfigStore} from "../stores/configStore";
 import {useUiStore} from "../stores/uiStore";
 
 type NumberField = keyof typeof APP_CONFIG_LIMITS;
-type BooleanField = "onlineUsersVisible" | "autoSanctionEnabled" | "entryFeeEnabled";
+type BooleanField =
+  | "onlineUsersVisible"
+  | "autoSanctionEnabled"
+  | "entryFeeEnabled"
+  | "timeExtensionEnabled"
+  | "gamePracticeEnabled";
 
 interface NumberFieldInfo {
   key: NumberField;
@@ -46,6 +51,8 @@ const COIN_FIELDS: NumberFieldInfo[] = [
   {key: "coinAttendanceReward", label: "출석", unit: "엽전"},
   {key: "coinAttendanceStreakReward", label: "출석: 연속 7일째", unit: "엽전", help: "평소 출석 값 대신 줘요."},
   {key: "coinNicknameChangeCost", label: "닉네임 변경", unit: "엽전", help: "두 번째 변경부터 받아요."},
+  {key: "coinTimeExtensionCost", label: "시간 연장 1회", unit: "엽전"},
+  {key: "coinGamePracticeCost", label: "대국 중 놓아보기 한 판", unit: "엽전"},
 ];
 
 const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
@@ -64,6 +71,16 @@ const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
     label: "대국 참가비 받기",
     help: "끄면 새 대국부터 참가비를 받지 않아요. 대국 보상은 그대로예요.",
   },
+  {
+    key: "timeExtensionEnabled",
+    label: "시간 연장",
+    help: "끄면 앱에서 버튼이 사라지고 서버가 새 연장을 거절해요.",
+  },
+  {
+    key: "gamePracticeEnabled",
+    label: "대국 중 놓아보기",
+    help: "끄면 앱에서 버튼이 사라지고 서버가 새 결제를 거절해요.",
+  },
 ];
 
 /** 폼에 입력 중인 숫자. 비우거나 잘못 적은 값도 그대로 두고 저장 전에 확인한다. */
@@ -78,6 +95,8 @@ function toDraft(config: AppConfig): Draft {
     onlineUsersVisible: config.onlineUsersVisible,
     autoSanctionEnabled: config.autoSanctionEnabled,
     entryFeeEnabled: config.entryFeeEnabled,
+    timeExtensionEnabled: config.timeExtensionEnabled,
+    gamePracticeEnabled: config.gamePracticeEnabled,
   };
 }
 
@@ -102,6 +121,8 @@ function toConfig(draft: Draft): AppConfig | null {
     onlineUsersVisible: draft.onlineUsersVisible,
     autoSanctionEnabled: draft.autoSanctionEnabled,
     entryFeeEnabled: draft.entryFeeEnabled,
+    timeExtensionEnabled: draft.timeExtensionEnabled,
+    gamePracticeEnabled: draft.gamePracticeEnabled,
   };
 }
 

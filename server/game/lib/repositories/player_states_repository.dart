@@ -49,6 +49,16 @@ class PlayerStatesRepository {
     ]);
   }
 
+  /// 놓아보기 값을 낸 대국을 쓴다. 대국에 묶인 사용자만 부르므로 문서가 있어야 한다.
+  void updateGamePracticeInTransaction(
+    FirestoreTransaction transaction,
+    String uid, {
+    required String gameId,
+    required DateTime now,
+  }) {
+    transaction.update('$collection/$uid', {'gamePracticeGameId': gameId, 'updatedAt': now});
+  }
+
   static Map<String, PlayerState?> _decodeAll(List<String> uids, Map<String, Map<String, Object?>?> documents) {
     return {
       for (final uid in uids)

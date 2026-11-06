@@ -582,6 +582,7 @@ class ChallengeService {
       incomingChallengeId: incomingChallengeId,
       setupDraft: state?.setupDraft,
       lastRankChange: state?.lastRankChange,
+      gamePracticeGameId: state?.gamePracticeGameId,
       quickQueueJoinedAt: clearQuickQueue ? null : state?.quickQueueJoinedAt,
       updatedAt: now,
     );

@@ -157,4 +157,6 @@ export const APP_CONFIG_LIMITS = {
   coinAttendanceReward: {min: 0, max: 300},
   coinAttendanceStreakReward: {min: 0, max: 1000},
   coinNicknameChangeCost: {min: 1, max: 3000},
+  coinTimeExtensionCost: {min: 1, max: 300},
+  coinGamePracticeCost: {min: 1, max: 300},
 };

@@ -43,7 +43,7 @@ class CoinWallet {
 }
 
 /// 엽전이 움직인 이유 중 대국 서버가 쓰는 것. Functions의 `CoinReason`과 값을 일치시킨다(`docs/database.md`의 공통 enum).
-enum CoinReason { entryFee, entryFeeRefund, gameReward }
+enum CoinReason { entryFee, entryFeeRefund, gameReward, timeExtension, timeExtensionRefund, gamePractice }
 
 /// Firestore `coin_transactions/{transactionId}`. 엽전이 움직인 내역이다(서버 전용).
 ///

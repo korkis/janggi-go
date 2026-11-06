@@ -46,6 +46,18 @@ class AppConfig {
   /// 두 번째부터의 닉네임 변경 값.
   final int coinNicknameChangeCost;
 
+  /// 시간 연장을 쓸 수 있다. 끄면 버튼을 숨긴다.
+  final bool timeExtensionEnabled;
+
+  /// 대국 중 놓아보기를 쓸 수 있다. 끄면 버튼을 숨긴다.
+  final bool gamePracticeEnabled;
+
+  /// 시간 연장 1회의 값.
+  final int coinTimeExtensionCost;
+
+  /// 대국 중 놓아보기의 판당 값.
+  final int coinGamePracticeCost;
+
   const AppConfig({
     required this.disconnectLimitSeconds,
     required this.quickRematchLimit,
@@ -60,6 +72,10 @@ class AppConfig {
     required this.coinAttendanceReward,
     required this.coinAttendanceStreakReward,
     required this.coinNicknameChangeCost,
+    required this.timeExtensionEnabled,
+    required this.gamePracticeEnabled,
+    required this.coinTimeExtensionCost,
+    required this.coinGamePracticeCost,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) => _$AppConfigFromJson(json);

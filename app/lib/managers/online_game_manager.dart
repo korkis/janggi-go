@@ -41,6 +41,9 @@ class OnlineGameManager extends ChangeNotifier {
   /// 서버 시각(ms)을 [gameClockTickInterval]마다 알린다. 시계와 상차림 남은 시간만 이 값을 듣고 다시 그린다.
   final ValueNotifier<int> serverNow;
 
+  /// 화면을 연 뒤 상대가 시간을 연장한 횟수. 화면이 듣고 잠깐 알린다.
+  final ValueNotifier<int> opponentExtensionCount = ValueNotifier(0);
+
   StreamSubscription<ActiveGame?>? _gameSubscription;
   StreamSubscription<Duration>? _offsetSubscription;
   StreamSubscription<List<Connection>>? _opponentSubscription;
@@ -70,6 +73,9 @@ class OnlineGameManager extends ChangeNotifier {
   // 상대 시계가 0이 되어 `checkGame`을 부른 차례의 시작 시각.
   int? _timeoutCheckedTurnStartedAt;
 
+  // 마지막으로 본 시간 연장 기록의 시각.
+  int? _lastExtensionNoticeAt;
+
   OnlineGameManager({required this.gameId, required this.uid, required this.connectionManager})
     : serverNow = ValueNotifier(DateTime.now().millisecondsSinceEpoch) {
     _gameSubscription = repositories.gameRepository.watchGame(gameId).listen(_onGameChanged, onError: _onGameError);
@@ -91,6 +97,7 @@ class OnlineGameManager extends ChangeNotifier {
     _board?.removeListener(_onBoardChanged);
     _board?.dispose();
     serverNow.dispose();
+    opponentExtensionCount.dispose();
     super.dispose();
   }
 
@@ -247,6 +254,27 @@ class OnlineGameManager extends ChangeNotifier {
     await repositories.gameRepository.resign(gameId);
   }
 
+  /// 내가 이 대국에서 더 쓸 수 있는 시간 연장 횟수. 대국자가 아니면 0이다.
+  int get remainingExtensions {
+    final game = _game;
+    final side = mySide;
+    if (game == null || side == null) {
+      return 0;
+    }
+    return game.meta.timeControl.extensionLimit - game.state.clock.get(side).extensionsUsed;
+  }
+
+  /// 시간 연장을 쓴다. 지금까지 쓴 횟수를 번호로 보내므로 응답을 못 받고 다시 눌러도 서버가 한 번만 반영한다.
+  Future<void> useTimeExtension({required int coinCost}) async {
+    final game = _game;
+    final side = mySide;
+    if (game == null || side == null) {
+      return;
+    }
+    final extensionIndex = game.state.clock.get(side).extensionsUsed;
+    await repositories.gameRepository.useTimeExtension(gameId, extensionIndex: extensionIndex, coinCost: coinCost);
+  }
+
   /// 대국에 걸린 시간. 상차림 시작부터 끝날 때(끝나지 않았으면 지금)까지다.
   Duration getElapsed() {
     final game = _game;
@@ -280,13 +308,28 @@ class OnlineGameManager extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    final firstValue = !_loaded;
     _game = game;
+    _updateExtensionNotice(game, firstValue: firstValue);
     _loaded = true;
     _loadError = null;
     _syncBoard();
     _watchOpponent();
     notifyListeners();
     _checkGameIfNeeded();
+  }
+
+  /// 상대의 새 시간 연장 기록을 보면 [opponentExtensionCount]를 늘린다. 화면을 열 때 이미 있던 기록은 알리지 않는다.
+  void _updateExtensionNotice(ActiveGame? game, {required bool firstValue}) {
+    final notice = game?.state.extensionNotice;
+    if (notice == null || notice.at == _lastExtensionNoticeAt) {
+      return;
+    }
+    _lastExtensionNoticeAt = notice.at;
+    final side = mySide;
+    if (!firstValue && side != null && notice.side == side.opponent) {
+      opponentExtensionCount.value++;
+    }
   }
 
   /// 대국자를 알게 되면 상대의 연결을 듣기 시작한다.

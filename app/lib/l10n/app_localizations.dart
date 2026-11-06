@@ -215,7 +215,7 @@ abstract class AppLocalizations {
   /// 대국 메뉴를 여는 버튼
   ///
   /// In ko, this message translates to:
-  /// **'더보기'**
+  /// **'메뉴'**
   String get more;
 
   /// 기권 메뉴
@@ -2473,6 +2473,66 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'반복수입니다'**
   String get moveRejectedRepetition;
+
+  /// 대국 버튼 줄의 시간 연장 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'시간 연장'**
+  String get gameTimeExtension;
+
+  /// 대국 버튼 줄의 대국 중 놓아보기 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'놓아보기'**
+  String get gamePractice;
+
+  /// 시간 연장 확인 창
+  ///
+  /// In ko, this message translates to:
+  /// **'{cost}엽전을 내고 초읽기를 {periods}회 늘릴까요?'**
+  String timeExtensionConfirm(int cost, int periods);
+
+  /// 시간 연장 확인 창의 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'연장하기'**
+  String get timeExtensionAction;
+
+  /// 대국 중 놓아보기 확인 창
+  ///
+  /// In ko, this message translates to:
+  /// **'{cost}엽전을 내면 이 판 내내 놓아보기를 쓸 수 있어요'**
+  String gamePracticeConfirm(int cost);
+
+  /// 상대가 시간을 연장했을 때 판 위에 잠깐 보여주는 알림
+  ///
+  /// In ko, this message translates to:
+  /// **'상대가 시간을 연장했어요'**
+  String get opponentExtendedTime;
+
+  /// 시간 연장에 실패했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'시간을 연장하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorTimeExtension;
+
+  /// 대국 중 놓아보기 결제에 실패했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'놓아보기를 열지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorGamePractice;
+
+  /// 서버가 시간 연장 횟수에 닿아 거절했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'시간 연장을 더 쓸 수 없어요'**
+  String get errorExtensionLimit;
+
+  /// 운영 스위치로 멈춘 기능을 눌렀을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 쓸 수 없어요'**
+  String get errorFeatureDisabled;
 }
 
 class _AppLocalizationsDelegate

@@ -97,9 +97,9 @@ void main() {
     expect(find.text('개발용 대국 · 1수'), findsOneWidget);
 
     // 한이 한수쉼을 하면 한의 정보 줄에도 같은 글자가 생기므로 버튼은 아이콘으로 찾는다.
-    await tester.tap(find.byIcon(Icons.pause));
+    await tester.tap(find.byIcon(Icons.skip_next));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.pause));
+    await tester.tap(find.byIcon(Icons.skip_next));
     await tester.pumpAndSettle();
 
     // 결과 창 없이 같은 화면이 복기 모드가 되고, 결과 도장이 머리줄 결과 칩으로 올라간다.
@@ -399,7 +399,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('더보기'));
+    await tester.tap(find.text('메뉴'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('기권'));
     await tester.pumpAndSettle();

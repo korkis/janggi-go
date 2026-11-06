@@ -10,6 +10,7 @@ import '../managers/board_manager.dart';
 import '../managers/chat_manager.dart';
 import '../managers/online_game_manager.dart';
 import '../managers/review_manager.dart';
+import '../models/app_config.dart';
 import '../models/chat_message.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
@@ -21,6 +22,7 @@ import '../utils/game_sounds.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
 import '../widgets/adaptive_layout.dart';
+import '../widgets/board/board_notice.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/chat_view.dart';
 import '../widgets/game_result.dart';
@@ -76,6 +78,21 @@ class _GameScreenState extends State<GameScreen> {
   // 화면을 나가기 시작했다(나가기, 재대국 대국으로 옮겨 가기). 서버 상태가 또 바뀌어도 다시 나가지 않는다.
   var _leaving = false;
 
+  // 시간 연장과 놓아보기의 값과 스위치. 온라인 대국에서 읽기 전이면 null이고 그동안 두 버튼을 두지 않는다.
+  AppConfig? _appConfig;
+
+  // 대국 중 놓아보기. 지금 판에서 시작하고 끝내면 놓아 본 수를 지운다. 놓아보기를 하고 있지 않으면 null이다.
+  ReviewManager? _practice;
+
+  // 이 화면에서 놓아보기 값을 냈다. `player_states`가 늦게 와도 바로 쓰기 위해 둔다.
+  var _practicePaid = false;
+
+  // 시간 연장이나 놓아보기 요청을 보내는 중이다.
+  var _itemSending = false;
+
+  // 판 위쪽에 잠깐 띄울 알림.
+  BoardNoticeMessage? _boardNotice;
+
   @override
   void initState() {
     super.initState();
@@ -88,8 +105,10 @@ class _GameScreenState extends State<GameScreen> {
         uid: managers.authManager.uid!,
         connectionManager: managers.connectionManager,
       )..addListener(_onBoardChanged);
+      _online!.opponentExtensionCount.addListener(_onOpponentExtended);
       _gameChat = _createChat(ChatChannel.game, gameId);
       managers.playerStateManager.addListener(_onRematchChanged);
+      _loadAppConfig();
     }
   }
 
@@ -98,7 +117,9 @@ class _GameScreenState extends State<GameScreen> {
     _localBoard?.removeListener(_onBoardChanged);
     _localBoard?.dispose();
     _online?.removeListener(_onBoardChanged);
+    _online?.opponentExtensionCount.removeListener(_onOpponentExtended);
     _online?.dispose();
+    _disposePractice();
     if (_online != null) {
       managers.playerStateManager.removeListener(_onRematchChanged);
     }
@@ -240,25 +261,38 @@ class _GameScreenState extends State<GameScreen> {
         ],
       );
     }
+    final practice = _practice;
     return Stack(
       alignment: Alignment.center,
       children: [
-        BoardView(
-          position: board.position,
-          flipped: board.flipped,
-          selected: board.selected,
-          targets: board.targets,
-          lastMove: board.lastMove,
-          dimmedSide: board.dimmedSide,
-          checkedSide: board.checkedSide,
-          rejectedTap: board.rejectedTap,
-          onSquareTap: _onSquareTap,
-        ),
+        if (practice != null)
+          BoardView(
+            position: practice.position,
+            flipped: board.flipped,
+            selected: practice.selected,
+            targets: practice.targets,
+            lastMove: practice.lastMove,
+            rejectedTap: practice.rejectedTap,
+            onSquareTap: practice.tapSquare,
+          )
+        else
+          BoardView(
+            position: board.position,
+            flipped: board.flipped,
+            selected: board.selected,
+            targets: board.targets,
+            lastMove: board.lastMove,
+            dimmedSide: board.dimmedSide,
+            checkedSide: board.checkedSide,
+            rejectedTap: board.rejectedTap,
+            onSquareTap: _onSquareTap,
+          ),
         if (online != null && mySide != null)
           Positioned.fill(
             child: DisconnectCard(online: online, side: mySide.opponent),
           ),
         if (online != null) const ReconnectingNotice(),
+        Positioned(top: 12, left: 0, right: 0, child: BoardNotice(message: _boardNotice)),
       ],
     );
   }
@@ -298,14 +332,15 @@ class _GameScreenState extends State<GameScreen> {
         trailing: [if (online != null && side == online.mySide) ResultRankChange(gameId: online.gameId)],
       );
     }
+    final practice = _practice;
     return PlayerBar(
       side: side,
       active: !board.isOver && board.turn == side,
       name: game == null ? null : getPlayerName(l10n, game.meta.players.get(side)),
       // 72점
-      detail: l10n.score(formatScore(board.position.score(side))),
+      detail: l10n.score(formatScore((practice?.position ?? board.position).score(side))),
       trailing: [
-        if (board.hasPassedLast(side))
+        if (practice == null && board.hasPassedLast(side))
           PlayerBadge(
             // 한수쉼
             label: l10n.passedLast,
@@ -336,18 +371,46 @@ class _GameScreenState extends State<GameScreen> {
     return getResultDetail(AppLocalizations.of(context), board.result!, online?.mySide, board.moveCount, elapsed);
   }
 
-  /// 한수쉼, 더보기. 넓은 화면([wide])에서는 더보기 대신 기권을 바로 둔다.
+  /// 한수쉼, 시간 연장, 놓아보기, 메뉴. 넓은 화면([wide])에서는 메뉴 대신 기권을 바로 둔다. 시간 연장과 놓아보기는 온라인 대국에서
+  /// 스위치가 켜져 있을 때만 둔다. 폭 320에 들어가도록 폭은 글자 길이에 맞춘다. 놓아보기 중에는 놓아보기 막대로 바뀐다.
   Widget _buildButtonBar(BuildContext context, BoardManager board, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
+    final practice = _practice;
+    if (practice != null) {
+      return TrialBar(
+        review: practice,
+        // 끝내기
+        endLabel: l10n.reviewTrialEnd,
+        onEnd: _endPractice,
+      );
+    }
     final playing = !board.isOver;
+    final online = _online;
+    final config = _appConfig;
+    final timeExtension = online != null && config != null && config.timeExtensionEnabled;
+    final gamePractice = online != null && config != null && config.gamePracticeEnabled;
     return GameButtonBar(
+      flexes: [65, if (timeExtension) 85, if (gamePractice) 81, 49],
       children: [
         GameBarButton(
-          icon: Icons.pause,
+          icon: Icons.skip_next,
           // 한수쉼
           label: l10n.pass,
           onPressed: playing && board.canPass ? _onPass : null,
         ),
+        if (timeExtension)
+          TimeExtensionButton(
+            online: online,
+            cost: config.coinTimeExtensionCost,
+            onPressed: playing ? _onTimeExtension : null,
+          ),
+        if (gamePractice)
+          GamePracticeButton(
+            gameId: online.gameId,
+            paidHere: _practicePaid,
+            cost: config.coinGamePracticeCost,
+            onPressed: playing ? _onGamePractice : null,
+          ),
         if (wide)
           GameBarButton(
             icon: Icons.flag_outlined,
@@ -358,7 +421,7 @@ class _GameScreenState extends State<GameScreen> {
         else
           GameBarButton(
             icon: Icons.more_horiz,
-            // 더보기
+            // 메뉴
             label: l10n.more,
             onPressed: playing ? _onMore : null,
           ),
@@ -485,6 +548,8 @@ class _GameScreenState extends State<GameScreen> {
     if (_review != null) {
       return;
     }
+    // 대국이 끝나면 놓아보기도 끝나고 결과를 보여준다.
+    _disposePractice();
     // 끝난 판을 같은 화면에서 마지막 수부터 복기한다.
     _review = ReviewManager(record: board.game)..addListener(_onReviewChanged);
     GameSounds.playResult();
@@ -628,6 +693,138 @@ class _GameScreenState extends State<GameScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// 시간 연장과 놓아보기의 값과 스위치를 읽는다. 못 읽으면 두 버튼을 두지 않는다.
+  Future<void> _loadAppConfig() async {
+    try {
+      final config = await repositories.configRepository.getAppConfig();
+      if (mounted) {
+        setState(() {
+          _appConfig = config;
+        });
+      }
+    } catch (error, stackTrace) {
+      developer.log('ConfigRepository.getAppConfig 실패', error: error, stackTrace: stackTrace);
+    }
+  }
+
+  void _onOpponentExtended() {
+    // 상대가 시간을 연장했어요
+    _showBoardNotice(AppLocalizations.of(context).opponentExtendedTime);
+  }
+
+  void _showBoardNotice(String text) {
+    setState(() {
+      _boardNotice = BoardNoticeMessage(text);
+    });
+  }
+
+  /// 시간 연장 버튼. 언제나 확인 창을 띄우고, 그동안 시계는 흐른다(`docs/game/time.md`). 엽전이 모자라면 알리기만 한다.
+  Future<void> _onTimeExtension() async {
+    final online = _online;
+    final config = _appConfig;
+    final board = _board;
+    if (online == null || config == null || board == null || _itemSending) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final cost = config.coinTimeExtensionCost;
+    if (isCoinsShort(cost)) {
+      // 엽전이 모자라요
+      _showBoardNotice(l10n.errorCoinsInsufficient);
+      return;
+    }
+    final confirmed = await DialogUtils.showConfirm(
+      context,
+      // 30엽전을 내고 초읽기를 2회 늘릴까요?
+      message: l10n.timeExtensionConfirm(cost, online.game!.meta.timeControl.extensionPeriods),
+      // 연장하기
+      confirmLabel: l10n.timeExtensionAction,
+    );
+    if (!confirmed || !mounted || board.isOver) {
+      return;
+    }
+    try {
+      _itemSending = true;
+      await online.useTimeExtension(coinCost: cost);
+    } catch (error, stackTrace) {
+      developer.log('OnlineGameManager.useTimeExtension 실패', error: error, stackTrace: stackTrace);
+      // 시간을 연장하지 못했어요. 잠시 후 다시 해 주세요
+      _onItemFailed(error, l10n.errorTimeExtension);
+    } finally {
+      _itemSending = false;
+    }
+  }
+
+  /// 놓아보기 버튼. 이 판에 값을 이미 냈으면 바로 열고, 아니면 확인 창을 띄운 뒤 값을 내고 연다(`docs/screens.md`의 대국 화면).
+  Future<void> _onGamePractice() async {
+    final online = _online;
+    final config = _appConfig;
+    final board = _board;
+    if (online == null || config == null || board == null || _itemSending || _practice != null) {
+      return;
+    }
+    if (_practicePaid || managers.playerStateManager.playerState?.gamePracticeGameId == online.gameId) {
+      _startPractice(board);
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final cost = config.coinGamePracticeCost;
+    if (isCoinsShort(cost)) {
+      // 엽전이 모자라요
+      _showBoardNotice(l10n.errorCoinsInsufficient);
+      return;
+    }
+    final confirmed = await DialogUtils.showConfirm(
+      context,
+      // 30엽전을 내면 이 판 내내 놓아보기를 쓸 수 있어요
+      message: l10n.gamePracticeConfirm(cost),
+      // 놓아보기
+      confirmLabel: l10n.gamePractice,
+    );
+    if (!confirmed || !mounted || board.isOver) {
+      return;
+    }
+    try {
+      _itemSending = true;
+      await repositories.gameRepository.useGamePractice(online.gameId, coinCost: cost);
+      _practicePaid = true;
+      if (mounted && !board.isOver) {
+        _startPractice(board);
+      }
+    } catch (error, stackTrace) {
+      developer.log('GameRepository.useGamePractice 실패', error: error, stackTrace: stackTrace);
+      // 놓아보기를 열지 못했어요. 잠시 후 다시 해 주세요
+      _onItemFailed(error, l10n.errorGamePractice);
+    } finally {
+      _itemSending = false;
+    }
+  }
+
+  /// 값이나 스위치가 바뀌었을 수 있으므로 다시 읽고, 실패를 판 위에 알린다.
+  void _onItemFailed(Object error, String defaultMessage) {
+    if (!mounted) {
+      return;
+    }
+    _loadAppConfig();
+    _showBoardNotice(error is AppException ? error.getMessage(AppLocalizations.of(context)) : defaultMessage);
+  }
+
+  void _startPractice(BoardManager board) {
+    setState(() {
+      _practice = ReviewManager(record: board.game, trying: true)..addListener(_onReviewChanged);
+    });
+  }
+
+  void _endPractice() {
+    setState(_disposePractice);
+  }
+
+  void _disposePractice() {
+    _practice?.removeListener(_onReviewChanged);
+    _practice?.dispose();
+    _practice = null;
+  }
+
   Future<void> _onMore() async {
     final action = await showGameSheet<_MenuAction>(context, builder: _buildMenu);
     if (!mounted || action == null) {
@@ -639,7 +836,7 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  /// 더보기 창. 기권을 둔다. 소리 끄기는 효과음이 생기면 넣는다.
+  /// 메뉴 창. 기권을 둔다. 소리 끄기는 효과음이 생기면 넣는다.
   Widget _buildMenu(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return SafeArea(
@@ -720,6 +917,84 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     Navigator.of(context).pop();
+  }
+}
+
+/// 내 엽전이 [cost]보다 적은지. 잔액을 아직 읽지 못했으면 서버에 맡긴다.
+bool isCoinsShort(int cost) {
+  final balance = managers.coinManager.balance;
+  return balance != null && balance < cost;
+}
+
+/// 버튼 줄의 시간 연장 버튼. 남은 횟수를 배지로 보여주고, 초읽기에 들어가면 강조하고, 엽전이 모자라면 흐리게 한다. 다 썼으면 끈다.
+/// 서버 시각이 바뀔 때마다 이것만 다시 그린다.
+class TimeExtensionButton extends StatelessWidget {
+  final OnlineGameManager online;
+  final int cost;
+  final VoidCallback? onPressed;
+
+  const TimeExtensionButton({super.key, required this.online, required this.cost, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([online.serverNow, managers.coinManager]),
+      builder: _buildButton,
+    );
+  }
+
+  Widget _buildButton(BuildContext context, Widget? child) {
+    final game = online.game;
+    final side = online.mySide;
+    final remaining = online.remainingExtensions;
+    final short = isCoinsShort(cost);
+    final byoyomi = game != null && side != null && getClockDisplay(game, side, online.serverNow.value).inByoyomi;
+    return GameBarButton(
+      icon: Icons.more_time,
+      // 시간 연장
+      label: AppLocalizations.of(context).gameTimeExtension,
+      onPressed: remaining > 0 ? onPressed : null,
+      dimmed: short,
+      emphasized: byoyomi && !short && remaining > 0,
+      badgeCount: remaining,
+    );
+  }
+}
+
+/// 버튼 줄의 놓아보기 버튼. 엽전이 모자라면 흐리게 한다. 이 판에 값을 냈으면 흐리게 하지 않는다.
+class GamePracticeButton extends StatelessWidget {
+  final String gameId;
+
+  /// 이 화면에서 값을 냈다. `player_states`가 오기 전에도 흐리게 하지 않는다.
+  final bool paidHere;
+  final int cost;
+  final VoidCallback? onPressed;
+
+  const GamePracticeButton({
+    super.key,
+    required this.gameId,
+    required this.paidHere,
+    required this.cost,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([managers.coinManager, managers.playerStateManager]),
+      builder: _buildButton,
+    );
+  }
+
+  Widget _buildButton(BuildContext context, Widget? child) {
+    final paid = paidHere || managers.playerStateManager.playerState?.gamePracticeGameId == gameId;
+    return GameBarButton(
+      icon: Icons.touch_app,
+      // 놓아보기
+      label: AppLocalizations.of(context).gamePractice,
+      onPressed: onPressed,
+      dimmed: !paid && isCoinsShort(cost),
+    );
   }
 }
 

@@ -446,6 +446,11 @@ describe("configs/app", () => {
     {...APP_CONFIG, coinAttendanceStreakReward: 1.5},
     {...APP_CONFIG, coinAttendanceReward: "30"},
     {...APP_CONFIG, coinNicknameChangeCost: 0},
+    {...APP_CONFIG, coinTimeExtensionCost: 0},
+    {...APP_CONFIG, coinTimeExtensionCost: 301},
+    {...APP_CONFIG, coinGamePracticeCost: 0},
+    {...APP_CONFIG, timeExtensionEnabled: 1},
+    {...APP_CONFIG, gamePracticeEnabled: "true"},
     {...APP_CONFIG, extra: 1},
     {disconnectLimitSeconds: 30},
   ])("범위를 벗어나거나 필드가 맞지 않으면 invalid-argument: %j", async (config) => {

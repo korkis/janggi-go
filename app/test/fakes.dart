@@ -213,6 +213,12 @@ class FakeConfigRepository implements ConfigRepository {
   /// `configs/app.onlineUsersVisible`.
   var onlineUsersVisible = false;
 
+  /// `configs/app.timeExtensionEnabled`.
+  var timeExtensionEnabled = true;
+
+  /// `configs/app.gamePracticeEnabled`.
+  var gamePracticeEnabled = true;
+
   @override
   FirebaseFirestore get firestore => throw UnimplementedError();
 
@@ -231,6 +237,10 @@ class FakeConfigRepository implements ConfigRepository {
     coinAttendanceReward: 30,
     coinAttendanceStreakReward: 100,
     coinNicknameChangeCost: 300,
+    timeExtensionEnabled: timeExtensionEnabled,
+    gamePracticeEnabled: gamePracticeEnabled,
+    coinTimeExtensionCost: 30,
+    coinGamePracticeCost: 30,
   );
 }
 
@@ -364,6 +374,13 @@ class FakeGameRepository implements GameRepository {
 
   @override
   Future<void> checkGame(String gameId) => _record('checkGame $gameId');
+
+  @override
+  Future<void> useTimeExtension(String gameId, {required int extensionIndex, required int coinCost}) =>
+      _record('useTimeExtension $gameId $extensionIndex $coinCost');
+
+  @override
+  Future<void> useGamePractice(String gameId, {required int coinCost}) => _record('useGamePractice $gameId $coinCost');
 
   /// `joinQuickQueue`가 돌려줄 대국. null이면 상대를 기다린다.
   String? joinQuickQueueResult;

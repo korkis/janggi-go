@@ -18,6 +18,7 @@ PlayerState _$PlayerStateFromJson(Map<String, dynamic> json) => PlayerState(
   lastRankChange: json['lastRankChange'] == null
       ? null
       : RankChange.fromJson(json['lastRankChange'] as Map<String, dynamic>),
+  gamePracticeGameId: json['gamePracticeGameId'] as String?,
   quickQueueJoinedAt: _$JsonConverterFromJson<Timestamp, DateTime>(
     json['quickQueueJoinedAt'],
     const TimestampConverter().fromJson,

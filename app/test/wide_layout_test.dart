@@ -62,8 +62,8 @@ void main() {
 
     expect(find.byType(GamePanel), findsOneWidget);
     expect(find.text('개발용 대국 · 0수'), findsOneWidget);
-    // 판 돌리기가 없어 더보기도 두지 않는다.
-    expect(find.text('더보기'), findsNothing);
+    // 판 돌리기가 없어 메뉴도 두지 않는다.
+    expect(find.text('메뉴'), findsNothing);
     await tester.tap(find.text('기권'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('기권하기'));

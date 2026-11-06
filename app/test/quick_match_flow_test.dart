@@ -35,6 +35,7 @@ PlayerState _playerState({String? gameId, String? lastGameId, RankChange? lastRa
     incomingChallengeId: null,
     setupDraft: null,
     lastRankChange: lastRankChange,
+    gamePracticeGameId: null,
     quickQueueJoinedAt: null,
     updatedAt: DateTime.utc(2026, 11, 2),
   );

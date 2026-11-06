@@ -101,7 +101,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passFailed => '지금은 한수쉼을 할 수 없어요';
 
   @override
-  String get more => '더보기';
+  String get more => '메뉴';
 
   @override
   String get resign => '기권';
@@ -1489,4 +1489,38 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get moveRejectedRepetition => '반복수입니다';
+
+  @override
+  String get gameTimeExtension => '시간 연장';
+
+  @override
+  String get gamePractice => '놓아보기';
+
+  @override
+  String timeExtensionConfirm(int cost, int periods) {
+    return '$cost엽전을 내고 초읽기를 $periods회 늘릴까요?';
+  }
+
+  @override
+  String get timeExtensionAction => '연장하기';
+
+  @override
+  String gamePracticeConfirm(int cost) {
+    return '$cost엽전을 내면 이 판 내내 놓아보기를 쓸 수 있어요';
+  }
+
+  @override
+  String get opponentExtendedTime => '상대가 시간을 연장했어요';
+
+  @override
+  String get errorTimeExtension => '시간을 연장하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorGamePractice => '놓아보기를 열지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorExtensionLimit => '시간 연장을 더 쓸 수 없어요';
+
+  @override
+  String get errorFeatureDisabled => '지금은 쓸 수 없어요';
 }

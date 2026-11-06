@@ -13,7 +13,13 @@ interface AdminUpdateAppConfigParams {
 // 범위 검사(APP_CONFIG_LIMITS)를 하는 숫자 필드.
 const NUMBER_KEYS = Object.keys(APP_CONFIG_LIMITS) as (keyof typeof APP_CONFIG_LIMITS)[];
 // boolean 필드.
-const BOOLEAN_KEYS: (keyof AppConfig)[] = ["onlineUsersVisible", "autoSanctionEnabled", "entryFeeEnabled"];
+const BOOLEAN_KEYS: (keyof AppConfig)[] = [
+  "onlineUsersVisible",
+  "autoSanctionEnabled",
+  "entryFeeEnabled",
+  "timeExtensionEnabled",
+  "gamePracticeEnabled",
+];
 
 function validateRange(value: unknown, name: keyof typeof APP_CONFIG_LIMITS): void {
   const {min, max} = APP_CONFIG_LIMITS[name];

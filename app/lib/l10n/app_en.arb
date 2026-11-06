@@ -19,7 +19,7 @@
   "passedLast": "Passed",
   "pass": "Pass",
   "passFailed": "You can't pass right now",
-  "more": "More",
+  "more": "Menu",
   "resign": "Resign",
   "resignConfirm": "Resign as {side, select, cho{Cho} han{Han} other{}}?",
   "resignAction": "Resign",
@@ -550,5 +550,15 @@
   "reviewTrialMovesShort": "{count, plural, =1{1 move} other{{count} moves}}",
   "moveRejectedMustStopCheck": "You must stop the check",
   "moveRejectedExposesGeneral": "That leaves your general in check",
-  "moveRejectedRepetition": "Repetition is not allowed"
+  "moveRejectedRepetition": "Repetition is not allowed",
+  "gameTimeExtension": "Extend",
+  "gamePractice": "Try",
+  "timeExtensionConfirm": "Pay {cost} coins to add {periods} byoyomi periods?",
+  "timeExtensionAction": "Extend",
+  "gamePracticeConfirm": "Pay {cost} coins to try moves for the rest of this game",
+  "opponentExtendedTime": "Your opponent extended their time",
+  "errorTimeExtension": "Could not extend your time. Please try again.",
+  "errorGamePractice": "Could not open try moves. Please try again.",
+  "errorExtensionLimit": "You cannot extend your time any more",
+  "errorFeatureDisabled": "Not available right now"
 }

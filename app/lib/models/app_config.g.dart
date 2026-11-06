@@ -20,4 +20,8 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => AppConfig(
   coinAttendanceReward: (json['coinAttendanceReward'] as num).toInt(),
   coinAttendanceStreakReward: (json['coinAttendanceStreakReward'] as num).toInt(),
   coinNicknameChangeCost: (json['coinNicknameChangeCost'] as num).toInt(),
+  timeExtensionEnabled: json['timeExtensionEnabled'] as bool,
+  gamePracticeEnabled: json['gamePracticeEnabled'] as bool,
+  coinTimeExtensionCost: (json['coinTimeExtensionCost'] as num).toInt(),
+  coinGamePracticeCost: (json['coinGamePracticeCost'] as num).toInt(),
 );

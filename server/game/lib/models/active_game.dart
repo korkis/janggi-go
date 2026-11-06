@@ -160,7 +160,7 @@ class GameState {
   /// 지금 차례가 시작된 서버 시각.
   final int? turnStartedAt;
 
-  /// 각 진영의 남은 시간. 차례가 넘어갈 때만 바꾼다.
+  /// 각 진영의 남은 시간. 차례가 넘어갈 때와 시간 연장을 쓸 때만 바꾼다.
   final SideClocks clock;
   final SideDisconnects disconnect;
 
@@ -197,6 +197,7 @@ class GameState {
     int? turnStartedAt,
     SideClocks? clock,
     SideDisconnects? disconnect,
+    ExtensionNotice? extensionNotice,
     GameResultRecord? result,
     int? endedAt,
   }) {
@@ -209,7 +210,7 @@ class GameState {
       turnStartedAt: turnStartedAt ?? this.turnStartedAt,
       clock: clock ?? this.clock,
       disconnect: disconnect ?? this.disconnect,
-      extensionNotice: extensionNotice,
+      extensionNotice: extensionNotice ?? this.extensionNotice,
       result: result ?? this.result,
       endedAt: endedAt ?? this.endedAt,
     );
@@ -265,7 +266,7 @@ class SideClocks {
   }
 }
 
-/// 한 진영의 시계. 차례가 시작될 때의 값이다.
+/// 한 진영의 시계. 차례가 시작될 때의 값이고, 시간 연장을 쓰면 그때 [periods]가 늘어난다.
 @JsonSerializable(createToJson: true, includeIfNull: false)
 class SideClock {
   /// 남은 기본 시간.
@@ -273,6 +274,8 @@ class SideClock {
 
   /// 남은 초읽기 횟수.
   final int periods;
+
+  /// 이 대국에서 쓴 시간 연장 횟수.
   final int extensionsUsed;
 
   const SideClock({required this.baseMs, required this.periods, required this.extensionsUsed});
