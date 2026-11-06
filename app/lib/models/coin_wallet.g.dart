@@ -12,6 +12,5 @@ CoinWallet _$CoinWalletFromJson(Map<String, dynamic> json) => CoinWallet(
   balance: (json['balance'] as num).toInt(),
   attendanceDay: json['attendanceDay'] as String?,
   attendanceStreak: (json['attendanceStreak'] as num).toInt(),
-  rescueDay: json['rescueDay'] as String?,
   updatedAt: const TimestampConverter().fromJson(json['updatedAt'] as Timestamp),
 );

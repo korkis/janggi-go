@@ -146,12 +146,9 @@ export interface AppConfig {
   coinSignupBonus: number;
   coinEntryFee: number;
   coinWinReward: number;
-  coinDrawReward: number;
   coinLossReward: number;
   coinAttendanceReward: number;
   coinAttendanceStreakReward: number;
-  coinRescueReward: number;
-  coinRescueThreshold: number;
   coinNicknameChangeCost: number;
 }
 

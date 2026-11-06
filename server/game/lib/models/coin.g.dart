@@ -13,7 +13,6 @@ CoinWallet _$CoinWalletFromJson(Map<String, dynamic> json) => $checkedCreate('Co
     balance: $checkedConvert('balance', (v) => (v as num).toInt()),
     attendanceDay: $checkedConvert('attendanceDay', (v) => v as String?),
     attendanceStreak: $checkedConvert('attendanceStreak', (v) => (v as num).toInt()),
-    rescueDay: $checkedConvert('rescueDay', (v) => v as String?),
     updatedAt: $checkedConvert('updatedAt', (v) => const TimestampConverter().fromJson(v as DateTime)),
   );
   return val;
@@ -25,7 +24,6 @@ Map<String, dynamic> _$CoinWalletToJson(CoinWallet instance) => <String, dynamic
   'balance': instance.balance,
   'attendanceDay': instance.attendanceDay,
   'attendanceStreak': instance.attendanceStreak,
-  'rescueDay': instance.rescueDay,
   'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
 };
 
@@ -56,7 +54,6 @@ Map<String, dynamic> _$CoinTransactionToJson(CoinTransaction instance) => <Strin
 };
 
 const _$CoinReasonEnumMap = {
-  CoinReason.rescue: 'rescue',
   CoinReason.entryFee: 'entryFee',
   CoinReason.entryFeeRefund: 'entryFeeRefund',
   CoinReason.gameReward: 'gameReward',

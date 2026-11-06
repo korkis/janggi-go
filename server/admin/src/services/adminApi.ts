@@ -275,12 +275,9 @@ function parseAppConfig(value: unknown): AppConfig {
     coinSignupBonus: asNumber(record.coinSignupBonus, "config.coinSignupBonus"),
     coinEntryFee: asNumber(record.coinEntryFee, "config.coinEntryFee"),
     coinWinReward: asNumber(record.coinWinReward, "config.coinWinReward"),
-    coinDrawReward: asNumber(record.coinDrawReward, "config.coinDrawReward"),
     coinLossReward: asNumber(record.coinLossReward, "config.coinLossReward"),
     coinAttendanceReward: asNumber(record.coinAttendanceReward, "config.coinAttendanceReward"),
     coinAttendanceStreakReward: asNumber(record.coinAttendanceStreakReward, "config.coinAttendanceStreakReward"),
-    coinRescueReward: asNumber(record.coinRescueReward, "config.coinRescueReward"),
-    coinRescueThreshold: asNumber(record.coinRescueThreshold, "config.coinRescueThreshold"),
     coinNicknameChangeCost: asNumber(record.coinNicknameChangeCost, "config.coinNicknameChangeCost"),
   };
 }

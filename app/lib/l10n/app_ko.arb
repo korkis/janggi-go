@@ -1704,6 +1704,10 @@
   "@errorCoinsInsufficient": {
     "description": "서버가 엽전이 모자라 거절했을 때"
   },
+  "errorOpponentCoinsInsufficient": "상대의 엽전이 모자라요",
+  "@errorOpponentCoinsInsufficient": {
+    "description": "상대의 엽전이 참가비보다 적어 대국을 시작하지 못할 때"
+  },
   "nicknameChangeNeedCoins": "닉네임을 바꾸려면 {cost}엽전이 필요해요. 지금 {balance}엽전이 있어요",
   "@nicknameChangeNeedCoins": {
     "description": "두 번째 닉네임 변경에 엽전이 모자랄 때",

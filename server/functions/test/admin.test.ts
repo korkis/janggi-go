@@ -444,7 +444,7 @@ describe("configs/app", () => {
     {...APP_CONFIG, coinWinReward: 101},
     {...APP_CONFIG, coinSignupBonus: 3001},
     {...APP_CONFIG, coinAttendanceStreakReward: 1.5},
-    {...APP_CONFIG, coinRescueThreshold: "10"},
+    {...APP_CONFIG, coinAttendanceReward: "30"},
     {...APP_CONFIG, coinNicknameChangeCost: 0},
     {...APP_CONFIG, extra: 1},
     {disconnectLimitSeconds: 30},

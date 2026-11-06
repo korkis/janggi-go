@@ -26,9 +26,6 @@ class CoinWallet {
   /// 연속 출석 몇째 날인지(1~7).
   final int attendanceStreak;
 
-  /// 마지막으로 바닥 구제를 받은 날(서울 기준 yyyy-MM-dd).
-  final String? rescueDay;
-
   @TimestampConverter()
   final DateTime updatedAt;
 
@@ -38,7 +35,6 @@ class CoinWallet {
     required this.balance,
     required this.attendanceDay,
     required this.attendanceStreak,
-    required this.rescueDay,
     required this.updatedAt,
   });
 

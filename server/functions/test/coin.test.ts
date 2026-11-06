@@ -6,7 +6,6 @@ import {HttpsError} from "firebase-functions/https";
 import {adminGetCoinStats} from "../src/callables/adminGetCoinStats";
 import {changeNickname} from "../src/callables/changeNickname";
 import {claimAttendance} from "../src/callables/claimAttendance";
-import {claimCoinRescue} from "../src/callables/claimCoinRescue";
 import {createProfile} from "../src/callables/createProfile";
 import {INITIAL_APP_CONFIG} from "../src/models/appConfig";
 import {CoinReason, CoinTransaction, CoinWallet} from "../src/models/coin";
@@ -21,7 +20,6 @@ const db = getFirestore();
 const wrappedCreateProfile = fft.wrap(createProfile);
 const wrappedChangeNickname = fft.wrap(changeNickname);
 const wrappedClaimAttendance = fft.wrap(claimAttendance);
-const wrappedClaimCoinRescue = fft.wrap(claimCoinRescue);
 const wrappedGetCoinStats = fft.wrap(adminGetCoinStats);
 
 const COST = INITIAL_APP_CONFIG.coinNicknameChangeCost;
@@ -62,7 +60,6 @@ async function setWallet(uid: string, wallet: Partial<CoinWallet>): Promise<void
   await db.doc(`coin_wallets/${uid}`).set({
     attendanceDay: null,
     attendanceStreak: 0,
-    rescueDay: null,
     updatedAt: Timestamp.now(),
     ...wallet,
     freeCoins,
@@ -109,7 +106,6 @@ describe("가입", () => {
       balance: 300,
       attendanceDay: null,
       attendanceStreak: 0,
-      rescueDay: null,
     });
     const transaction = (await db.doc("coin_transactions/signup_u1").get()).data();
     expect(transaction).toMatchObject({
@@ -167,7 +163,6 @@ describe("출석", () => {
     {lastDaysAgo: 2, streak: 6, expectedStreak: 1, expectedAmount: 30},
   ])("$lastDaysAgo일 전 $streak째 날이면 $expectedStreak째 날로 $expectedAmount", async (item) => {
     await setWallet("u2", {attendanceDay: daysAgo(item.lastDaysAgo), attendanceStreak: item.streak, freeCoins: 5});
-    await db.doc("users/u2").set({nickname: "둘"});
 
     const result = await wrappedClaimAttendance(callAs("u2"));
 
@@ -180,64 +175,12 @@ describe("출석", () => {
     expect(await getWallet("u2")).toMatchObject({attendanceDay: daysAgo(0), attendanceStreak: item.expectedStreak});
   });
 
-  test("지갑이 없는 사용자(엽전이 생기기 전 가입)도 받는다", async () => {
-    await db.doc("users/old").set({nickname: "옛사람"});
-    const result = await wrappedClaimAttendance(callAs("old"));
-    expect(result).toEqual({granted: true, amount: 30, streak: 1, balance: 30});
-  });
-
   test("프로필이 없거나 로그인하지 않으면 거절한다", async () => {
     const noProfile = await expectHttpsError(() => wrappedClaimAttendance(callAs("nobody")));
     expect(noProfile.details).toEqual({code: "profileRequired"});
     const noLogin = await expectHttpsError(() => wrappedClaimAttendance(callAs(null)));
     expect(noLogin.code).toBe("unauthenticated");
     expect((await db.doc("coin_wallets/nobody").get()).exists).toBe(false);
-  });
-});
-
-describe("바닥 구제", () => {
-  beforeEach(async () => {
-    await db.doc("users/u1").set({nickname: "장기왕"});
-  });
-
-  test("기준 이상이면 주지 않는다", async () => {
-    await setWallet("u1", {freeCoins: 5, paidCoins: 5});
-    const result = await wrappedClaimCoinRescue(callAs("u1"));
-    expect(result).toEqual({granted: false, amount: 0, balance: 10});
-    expect((await getWallet("u1")).rescueDay).toBeNull();
-  });
-
-  test("기준 미만이면 하루 한 번 준다", async () => {
-    await setWallet("u1", {freeCoins: 3, paidCoins: 6});
-    const first = await wrappedClaimCoinRescue(callAs("u1"));
-    expect(first).toEqual({granted: true, amount: 50, balance: 59});
-    expect(await getWallet("u1")).toMatchObject({freeCoins: 53, paidCoins: 6, rescueDay: daysAgo(0)});
-
-    // 다 써서 다시 기준 아래로 내려가도 그날은 더 받지 못한다.
-    await setWallet("u1", {freeCoins: 0, rescueDay: daysAgo(0)});
-    const second = await wrappedClaimCoinRescue(callAs("u1"));
-    expect(second).toEqual({granted: false, amount: 0, balance: 0});
-  });
-
-  test("어제 받았으면 오늘 또 받는다", async () => {
-    await setWallet("u1", {freeCoins: 0, rescueDay: daysAgo(1)});
-    const result = await wrappedClaimCoinRescue(callAs("u1"));
-    expect(result.granted).toBe(true);
-  });
-
-  test("동시에 불러도 한 번만 준다", async () => {
-    await setWallet("u1", {freeCoins: 0});
-    const results = await Promise.all(Array.from({length: 5}, () => wrappedClaimCoinRescue(callAs("u1"))));
-
-    expect(results.filter((result) => result.granted)).toHaveLength(1);
-    expect((await getWallet("u1")).balance).toBe(50);
-  });
-
-  test("기준과 값은 configs/app을 따른다", async () => {
-    await setAppConfig({...INITIAL_APP_CONFIG, coinRescueThreshold: 100, coinRescueReward: 11});
-    await setWallet("u1", {freeCoins: 99});
-    const result = await wrappedClaimCoinRescue(callAs("u1"));
-    expect(result).toEqual({granted: true, amount: 11, balance: 110});
   });
 });
 
@@ -332,24 +275,18 @@ describe("닉네임 유료 변경", () => {
   });
 });
 
-describe("여러 지급이 한꺼번에 오면", () => {
+describe("출석과 닉네임 변경이 한꺼번에 오면", () => {
   test("모두 반영하고 잔액이 내역의 합과 맞다", async () => {
     await wrappedCreateProfile(callAs("u1", {nickname: "장기왕"}));
-    await setAppConfig({...INITIAL_APP_CONFIG, coinRescueThreshold: 100});
-    await db.doc("coin_wallets/u1").update({freeCoins: 40, balance: 40});
-    await db.doc("coin_transactions/signup_u1").update({freeDelta: 40, freeBalance: 40});
+    await wrappedChangeNickname(callAs("u1", {nickname: "장기신"}));
+    await db.doc("users_private/u1").update({nicknameChangedAt: Timestamp.fromDate(new Date("2026-01-01T00:00:00Z"))});
 
-    await Promise.all([
-      wrappedClaimAttendance(callAs("u1")),
-      wrappedClaimCoinRescue(callAs("u1")),
-      wrappedClaimAttendance(callAs("u1")),
-      wrappedClaimCoinRescue(callAs("u1")),
-    ]);
+    const nicknameChange: unknown = wrappedChangeNickname(callAs("u1", {nickname: "장기귀신", coinCost: COST}));
+    await Promise.all([wrappedClaimAttendance(callAs("u1")), nicknameChange, wrappedClaimAttendance(callAs("u1"))]);
 
-    // 구제와 출석 어느 쪽이 먼저 돌아도 40 + 50 + 30이다.
-    expect((await getWallet("u1")).balance).toBe(120);
+    expect((await getWallet("u1")).balance).toBe(30);
     await expectLedgerConsistent("u1");
-  });
+  }, 60000);
 });
 
 describe("adminGetCoinStats", () => {

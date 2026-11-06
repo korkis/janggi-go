@@ -89,7 +89,7 @@ export async function changeNickname(uid: string, nickname: string, coinCost: nu
     const userPrivate = await getUserPrivateInTransaction(transaction, uid);
     const reservation = await getNicknameInTransaction(transaction, nicknameKey);
     const wallet = await getWalletInTransaction(transaction, uid);
-    if (user === null || userPrivate === null) {
+    if (user === null || userPrivate === null || wallet === null) {
       throw new HttpsError("failed-precondition", "닉네임을 먼저 정해야 합니다", {
         code: NicknameChangeErrorCode.profileRequired,
       });

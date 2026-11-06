@@ -12,12 +12,9 @@ export interface AppConfig {
   coinSignupBonus: number;
   coinEntryFee: number;
   coinWinReward: number;
-  coinDrawReward: number;
   coinLossReward: number;
   coinAttendanceReward: number;
   coinAttendanceStreakReward: number;
-  coinRescueReward: number;
-  coinRescueThreshold: number;
   coinNicknameChangeCost: number;
 }
 
@@ -31,12 +28,9 @@ export const INITIAL_APP_CONFIG: AppConfig = {
   entryFeeEnabled: true,
   coinSignupBonus: 300,
   coinEntryFee: 10,
-  coinWinReward: 15,
-  coinDrawReward: 10,
-  coinLossReward: 5,
+  coinWinReward: 12,
+  coinLossReward: 0,
   coinAttendanceReward: 30,
   coinAttendanceStreakReward: 100,
-  coinRescueReward: 50,
-  coinRescueThreshold: 10,
   coinNicknameChangeCost: 300,
 };

@@ -2168,6 +2168,12 @@ abstract class AppLocalizations {
   /// **'엽전이 모자라요'**
   String get errorCoinsInsufficient;
 
+  /// 상대의 엽전이 참가비보다 적어 대국을 시작하지 못할 때
+  ///
+  /// In ko, this message translates to:
+  /// **'상대의 엽전이 모자라요'**
+  String get errorOpponentCoinsInsufficient;
+
   /// 두 번째 닉네임 변경에 엽전이 모자랄 때
   ///
   /// In ko, this message translates to:

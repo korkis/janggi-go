@@ -15,8 +15,6 @@ export interface CoinWallet {
   attendanceDay: string | null;
   // 연속 출석 몇째 날인지(1~7). 7째 날 다음은 1로 돌아간다.
   attendanceStreak: number;
-  // 마지막으로 바닥 구제를 받은 날(서울 기준 yyyy-MM-dd). 아직 없으면 null.
-  rescueDay: string | null;
   updatedAt: Timestamp;
 }
 
@@ -27,7 +25,6 @@ export interface CoinWallet {
 export const CoinReason = {
   signup: "signup",
   attendance: "attendance",
-  rescue: "rescue",
   entryFee: "entryFee",
   entryFeeRefund: "entryFeeRefund",
   gameReward: "gameReward",
@@ -62,13 +59,5 @@ export interface ClaimAttendanceResult {
   amount: number;
   // 연속 출석 몇째 날인지. 오늘 이미 받았으면 그때의 값이다.
   streak: number;
-  balance: number;
-}
-
-/** `claimCoinRescue`의 결과. */
-export interface ClaimCoinRescueResult {
-  // 이번 호출로 받았다. 잔액이 기준 이상이거나 오늘 이미 받았으면 false.
-  granted: boolean;
-  amount: number;
   balance: number;
 }

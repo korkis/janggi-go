@@ -56,20 +56,26 @@ void main() {
     Future<Map<String, Object?>> callOk(EmulatorAccount account, String api, Object? data) =>
         callApiOk(client, httpServer.port, account, api, data);
 
-    /// 엽전을 가진 계정.
-    Future<EmulatorAccount> createPlayer({int free = 300, int paid = 0, String? rescueDay}) async {
-      final account = await createEmulatorAccount(client, server.firestore);
-      await server.firestore.commit([
+    Future<void> setCoins(EmulatorAccount account, {required int free, int paid = 0}) {
+      return server.firestore.commit([
         SetWrite('coin_wallets/${account.uid}', {
           'freeCoins': free,
           'paidCoins': paid,
           'balance': free + paid,
           'attendanceDay': null,
           'attendanceStreak': 0,
-          'rescueDay': rescueDay,
           'updatedAt': DateTime.now().toUtc(),
         }),
       ]);
+    }
+
+    Future<void> expectRejected(EmulatorAccount account, String api, Object? data, String code) =>
+        expectApiRejected(client, httpServer.port, account, api, data, code);
+
+    /// 엽전을 가진 계정.
+    Future<EmulatorAccount> createPlayer({int free = 300, int paid = 0}) async {
+      final account = await createEmulatorAccount(client, server.firestore);
+      await setCoins(account, free: free, paid: paid);
       return account;
     }
 
@@ -128,15 +134,15 @@ void main() {
       await callOk(han, 'resign', {'gameId': gameId});
       await waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
 
-      expect((await getWallet(cho)).balance, 305);
+      expect((await getWallet(cho)).balance, 302);
       final after = await getWallet(han);
-      expect([after.freeCoins, after.paidCoins], [5, 95]);
+      expect([after.freeCoins, after.paidCoins], [0, 95]);
 
       // 예약 작업이 다시 불러도 그대로다.
       await server.gameService.finalizeGame(gameId, now: DateTime.now().toUtc());
       await server.gameService.finalizeGame(gameId, now: DateTime.now().toUtc());
-      expect((await getWallet(cho)).balance, 305);
-      expect((await getWallet(han)).balance, 100);
+      expect((await getWallet(cho)).balance, 302);
+      expect((await getWallet(han)).balance, 95);
     });
 
     test('빠른 대국은 참가비를 받고, 수 없이 끝나면 낸 그대로 돌려주며 보상은 없다', () async {
@@ -159,7 +165,7 @@ void main() {
       expect([refund?.freeDelta, refund?.paidDelta], [3, 7]);
     });
 
-    test('방 대국은 참가비도 보상도 없다', () async {
+    test('방 대국도 공개 여부와 상관없이 참가비와 보상이 같다', () async {
       final host = await createPlayer(free: 100);
       final guest = await createPlayer(free: 100);
       final room = await callOk(host, 'createRoom', {'hostSide': 'cho', 'listed': false});
@@ -168,44 +174,84 @@ void main() {
       final started = await callOk(host, 'startRoomGame', {'roomId': roomId});
       final gameId = (started['result'] as Map)['gameId'] as String;
 
-      expect((await getWallet(host)).balance, 100);
-      expect((await getWallet(guest)).balance, 100);
+      expect((await getWallet(host)).balance, 90);
+      expect((await getWallet(guest)).balance, 90);
 
       await playFirstMove(gameId, host, guest);
       await callOk(guest, 'resign', {'gameId': gameId});
       await waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
 
-      expect((await getWallet(host)).balance, 100);
-      expect((await getWallet(guest)).balance, 100);
+      expect((await getWallet(host)).balance, 102);
+      expect((await getWallet(guest)).balance, 90);
     });
 
-    test('잔액이 모자라면 구제를 주고 받고, 구제도 받았으면 참가비 없이 둔다', () async {
-      final today = getCoinDay(DateTime.now());
-      final rescued = await createPlayer(free: 2);
-      final broke = await createPlayer(free: 2, rescueDay: today);
-      final gameId = await server.gameService.createGame(
-        buildGame(rescued, broke, mode: GameMode.challenge),
-        now: DateTime.now().toUtc(),
-      );
-
-      final rescuedWallet = await getWallet(rescued);
-      expect([rescuedWallet.balance, rescuedWallet.rescueDay], [42, today]);
-      expect((await getTransaction(CoinReason.rescue, rescued, today))?.freeDelta, 50);
-
-      expect((await getWallet(broke)).balance, 2);
-      final waived = await getTransaction(CoinReason.entryFee, broke, gameId);
-      expect([waived?.freeDelta, waived?.paidDelta], [0, 0]);
-      expect(await getTransaction(CoinReason.rescue, broke, today), isNull);
-    });
-
-    test('지갑이 없는 사용자도 대국을 시작한다', () async {
-      final oldUser = await createEmulatorAccount(client, server.firestore);
+    test('엽전이 모자라면 대기열, 방, 신청을 시작하지 못한다', () async {
+      final poor = await createPlayer(free: 5, paid: 4);
       final other = await createPlayer();
-      await server.gameService.createGame(
-        buildGame(oldUser, other, mode: GameMode.challenge),
+
+      await expectRejected(poor, 'joinQuickQueue', null, 'coinsInsufficient');
+      expect(await server.repositories.quickQueue.getEntry(poor.uid), isNull);
+      await expectRejected(poor, 'createRoom', {'hostSide': 'cho', 'listed': true}, 'coinsInsufficient');
+      await expectRejected(poor, 'sendChallenge', {'toUid': other.uid, 'senderSide': 'cho'}, 'coinsInsufficient');
+      expect((await server.repositories.playerStates.getPlayerState(poor.uid))?.roomId, isNull);
+
+      final room = await callOk(other, 'createRoom', {'hostSide': 'cho', 'listed': true});
+      final roomId = (room['result'] as Map)['roomId'] as String;
+      await expectRejected(poor, 'joinRoom', {'roomId': roomId}, 'coinsInsufficient');
+      expect((await server.repositories.rooms.getRoom(roomId))?.guestUid, isNull);
+    });
+
+    test('방에서 엽전이 떨어지면 누구 때문인지 알리고 대국을 시작하지 않는다', () async {
+      final host = await createPlayer();
+      final guest = await createPlayer();
+      final room = await callOk(host, 'createRoom', {'hostSide': 'cho', 'listed': false});
+      final roomId = (room['result'] as Map)['roomId'] as String;
+      await callOk(guest, 'joinRoom', {'roomId': roomId});
+
+      await setCoins(guest, free: 9);
+      await expectRejected(host, 'startRoomGame', {'roomId': roomId}, 'opponentCoinsInsufficient');
+      await setCoins(guest, free: 10);
+      await setCoins(host, free: 9);
+      await expectRejected(host, 'startRoomGame', {'roomId': roomId}, 'coinsInsufficient');
+
+      expect((await getWallet(guest)).balance, 10);
+      expect((await server.repositories.rooms.getRoom(roomId))?.status.name, 'waiting');
+    });
+
+    test('신청을 수락할 때 내 엽전이 모자라면 신청이 남고, 보낸 사람이 모자라면 취소된다', () async {
+      final sender = await createPlayer();
+      final target = await createPlayer();
+      await callOk(target, 'enterLobby', null);
+      final sent = await callOk(sender, 'sendChallenge', {'toUid': target.uid, 'senderSide': 'cho'});
+      final challengeId = (sent['result'] as Map)['challengeId'] as String;
+
+      await setCoins(target, free: 9);
+      final data = {'challengeId': challengeId, 'accepted': true};
+      await expectRejected(target, 'respondChallenge', data, 'coinsInsufficient');
+      expect((await server.repositories.challenges.getChallenge(challengeId))?.status.name, 'pending');
+
+      await setCoins(target, free: 100);
+      await setCoins(sender, free: 9);
+      await expectRejected(target, 'respondChallenge', data, 'opponentCoinsInsufficient');
+      expect((await server.repositories.challenges.getChallenge(challengeId))?.status.name, 'cancelled');
+      expect((await server.repositories.playerStates.getPlayerState(target.uid))?.incomingChallengeId, isNull);
+      expect((await getWallet(target)).balance, 100);
+    });
+
+    test('다시 두기는 내 엽전이 모자라면 거절한다', () async {
+      final cho = await createPlayer(free: 20);
+      final han = await createPlayer(free: 10);
+      final gameId = await server.gameService.createGame(
+        buildGame(cho, han, mode: GameMode.challenge),
         now: DateTime.now().toUtc(),
       );
-      expect((await getWallet(oldUser)).balance, 40);
+      await playFirstMove(gameId, cho, han);
+      await callOk(han, 'resign', {'gameId': gameId});
+      await waitFor(() => server.firestore.getDocument('games_archived/$gameId'));
+      expect((await getWallet(han)).balance, 0);
+
+      await expectRejected(han, 'requestRematch', {'gameId': gameId}, 'coinsInsufficient');
+      expect((await getWallet(cho)).balance, 22);
     });
 
     test('대국자를 묶지 못하면 참가비도 나가지 않는다', () async {
@@ -258,8 +304,8 @@ void main() {
         server.gameService.finalizeGame(gameId, now: now),
       ]);
 
-      expect((await getWallet(cho)).balance, 105);
-      expect((await getWallet(han)).balance, 95);
+      expect((await getWallet(cho)).balance, 102);
+      expect((await getWallet(han)).balance, 90);
     }, timeout: const Timeout(Duration(seconds: 120)));
 
     test('참가비 쓰기와 대국 끝 쓰기가 잔액을 덮어쓰지 않게 지갑이 내역의 합과 맞는다', () async {
@@ -279,8 +325,8 @@ void main() {
         );
       }
       // 초는 세 번 내고 두 번 이겼다. 한은 세 번 내고 두 번 졌다.
-      expect((await getWallet(cho)).balance, 30 - 30 + 30);
-      expect((await getWallet(han)).balance, 30 - 30 + 10);
+      expect((await getWallet(cho)).balance, 30 - 30 + 24);
+      expect((await getWallet(han)).balance, 30 - 30);
     });
 
     test('entryFeeEnabled를 끄면 새 대국의 참가비를 받지 않는다', () async {

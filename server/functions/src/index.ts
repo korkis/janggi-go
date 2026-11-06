@@ -4,7 +4,6 @@ export {checkNickname} from "./callables/checkNickname";
 export {createProfile} from "./callables/createProfile";
 export {changeNickname} from "./callables/changeNickname";
 export {claimAttendance} from "./callables/claimAttendance";
-export {claimCoinRescue} from "./callables/claimCoinRescue";
 export {sendChatMessage} from "./callables/sendChatMessage";
 export {reportMessage} from "./callables/reportMessage";
 export {cleanupChats} from "./scheduled/cleanupChats";

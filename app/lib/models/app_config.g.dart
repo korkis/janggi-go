@@ -16,11 +16,8 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => AppConfig(
   coinSignupBonus: (json['coinSignupBonus'] as num).toInt(),
   coinEntryFee: (json['coinEntryFee'] as num).toInt(),
   coinWinReward: (json['coinWinReward'] as num).toInt(),
-  coinDrawReward: (json['coinDrawReward'] as num).toInt(),
   coinLossReward: (json['coinLossReward'] as num).toInt(),
   coinAttendanceReward: (json['coinAttendanceReward'] as num).toInt(),
   coinAttendanceStreakReward: (json['coinAttendanceStreakReward'] as num).toInt(),
-  coinRescueReward: (json['coinRescueReward'] as num).toInt(),
-  coinRescueThreshold: (json['coinRescueThreshold'] as num).toInt(),
   coinNicknameChangeCost: (json['coinNicknameChangeCost'] as num).toInt(),
 );

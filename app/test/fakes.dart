@@ -226,13 +226,10 @@ class FakeConfigRepository implements ConfigRepository {
     entryFeeEnabled: true,
     coinSignupBonus: 300,
     coinEntryFee: 10,
-    coinWinReward: 15,
-    coinDrawReward: 10,
-    coinLossReward: 5,
+    coinWinReward: 12,
+    coinLossReward: 0,
     coinAttendanceReward: 30,
     coinAttendanceStreakReward: 100,
-    coinRescueReward: 50,
-    coinRescueThreshold: 10,
     coinNicknameChangeCost: 300,
   );
 }
@@ -284,7 +281,6 @@ class FakeCoinWalletRepository implements CoinWalletRepository {
       balance: balance,
       attendanceDay: null,
       attendanceStreak: 0,
-      rescueDay: null,
       updatedAt: DateTime.utc(2026, 11, 6),
     );
     _latest[uid] = wallet;

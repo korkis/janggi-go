@@ -1,3 +1,4 @@
+import {type FormEvent, useState} from "react";
 import {Navigate, useLocation} from "react-router";
 import {USE_FIREBASE_EMULATOR} from "../config";
 import {Loading} from "../components/States";
@@ -18,6 +19,13 @@ function getReturnPath(state: unknown): string {
 export function LoginPage() {
   const {status, email, errorMessage, busy, signIn, signOut, recheck} = useAuthStore();
   const location = useLocation();
+  const [loginEmail, setLoginEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  function submit(event: FormEvent): void {
+    event.preventDefault();
+    void signIn(loginEmail.trim(), password);
+  }
 
   if (status === "admin") {
     return <Navigate to={getReturnPath(location.state)} replace />;
@@ -31,17 +39,37 @@ export function LoginPage() {
       )}
       {status === "loading" && <Loading text="로그인을 확인하는 중…" />}
       {status === "signedOut" && (
-        <>
-          <p className="mt-4 text-sm text-slate-600">관리자로 지정된 Google 계정으로 로그인해 주세요.</p>
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <label className="block text-sm">
+            <span className="font-medium">이메일</span>
+            <input
+              type="email"
+              autoComplete="username"
+              required
+              value={loginEmail}
+              onChange={(event) => setLoginEmail(event.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="font-medium">비밀번호</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
+            />
+          </label>
           <button
-            type="button"
-            onClick={() => void signIn()}
+            type="submit"
             disabled={busy}
-            className="mt-4 w-full rounded-md bg-slate-900 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-md bg-slate-900 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Google로 로그인
+            로그인
           </button>
-        </>
+        </form>
       )}
       {status === "notAdmin" && (
         <div role="alert" className="mt-4 text-sm">

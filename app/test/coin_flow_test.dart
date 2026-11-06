@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:janggigo/app.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/coin_wallet.dart';
+import 'package:janggigo/models/game_error_code.dart';
 import 'package:janggigo/models/user_profile.dart';
+import 'package:janggigo/utils/app_exception.dart';
 
 import 'fakes.dart';
 
@@ -29,6 +31,14 @@ UserProfile _profile(String nickname) => UserProfile(
 );
 
 void main() {
+  test('대국 서버의 엽전 오류를 사용자 오류로 바꾼다', () {
+    expect(AppException.fromGameErrorCode(GameErrorCode.coinsInsufficient)?.code, AppErrorCode.coinsInsufficient);
+    expect(
+      AppException.fromGameErrorCode(GameErrorCode.opponentCoinsInsufficient)?.code,
+      AppErrorCode.opponentCoinsInsufficient,
+    );
+  });
+
   testWidgets('로그인하면 내 카드에 잔액을 보여주고 바뀌면 따라 바꾼다', (tester) async {
     _usePhoneView(tester);
     final fakes = setUpFakeApp();

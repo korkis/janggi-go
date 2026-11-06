@@ -22,7 +22,7 @@ class AppConfig {
   /// 대국 중 접속 상태의 `lastSeenAt`을 갱신하는 주기(초).
   final int heartbeatSeconds;
 
-  /// 빠른 대국과 신청 대국의 참가비를 받는다.
+  /// 모든 대국의 참가비를 받는다.
   final bool entryFeeEnabled;
 
   /// 가입 때 주는 엽전.
@@ -34,9 +34,6 @@ class AppConfig {
   /// 대국이 끝났을 때 이긴 쪽의 보상.
   final int coinWinReward;
 
-  /// 대국이 끝났을 때 무승부의 보상. 지금 규칙에 무승부가 없어 쓰이지 않는다.
-  final int coinDrawReward;
-
   /// 대국이 끝났을 때 진 쪽의 보상.
   final int coinLossReward;
 
@@ -45,12 +42,6 @@ class AppConfig {
 
   /// 연속 7째 날의 출석 엽전. [coinAttendanceReward] 대신 준다.
   final int coinAttendanceStreakReward;
-
-  /// 바닥 구제 엽전.
-  final int coinRescueReward;
-
-  /// 잔액이 이 값 미만이면 바닥 구제 대상이다.
-  final int coinRescueThreshold;
 
   /// 두 번째부터의 닉네임 변경 값.
   final int coinNicknameChangeCost;
@@ -65,12 +56,9 @@ class AppConfig {
     required this.coinSignupBonus,
     required this.coinEntryFee,
     required this.coinWinReward,
-    required this.coinDrawReward,
     required this.coinLossReward,
     required this.coinAttendanceReward,
     required this.coinAttendanceStreakReward,
-    required this.coinRescueReward,
-    required this.coinRescueThreshold,
     required this.coinNicknameChangeCost,
   });
 

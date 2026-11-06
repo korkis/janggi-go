@@ -1,6 +1,6 @@
 import type {User} from "firebase/auth";
 import {create} from "zustand";
-import {getAdminClaims, getCurrentUser, signInWithGoogle, signOutUser, watchAuthUser} from "../services/authService";
+import {getAdminClaims, getCurrentUser, signInWithEmail, signOutUser, watchAuthUser} from "../services/authService";
 
 /**
  * - loading: 로그인 복원이나 claim 확인 중이다. 보호 라우트를 그리지 않는다.
@@ -17,11 +17,11 @@ interface AuthState {
   email: string | null;
   // 로그인이나 claim 확인이 실패했을 때 보여줄 문구.
   errorMessage: string | null;
-  // 로그인 창이나 claim 다시 확인이 진행 중이다. 버튼을 막는다.
+  // 로그인이나 claim 다시 확인이 진행 중이다. 버튼을 막는다.
   busy: boolean;
   /** 로그인 상태를 듣기 시작한다. 그만 들으려면 돌려준 함수를 부른다. */
   start: () => () => void;
-  signIn: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** 새 ID token을 받아 admin claim을 다시 확인한다. 방금 관리자로 지정된 경우에 쓴다. */
   recheck: () => Promise<void>;
@@ -59,16 +59,19 @@ export const useAuthStore = create<AuthState>()((set) => {
     errorMessage: null,
     busy: false,
     start: () => watchAuthUser((user) => void applyUser(user, false)),
-    signIn: async () => {
+    signIn: async (email, password) => {
       try {
         set({busy: true, errorMessage: null});
-        await signInWithGoogle();
+        await signInWithEmail(email, password);
       } catch (error) {
         const code = (error as {code?: unknown}).code;
         console.error("로그인 실패", {code});
-        if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
-          set({errorMessage: "로그인하지 못했어요. 다시 시도해 주세요."});
-        }
+        set({
+          errorMessage:
+            code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found"
+              ? "이메일 또는 비밀번호가 맞지 않아요."
+              : "로그인하지 못했어요. 다시 시도해 주세요.",
+        });
       } finally {
         set({busy: false});
       }

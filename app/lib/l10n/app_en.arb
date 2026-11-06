@@ -392,6 +392,7 @@
   "errorNicknameChangeNotFree": "You've used your free nickname change. Please open this again",
   "errorCoinPriceChanged": "The price has changed. Please open this again",
   "errorCoinsInsufficient": "Not enough coins",
+  "errorOpponentCoinsInsufficient": "Your opponent doesn't have enough coins",
   "nicknameChangeNeedCoins": "Changing your nickname takes {cost} coins. You have {balance}",
   "@nicknameChangeNeedCoins": {
     "placeholders": {

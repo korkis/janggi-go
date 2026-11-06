@@ -43,6 +43,8 @@ enum GameErrorCode {
   targetUnavailable,
   rematchUnavailable,
   extensionLimit,
+  coinsInsufficient,
+  opponentCoinsInsufficient,
 }
 
 /// 앱에 Callable 오류로 돌려줄 예외. 엔드포인트와 `validateParams()`가 던진다.

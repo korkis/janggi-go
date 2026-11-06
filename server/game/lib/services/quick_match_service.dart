@@ -15,6 +15,7 @@ import '../repositories/quick_queue_repository.dart';
 import '../repositories/ratings_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
+import 'coin_rules.dart';
 import 'game_rules.dart';
 import 'game_service.dart';
 import 'rating_rules.dart';
@@ -63,11 +64,13 @@ class QuickMatchService {
 
   /// [uid]를 대기열에 넣고 바로 한 번 매칭을 시도한다. 찾으면 새 대국 ID, 못 찾으면 null을 돌려준다.
   ///
-  /// 이용 정지 중이면 `sanctioned`, 대기열이 아닌 다른 것(방, 대국, 신청)에 있으면 `busy`로 거절한다. 이미 대기열에 있으면
+  /// 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 대기열이 아닌 다른 것(방, 대국, 신청)에 있으면
+  /// `busy`로 거절한다. 이미 대기열에 있으면
   /// 기다린 시간을 그대로 두고 매칭만 다시 시도한다. 못 찾으면 범위를 넓혀 다시 찾는 `retryQuickMatch`를 예약한다.
   Future<String?> joinQueue(String uid, {required DateTime now}) async {
     await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid], now);
+    await gameService.checkHasEntryFee(uid);
     final rating = (await ratings.getRating(uid))?.rating ?? initialRating;
 
     final joinedAt = await firestore.runTransaction((transaction) async {
@@ -130,7 +133,14 @@ class QuickMatchService {
       logger.info('retryQuickMatch 연결이 없어 대기열에서 뺌', {'uid': uid});
       return;
     }
-    final gameId = await _tryMatch(uid, now);
+    final String? gameId;
+    try {
+      gameId = await _tryMatch(uid, now);
+    } on InsufficientCoinsException {
+      // 기다리는 동안 엽전을 썼다. _tryMatch가 이미 대기열에서 뺐다.
+      logger.info('retryQuickMatch 엽전이 모자라 대기열에서 뺌', {'uid': uid});
+      return;
+    }
     if (gameId == null) {
       await _scheduleRetry(uid, entry.joinedAt, now);
     }
@@ -140,7 +150,7 @@ class QuickMatchService {
   /// 대기열의 [uid]에게 맞는 상대를 찾아 대국을 만든다. 찾으면 대국 ID, 없거나 그새 [uid]가 대기열을 떠났으면 null.
   ///
   /// 허용 범위는 두 사람 중 더 오래 기다린 사람의 범위다. 범위 안에서 레이팅 차이가 가장 작은 사람(같으면 더 오래 기다린 사람)을
-  /// 고르고, 앱을 화면에 띄워 두지 않은 사람은 건너뛴다.
+  /// 고르고, 앱을 화면에 띄워 두지 않은 사람은 건너뛴다. [uid]의 엽전이 모자라면 대기열에서 빼고 [InsufficientCoinsException]을 던진다.
   Future<String?> _tryMatch(String uid, DateTime now) async {
     for (var attempt = 0; attempt < _maxMatchAttempts; attempt++) {
       final mine = await quickQueue.getEntry(uid);
@@ -159,6 +169,12 @@ class QuickMatchService {
         logger.debug('매칭 상대를 다시 찾습니다', {'uid': uid, 'opponentUid': opponentUid, 'lostUid': lost.uid});
         if (lost.uid == uid) {
           return null;
+        }
+      } on InsufficientCoinsException catch (short) {
+        // 대기열에 들어온 뒤 엽전을 쓴 사람이다. 대기열에서 빼고, 상대였으면 다시 찾는다.
+        await leaveQueue(short.uid, now: now);
+        if (short.uid == uid) {
+          rethrow;
         }
       }
     }

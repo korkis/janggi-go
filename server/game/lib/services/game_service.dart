@@ -107,22 +107,21 @@ class GameService {
   /// 이미 대기열, 방, 대국, 신청 중 하나에 있을 때 `busy`로 거절한다. 묶지 못하면 만든 대국을 지우고 그 예외를 다시 던진다.
   /// 묶으면 두 대국자의 대기열 표시(`quickQueueJoinedAt`)와 신청 표시(`outgoingChallengeId`, `incomingChallengeId`)는 지운다.
   /// 신청 표시는 신청을 수락해 만드는 대국에서만 남아 있다([check]가 그 신청을 확인한다). [gameId]를 주면 그 ID로 만든다(다시 두기).
-  /// 빠른 대국과 신청 대국이면 묶는 트랜잭션에서 참가비를 받는다. 묶지 못하면 참가비도 나가지 않는다.
+  /// 묶는 트랜잭션에서 참가비를 받는다. 묶지 못하면 참가비도 나가지 않는다. 엽전이 모자란 사람이 있으면
+  /// [InsufficientCoinsException]을 던진다.
   /// 묶은 뒤 두 사람의 `online_users` 상태를 `playing`으로 바꾼다.
   Future<String> createGame(ActiveGame game, {required DateTime now, String? gameId, GameBindingCheck? check}) async {
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
     await settlePreviousGames(uids, now);
 
-    final appConfig = isCoinGame(game.meta) ? await configs.getAppConfig() : null;
+    final appConfig = await configs.getAppConfig();
     final newGameId = gameId ?? activeGames.createGameId();
     await activeGames.createGame(newGameId, game);
     try {
       await firestore.runTransaction((transaction) async {
         final states = await playerStates.getPlayerStatesInTransaction(transaction, uids);
         // 쓰기를 모으기 전에 읽는다. [check]가 쓰기를 모을 수 있으므로 그보다 먼저 읽는다.
-        final coinPlan = appConfig == null
-            ? CoinPlan.empty
-            : await _planEntryFeesInTransaction(transaction, newGameId, uids, appConfig, now);
+        final coinPlan = await _planEntryFeesInTransaction(transaction, newGameId, uids, appConfig, now);
         if (check != null) {
           await check(transaction, states);
         } else if (uids.any((uid) => isBusy(states[uid]))) {
@@ -224,8 +223,8 @@ class GameService {
   /// 한 트랜잭션에서 하며 `games_archived/{gameId}`가 이미 있으면 아무것도 하지 않는다. 여러 번 불려도 결과가 같다.
   /// 급수 대국(`meta.rated`)이면 레이팅과 급수도 반영한다. 방 대국이면 방을 `waiting`으로 돌린다. 두 사람의 `roomId`는 그대로
   /// 두므로 결과 화면을 나가면 방 대기실로 돌아온다. 두 사람의 `users.stats`에 이 대국을 더한다. 온라인 대국은 종류와 급수 대국
-  /// 여부에 상관없이 모두 센다(`docs/database.md`의 `users`). 빠른 대국과 신청 대국이면 보상을 주거나, 수가 하나도 없이 끝났으면
-  /// 참가비를 돌려준다(`docs/server.md`의 엽전).
+  /// 여부에 상관없이 모두 센다(`docs/database.md`의 `users`). 보상을 주거나, 수가 하나도 없이 끝났으면 참가비를 돌려준다
+  /// (`docs/server.md`의 엽전).
   Future<void> finalizeGame(String gameId, {required DateTime now}) async {
     final game = await activeGames.getGame(gameId);
     if (game == null) {
@@ -238,7 +237,7 @@ class GameService {
     }
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
     final rated = game.meta.rated;
-    final appConfig = isCoinGame(game.meta) ? await configs.getAppConfig() : null;
+    final appConfig = await configs.getAppConfig();
     final archived = await firestore.runTransaction((transaction) async {
       if (await archivedGames.hasArchivedGameInTransaction(transaction, gameId)) {
         return false;
@@ -248,9 +247,7 @@ class GameService {
         playerStates.getPlayerStatesInTransaction(transaction, uids),
         roomId == null ? Future.value(null) : rooms.getRoomInTransaction(transaction, roomId),
         users.getUsersInTransaction(transaction, uids),
-        appConfig == null
-            ? Future.value(CoinPlan.empty)
-            : _planGameEndInTransaction(transaction, gameId, game, uids, appConfig, now),
+        _planGameEndInTransaction(transaction, gameId, game, uids, appConfig, now),
       ).wait;
       if (roomId != null && room != null && room.gameId == gameId && room.status == RoomStatus.playing) {
         rooms.updateStatusInTransaction(transaction, roomId, status: RoomStatus.waiting, now: now);
@@ -492,6 +489,24 @@ class GameService {
         logger.warning('이전 대국을 판정하지 못했습니다', {'uid': uid, 'gameId': gameId, 'code': error.code?.name});
       }
     }
+  }
+
+  /// [uid]의 엽전이 참가비보다 적으면 [InsufficientCoinsException]을 던진다. 대기열, 방, 신청을 시작할 때 부른다. 대국을 묶을 때 다시
+  /// 확인하므로 여기서는 트랜잭션을 쓰지 않는다.
+  Future<void> checkHasEntryFee(String uid) async {
+    if (!await hasEntryFee(uid)) {
+      throw InsufficientCoinsException(uid);
+    }
+  }
+
+  /// [uid]가 참가비를 낼 수 있는지. `entryFeeEnabled`가 꺼져 있으면 언제나 true다.
+  Future<bool> hasEntryFee(String uid) async {
+    final appConfig = await configs.getAppConfig();
+    if (!appConfig.entryFeeEnabled) {
+      return true;
+    }
+    final wallet = await coinWallets.getWallet(uid);
+    return wallet != null && wallet.balance >= appConfig.coinEntryFee;
   }
 
   /// 이용 정지나 영구 정지 중이면 `sanctioned`로 거절한다(`docs/server.md`의 대국 서버와 Functions의 경계). 대기열과 방을

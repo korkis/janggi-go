@@ -1287,6 +1287,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorCoinsInsufficient => '엽전이 모자라요';
 
   @override
+  String get errorOpponentCoinsInsufficient => '상대의 엽전이 모자라요';
+
+  @override
   String nicknameChangeNeedCoins(int cost, int balance) {
     return '닉네임을 바꾸려면 $cost엽전이 필요해요. 지금 $balance엽전이 있어요';
   }

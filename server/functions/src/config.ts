@@ -21,7 +21,7 @@ export const NICKNAME_FREE_CHANGE_COUNT = 1;
 // 연속 출석의 한 바퀴. 이 날에는 configs/app.coinAttendanceStreakReward를 주고 다음 날 1부터 다시 센다(docs/monetization.md).
 export const COIN_ATTENDANCE_STREAK_DAYS = 7;
 
-// 출석과 바닥 구제의 "하루"가 바뀌는 시간대의 UTC 차이(시간). 서울 시간 0시다. 대국 서버의 coinDayUtcOffset과 같다.
+// 출석의 "하루"가 바뀌는 시간대의 UTC 차이(시간). 서울 시간 0시다. 앱의 coinDayUtcOffset과 같다.
 export const COIN_DAY_UTC_OFFSET_HOURS = 9;
 
 // Admin 웹의 잔액 분포 구간 시작값. 마지막 구간은 위가 열려 있다.
@@ -153,11 +153,8 @@ export const APP_CONFIG_LIMITS = {
   coinSignupBonus: {min: 0, max: 3000},
   coinEntryFee: {min: 0, max: 100},
   coinWinReward: {min: 0, max: 100},
-  coinDrawReward: {min: 0, max: 100},
   coinLossReward: {min: 0, max: 100},
   coinAttendanceReward: {min: 0, max: 300},
   coinAttendanceStreakReward: {min: 0, max: 1000},
-  coinRescueReward: {min: 0, max: 300},
-  coinRescueThreshold: {min: 0, max: 100},
   coinNicknameChangeCost: {min: 1, max: 3000},
 };

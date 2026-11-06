@@ -1,10 +1,9 @@
 import 'package:janggi_core/janggi_core.dart';
 
-import '../config.dart';
+import '../http/callable.dart';
 import '../models/active_game.dart';
 import '../models/app_config.dart';
 import '../models/coin.dart';
-import '../models/game_enums.dart';
 
 // 엽전 계산. DB에 닿지 않는 순수 함수다(`docs/server.md`의 엽전). Functions의 `coinService.ts`와 규칙을 일치시킨다.
 
@@ -27,20 +26,22 @@ class CoinPlan {
   static const empty = CoinPlan(wallets: {}, moves: []);
 }
 
-/// 하루의 기준. 서울 시간 0시에 바뀌는 yyyy-MM-dd다(`docs/monetization.md`의 엽전). Functions의 `getCoinDay`와 같다.
-String getCoinDay(DateTime time) => time.toUtc().add(coinDayUtcOffset).toIso8601String().substring(0, 10);
+/// [uid]의 엽전이 참가비보다 적다. 앱에는 `coinsInsufficient`로 간다. 상대 때문에 막힌 호출은 [uid]를 보고 사유를 바꾼다.
+class InsufficientCoinsException extends CallableException {
+  final String uid;
+
+  const InsufficientCoinsException(this.uid)
+    : super(CallableStatus.failedPrecondition, '엽전이 모자랍니다', code: GameErrorCode.coinsInsufficient);
+}
 
 /// 내역 문서 ID. 이유, uid, 한 번만 일어나는 일의 열쇠로 정해 같은 일이 두 번 쓰이지 않게 한다. Functions의 `getCoinTransactionId`와
 /// 같은 모양이다.
 String getCoinTransactionId(CoinReason reason, String uid, String key) => '${reason.name}_${uid}_$key';
 
-/// 대국 종류가 참가비와 보상을 받는지. 방·링크 대국은 둘 다 없다(`docs/monetization.md`의 엽전).
-bool isCoinGame(GameMeta meta) => meta.mode != GameMode.room;
-
-/// 참가비를 받는 움직임을 정한다(`docs/monetization.md`의 엽전).
+/// 참가비를 받는 움직임을 정한다(`docs/monetization.md`의 엽전). 무상부터 쓴다.
 ///
-/// [feeTransactions]에 이미 있는 사용자는 건너뛰어 한 번만 받는다. 잔액이 참가비보다 적으면, 바닥 구제 대상이고 오늘 아직 받지
-/// 않았을 때 구제를 먼저 주고 받는다. 그래도 모자라면 참가비 없이 두고 0인 내역을 남긴다. 그래서 엽전 때문에 대국을 못 만드는 일은 없다.
+/// [feeTransactions]에 이미 있는 사용자는 건너뛰어 한 번만 받는다. 엽전이 모자란 사람이 있으면
+/// [InsufficientCoinsException]을 던진다. 지갑은 가입할 때 만들므로 없으면 잔액이 없는 것으로 본다.
 CoinPlan planEntryFees({
   required String gameId,
   required List<String> uids,
@@ -53,28 +54,20 @@ CoinPlan planEntryFees({
   if (!config.entryFeeEnabled || fee <= 0) {
     return CoinPlan.empty;
   }
-  final day = getCoinDay(now);
   final nextWallets = <String, CoinWallet>{};
   final moves = <CoinMove>[];
   for (final uid in uids) {
     if (feeTransactions[getCoinTransactionId(CoinReason.entryFee, uid, gameId)] != null) {
       continue;
     }
-    var wallet = wallets[uid] ?? _emptyWallet(now);
-    if (wallet.balance < fee && wallet.balance < config.coinRescueThreshold && wallet.rescueDay != day) {
-      wallet = _apply(wallet, freeDelta: config.coinRescueReward, paidDelta: 0, rescueDay: day, now: now);
-      moves.add(_createMove(uid, CoinReason.rescue, day, wallet, config.coinRescueReward, 0, null, now));
+    final wallet = wallets[uid];
+    if (wallet == null || wallet.balance < fee) {
+      throw InsufficientCoinsException(uid);
     }
-    if (wallet.balance >= fee) {
-      final fromFree = wallet.freeCoins < fee ? wallet.freeCoins : fee;
-      final fromPaid = fee - fromFree;
-      wallet = _apply(wallet, freeDelta: -fromFree, paidDelta: -fromPaid, now: now);
-      moves.add(_createMove(uid, CoinReason.entryFee, gameId, wallet, -fromFree, -fromPaid, gameId, now));
-    } else {
-      wallet = _apply(wallet, freeDelta: 0, paidDelta: 0, now: now);
-      moves.add(_createMove(uid, CoinReason.entryFee, gameId, wallet, 0, 0, gameId, now));
-    }
-    nextWallets[uid] = wallet;
+    final fromFree = wallet.freeCoins < fee ? wallet.freeCoins : fee;
+    final next = _apply(wallet, freeDelta: -fromFree, paidDelta: -(fee - fromFree), now: now);
+    nextWallets[uid] = next;
+    moves.add(_createMove(uid, CoinReason.entryFee, gameId, next, -fromFree, -(fee - fromFree), now));
   }
   return CoinPlan(wallets: nextWallets, moves: moves);
 }
@@ -82,8 +75,8 @@ CoinPlan planEntryFees({
 /// 끝난 대국의 참가비 돌려주기나 보상을 정한다(`docs/server.md`의 엽전).
 ///
 /// 수가 하나도 없이 끝나면 대국이 성립하지 않은 것으로 보고 참가비를 낸 그대로(무상은 무상으로, 유상은 유상으로) 돌려주며 보상은
-/// 없다. 끝낸 쪽이 누구든 같다. 그 밖에는 이긴 쪽과 진 쪽에게 보상을 무상으로 준다. 무승부는 지금 규칙에 없어 쓰지 않는다
-/// (`docs/monetization.md`의 엽전). 한 번만 반영되는 것은 부르는 쪽(`finalizeGame`)이 기보 저장과 같은 트랜잭션에서 보장한다.
+/// 없다. 끝낸 쪽이 누구든 같다. 그 밖에는 이긴 쪽과 진 쪽에게 보상을 무상으로 준다. 한 번만 반영되는 것은 부르는 쪽(`finalizeGame`)이
+/// 기보 저장과 같은 트랜잭션에서 보장한다.
 CoinPlan planGameEnd({
   required String gameId,
   required ActiveGame game,
@@ -98,45 +91,31 @@ CoinPlan planGameEnd({
   final established = game.moves.isNotEmpty;
   for (final side in Side.values) {
     final uid = players.get(side).uid;
-    final wallet = wallets[uid] ?? _emptyWallet(now);
+    final wallet = wallets[uid];
+    if (wallet == null) {
+      continue;
+    }
     if (established) {
       final amount = side == game.state.result!.winner ? config.coinWinReward : config.coinLossReward;
       if (amount > 0) {
         final next = _apply(wallet, freeDelta: amount, paidDelta: 0, now: now);
         nextWallets[uid] = next;
-        moves.add(_createMove(uid, CoinReason.gameReward, gameId, next, amount, 0, gameId, now));
+        moves.add(_createMove(uid, CoinReason.gameReward, gameId, next, amount, 0, now));
       }
       continue;
     }
     final fee = feeTransactions[getCoinTransactionId(CoinReason.entryFee, uid, gameId)];
-    if (fee == null || (fee.freeDelta == 0 && fee.paidDelta == 0)) {
+    if (fee == null) {
       continue;
     }
     final next = _apply(wallet, freeDelta: -fee.freeDelta, paidDelta: -fee.paidDelta, now: now);
     nextWallets[uid] = next;
-    moves.add(_createMove(uid, CoinReason.entryFeeRefund, gameId, next, -fee.freeDelta, -fee.paidDelta, gameId, now));
+    moves.add(_createMove(uid, CoinReason.entryFeeRefund, gameId, next, -fee.freeDelta, -fee.paidDelta, now));
   }
   return CoinPlan(wallets: nextWallets, moves: moves);
 }
 
-/// 지갑이 없는 사용자(엽전이 생기기 전에 가입)는 잔액 0으로 본다.
-CoinWallet _emptyWallet(DateTime now) => CoinWallet(
-  freeCoins: 0,
-  paidCoins: 0,
-  balance: 0,
-  attendanceDay: null,
-  attendanceStreak: 0,
-  rescueDay: null,
-  updatedAt: now,
-);
-
-CoinWallet _apply(
-  CoinWallet wallet, {
-  required int freeDelta,
-  required int paidDelta,
-  String? rescueDay,
-  required DateTime now,
-}) {
+CoinWallet _apply(CoinWallet wallet, {required int freeDelta, required int paidDelta, required DateTime now}) {
   final freeCoins = wallet.freeCoins + freeDelta;
   final paidCoins = wallet.paidCoins + paidDelta;
   return CoinWallet(
@@ -145,26 +124,24 @@ CoinWallet _apply(
     balance: freeCoins + paidCoins,
     attendanceDay: wallet.attendanceDay,
     attendanceStreak: wallet.attendanceStreak,
-    rescueDay: rescueDay ?? wallet.rescueDay,
     updatedAt: now,
   );
 }
 
 CoinMove _createMove(
-  String uid,
+  String gameUid,
   CoinReason reason,
-  String key,
+  String gameId,
   CoinWallet after,
   int freeDelta,
   int paidDelta,
-  String? gameId,
   DateTime now,
 ) {
   return CoinMove(
-    uid: uid,
-    transactionId: getCoinTransactionId(reason, uid, key),
+    uid: gameUid,
+    transactionId: getCoinTransactionId(reason, gameUid, gameId),
     transaction: CoinTransaction(
-      uid: uid,
+      uid: gameUid,
       reason: reason,
       freeDelta: freeDelta,
       paidDelta: paidDelta,

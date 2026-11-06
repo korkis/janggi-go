@@ -17,12 +17,9 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => $checkedCreate('AppC
     coinSignupBonus: $checkedConvert('coinSignupBonus', (v) => (v as num).toInt()),
     coinEntryFee: $checkedConvert('coinEntryFee', (v) => (v as num).toInt()),
     coinWinReward: $checkedConvert('coinWinReward', (v) => (v as num).toInt()),
-    coinDrawReward: $checkedConvert('coinDrawReward', (v) => (v as num).toInt()),
     coinLossReward: $checkedConvert('coinLossReward', (v) => (v as num).toInt()),
     coinAttendanceReward: $checkedConvert('coinAttendanceReward', (v) => (v as num).toInt()),
     coinAttendanceStreakReward: $checkedConvert('coinAttendanceStreakReward', (v) => (v as num).toInt()),
-    coinRescueReward: $checkedConvert('coinRescueReward', (v) => (v as num).toInt()),
-    coinRescueThreshold: $checkedConvert('coinRescueThreshold', (v) => (v as num).toInt()),
     coinNicknameChangeCost: $checkedConvert('coinNicknameChangeCost', (v) => (v as num).toInt()),
   );
   return val;

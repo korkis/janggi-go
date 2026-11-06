@@ -25,9 +25,6 @@ class CoinWallet {
   /// 연속 출석 몇째 날인지(1~7).
   final int attendanceStreak;
 
-  /// 마지막으로 바닥 구제를 받은 날(서울 기준 yyyy-MM-dd).
-  final String? rescueDay;
-
   @TimestampConverter()
   final DateTime updatedAt;
 
@@ -37,7 +34,6 @@ class CoinWallet {
     required this.balance,
     required this.attendanceDay,
     required this.attendanceStreak,
-    required this.rescueDay,
     required this.updatedAt,
   });
 
@@ -47,7 +43,7 @@ class CoinWallet {
 }
 
 /// 엽전이 움직인 이유 중 대국 서버가 쓰는 것. Functions의 `CoinReason`과 값을 일치시킨다(`docs/database.md`의 공통 enum).
-enum CoinReason { rescue, entryFee, entryFeeRefund, gameReward }
+enum CoinReason { entryFee, entryFeeRefund, gameReward }
 
 /// Firestore `coin_transactions/{transactionId}`. 엽전이 움직인 내역이다(서버 전용).
 ///

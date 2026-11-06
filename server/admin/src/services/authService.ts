@@ -1,4 +1,4 @@
-import {GoogleAuthProvider, type User, onAuthStateChanged, signInWithPopup, signOut} from "firebase/auth";
+import {type User, onAuthStateChanged, signInWithEmailAndPassword, signOut} from "firebase/auth";
 import type {AdminClaims} from "../models/admin";
 import {auth} from "./firebase";
 
@@ -13,8 +13,8 @@ export function getCurrentUser(): User | null {
   return auth.currentUser;
 }
 
-export async function signInWithGoogle(): Promise<void> {
-  await signInWithPopup(auth, new GoogleAuthProvider());
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  await signInWithEmailAndPassword(auth, email, password);
 }
 
 export async function signOutUser(): Promise<void> {

@@ -40,14 +40,11 @@ const NUMBER_FIELDS: NumberFieldInfo[] = [
 
 const COIN_FIELDS: NumberFieldInfo[] = [
   {key: "coinSignupBonus", label: "가입", unit: "엽전"},
-  {key: "coinEntryFee", label: "대국 참가비", unit: "엽전", help: "빠른 대국과 신청 대국에서 받아요."},
+  {key: "coinEntryFee", label: "대국 참가비", unit: "엽전"},
   {key: "coinWinReward", label: "대국 보상: 승", unit: "엽전"},
-  {key: "coinDrawReward", label: "대국 보상: 무승부", unit: "엽전", help: "지금 규칙에 무승부가 없어 쓰이지 않아요."},
   {key: "coinLossReward", label: "대국 보상: 패", unit: "엽전"},
   {key: "coinAttendanceReward", label: "출석", unit: "엽전"},
   {key: "coinAttendanceStreakReward", label: "출석: 연속 7일째", unit: "엽전", help: "평소 출석 값 대신 줘요."},
-  {key: "coinRescueReward", label: "바닥 구제", unit: "엽전"},
-  {key: "coinRescueThreshold", label: "바닥 구제 기준", unit: "엽전", help: "잔액이 이 값 미만이면 하루 한 번 줘요."},
   {key: "coinNicknameChangeCost", label: "닉네임 변경", unit: "엽전", help: "두 번째 변경부터 받아요."},
 ];
 

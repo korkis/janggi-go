@@ -18,7 +18,7 @@ class EmulatorAccount {
   const EmulatorAccount({required this.uid, required this.idToken, required this.nickname});
 }
 
-/// Auth 에뮬레이터 계정과 프로필(`users`, `users_private`, `nicknames`). 프로필은 Functions가 만들지만 여기서는 테스트
+/// Auth 에뮬레이터 계정과 프로필(`users`, `users_private`, `nicknames`, `coin_wallets`). 프로필은 Functions가 만들지만 여기서는 테스트
 /// 준비로 Functions의 `createProfile`과 같은 처음 값을 직접 쓴다.
 Future<EmulatorAccount> createEmulatorAccount(http.Client client, FirestoreClient firestore) async {
   final authHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '127.0.0.1:${EmulatorPorts.auth}';
@@ -50,6 +50,14 @@ Future<EmulatorAccount> createEmulatorAccount(http.Client client, FirestoreClien
       'sanction': null,
     }),
     CreateWrite('nicknames/$nickname', {'uid': uid, 'createdAt': now}),
+    CreateWrite('coin_wallets/$uid', {
+      'freeCoins': 300,
+      'paidCoins': 0,
+      'balance': 300,
+      'attendanceDay': null,
+      'attendanceStreak': 0,
+      'updatedAt': now,
+    }),
   ]);
   return EmulatorAccount(uid: uid, idToken: body['idToken'] as String, nickname: nickname);
 }
@@ -114,13 +122,10 @@ Future<void> ensureAppConfig(FirestoreClient firestore) async {
         'entryFeeEnabled': true,
         'coinSignupBonus': 300,
         'coinEntryFee': 10,
-        'coinWinReward': 15,
-        'coinDrawReward': 10,
-        'coinLossReward': 5,
+        'coinWinReward': 12,
+        'coinLossReward': 0,
         'coinAttendanceReward': 30,
         'coinAttendanceStreakReward': 100,
-        'coinRescueReward': 50,
-        'coinRescueThreshold': 10,
         'coinNicknameChangeCost': 300,
       }),
     ]);

@@ -5,9 +5,6 @@ import 'models/active_game.dart';
 /// `configs/app` 문서를 메모리에 캐시하는 시간. 요청마다 Firestore를 읽지 않기 위해서다. Functions와 같다.
 const appConfigCacheDuration = Duration(seconds: 60);
 
-/// 출석과 바닥 구제의 "하루"가 바뀌는 시간대의 UTC 차이. 서울 시간 0시다. Functions의 `COIN_DAY_UTC_OFFSET_HOURS`와 같다.
-const coinDayUtcOffset = Duration(hours: 9);
-
 /// 기본 시간(`docs/game/time.md`).
 const baseTime = Duration(minutes: 5);
 

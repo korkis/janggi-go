@@ -1365,6 +1365,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorCoinsInsufficient => 'Not enough coins';
 
   @override
+  String get errorOpponentCoinsInsufficient =>
+      'Your opponent doesn\'t have enough coins';
+
+  @override
   String nicknameChangeNeedCoins(int cost, int balance) {
     return 'Changing your nickname takes $cost coins. You have $balance';
   }

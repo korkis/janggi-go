@@ -51,7 +51,7 @@
 | `ChatChannel` | `lobby`, `game`, `spectator` | 앱, Functions |
 | `SanctionType` | `warning`, `chatRestriction`, `suspension`, `permanentBan` | 앱, Functions, 대국 서버, Admin 웹 |
 | `ReportStatus` | `pending`, `resolved` | Functions, Admin 웹 |
-| `CoinReason` | `signup`, `attendance`, `rescue`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `gamePractice`, `rewardedAd` | Functions(전부), 대국 서버(쓰는 `rescue`, `entryFee`, `entryFeeRefund`, `gameReward`). `timeExtension`, `gamePractice`, `rewardedAd`는 그 기능이 생기면 쓴다 |
+| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `gamePractice`, `rewardedAd` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`). `timeExtension`, `gamePractice`, `rewardedAd`는 그 기능이 생기면 쓴다 |
 
 - `rankLevel`은 급수를 `number` 1~27로 저장한다. 1이 18급, 18이 1급, 19가 1단, 27이 9단이다([rank.md](./game/rank.md)). 앱이 글자로 바꿔 보여준다.
 - 서버는 새 enum 값을 옛 앱이 받을 수 있는 곳에 쓰지 않는다([dev_rules.md](./dev_rules.md)의 커밋과 배포). 그래서 앱은 모르는 enum 값과 모르는 오류 코드를 받아도 멈추지 않고 기본 표시를 하도록 만든다.
@@ -108,7 +108,7 @@
 
 ### `coin_wallets/{uid}`
 
-엽전 잔액과 하루 한 번 지급 기록이다([monetization.md](./monetization.md)의 엽전). Functions와 대국 서버가 트랜잭션 안에서만 바꾼다.
+엽전 잔액과 출석 기록이다([monetization.md](./monetization.md)의 엽전). Functions와 대국 서버가 트랜잭션 안에서만 바꾼다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
@@ -117,11 +117,10 @@
 | `balance` | number | `freeCoins` + `paidCoins`. 앱의 표시와 Admin 웹의 잔액 분포(세기 쿼리)에 쓴다 |
 | `attendanceDay` | string? | 마지막으로 출석한 날(서울 기준 yyyy-MM-dd) |
 | `attendanceStreak` | number | 연속 출석 몇째 날인지(1~7). 7째 날 다음은 1로 돌아간다 |
-| `rescueDay` | string? | 마지막으로 바닥 구제를 받은 날(서울 기준 yyyy-MM-dd) |
 | `updatedAt` | timestamp | |
 
 - 읽기: 본인. 쓰기: 클라이언트 없음. 관리자도 직접 읽지 못한다.
-- 가입할 때 프로필과 같은 트랜잭션에서 만든다. 엽전이 생기기 전에 가입한 사용자는 문서가 없고 잔액 0으로 본다. 처음 엽전이 움직일 때 만든다.
+- 가입할 때 프로필과 같은 트랜잭션에서 만든다. 프로필이 있으면 지갑도 있다.
 - 색인: `balance` 단일 필드(자동).
 
 ### `coin_transactions/{transactionId}` — 서버 전용
@@ -144,8 +143,8 @@
 | `reason` | 열쇠 | 값 |
 |---|---|---|
 | `signup` | 없음 | 무상 + |
-| `attendance`, `rescue` | 날짜(서울 기준) | 무상 + |
-| `entryFee` | 대국 ID | − (무상부터). 참가비 없이 둔 대국은 0을 남긴다 |
+| `attendance` | 날짜(서울 기준) | 무상 + |
+| `entryFee` | 대국 ID | − (무상부터) |
 | `entryFeeRefund` | 대국 ID | `entryFee`를 낸 그대로 + |
 | `gameReward` | 대국 ID | 무상 + |
 | `nicknameChange` | 몇 번째 변경인지 | − (무상부터) |

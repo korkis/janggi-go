@@ -39,11 +39,8 @@ export const APP_CONFIG_LIMITS = {
   coinSignupBonus: {min: 0, max: 3000},
   coinEntryFee: {min: 0, max: 100},
   coinWinReward: {min: 0, max: 100},
-  coinDrawReward: {min: 0, max: 100},
   coinLossReward: {min: 0, max: 100},
   coinAttendanceReward: {min: 0, max: 300},
   coinAttendanceStreakReward: {min: 0, max: 1000},
-  coinRescueReward: {min: 0, max: 300},
-  coinRescueThreshold: {min: 0, max: 100},
   coinNicknameChangeCost: {min: 1, max: 3000},
 };

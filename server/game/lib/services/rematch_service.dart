@@ -39,13 +39,17 @@ class RematchService {
 
   /// [uid]가 [gameId]의 결과 화면에서 다시 두기를 누른다. 새 대국이 정해졌으면 그 ID, 상대를 기다리면 null을 돌려준다.
   ///
-  /// 상대가 결과 화면을 나갔거나 앱에 없으면, 또는 빠른 대국의 다시 두기 횟수에 닿았으면 `rematchUnavailable`로 거절한다.
+  /// 상대가 결과 화면을 나갔거나 앱에 없으면, 또는 빠른 대국의 다시 두기 횟수에 닿았으면 `rematchUnavailable`로 거절한다. 내 엽전이
+  /// 참가비보다 적으면 `coinsInsufficient`다. 상대 엽전이 모자라면 새 대국을 만들 때 취소되어 `rematchUnavailable`이다.
   Future<String?> requestRematch(String gameId, {required String uid, required DateTime now}) async {
     final current = await activeGames.getGame(gameId);
     if (current == null) {
       throw const CallableException.failedPrecondition(GameErrorCode.notFound, '대국이 없습니다');
     }
     final opponentUid = current.meta.players.get(requirePlayerSide(current, uid).opponent).uid;
+    if (current.rematch?.gameId == null) {
+      await gameService.checkHasEntryFee(uid);
+    }
     final (appConfig, opponentConnections) = await (
       configs.getAppConfig(),
       connections.getConnections(opponentUid),

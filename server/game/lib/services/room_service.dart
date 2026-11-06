@@ -18,6 +18,7 @@ import '../repositories/player_states_repository.dart';
 import '../repositories/rooms_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
+import 'coin_rules.dart';
 import 'game_rules.dart';
 import 'game_service.dart';
 
@@ -76,11 +77,12 @@ class RoomService {
     Random? random,
   }) : _random = random ?? Random();
 
-  /// [uid]가 [options]로 방을 만들고 방 ID를 돌려준다. 이용 정지 중이면 `sanctioned`, 이미 대기열·방·대국·신청 중 하나에
+  /// [uid]가 [options]로 방을 만들고 방 ID를 돌려준다. 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 이미 대기열·방·대국·신청 중 하나에
   /// 있으면 `busy`로 거절한다. 방이 열려 있는 동안 `checkRoom`을 예약한다.
   Future<String> createRoom(String uid, User user, RoomOptions options, {required DateTime now}) async {
     await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid], now);
+    await gameService.checkHasEntryFee(uid);
     final roomId = rooms.createRoomId();
     final room = Room(
       hostUid: uid,
@@ -121,10 +123,12 @@ class RoomService {
   /// [uid]가 [roomId]의 빈자리에 앉는다. 링크와 방 목록이 모두 이것을 쓴다. 이미 이 방에 있으면 그대로 성공한다.
   ///
   /// 방이 없으면 `notFound`, 닫혔으면 `roomClosed`, 내보내진 사람이면 `kicked`, 자리가 찼으면 `roomFull`(대국 중 포함),
-  /// 급수 범위 밖이면 `rankOutOfRange`, 다른 대기열·방·대국·신청에 있으면 `busy`, 이용 정지 중이면 `sanctioned`다.
+  /// 급수 범위 밖이면 `rankOutOfRange`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 다른 대기열·방·대국·신청에 있으면 `busy`,
+  /// 이용 정지 중이면 `sanctioned`다.
   Future<void> joinRoom(String roomId, {required String uid, required User user, required DateTime now}) async {
     await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid], now);
+    final canPay = await gameService.hasEntryFee(uid);
     final joined = await firestore.runTransaction((transaction) async {
       final (room, states) = await (
         rooms.getRoomInTransaction(transaction, roomId),
@@ -148,6 +152,9 @@ class RoomService {
       final rankRange = room.rankRange;
       if (rankRange != null && (user.rankLevel < rankRange.min || user.rankLevel > rankRange.max)) {
         throw const CallableException.failedPrecondition(GameErrorCode.rankOutOfRange, '방의 급수 범위 밖입니다');
+      }
+      if (!canPay) {
+        throw InsufficientCoinsException(uid);
       }
       final state = states[uid];
       if (GameService.isBusy(state)) {
@@ -236,7 +243,8 @@ class RoomService {
   /// 방장 [uid]가 대국을 시작하고 대국 ID를 돌려준다. 이미 대국 중이면 그 대국 ID를 돌려준다.
   ///
   /// 진영은 접장기면 떼는 쪽이 한이고, 아니면 방장이 고른 진영이다(무작위면 판마다 정한다). 방장이 아니면 `notHost`,
-  /// 상대가 없으면 `notFound`, 닫힌 방이면 `roomClosed`다.
+  /// 상대가 없으면 `notFound`, 닫힌 방이면 `roomClosed`, 내 엽전이 모자라면 `coinsInsufficient`, 상대 엽전이 모자라면
+  /// `opponentCoinsInsufficient`다.
   Future<String> startRoomGame(String roomId, {required String uid, required DateTime now}) async {
     final room = _requireOpenRoom(await rooms.getRoom(roomId));
     if (room.hostUid != uid) {
@@ -271,12 +279,19 @@ class RoomService {
       handicap: room.handicap?.pieces,
     );
     final gameId = activeGames.createGameId();
-    await gameService.createGame(
-      game,
-      now: now,
-      gameId: gameId,
-      check: bindRoomGame(roomId, gameId: gameId, uids: [uid, guestUid], now: now),
-    );
+    try {
+      await gameService.createGame(
+        game,
+        now: now,
+        gameId: gameId,
+        check: bindRoomGame(roomId, gameId: gameId, uids: [uid, guestUid], now: now),
+      );
+    } on InsufficientCoinsException catch (short) {
+      if (short.uid == uid) {
+        rethrow;
+      }
+      throw const CallableException.failedPrecondition(GameErrorCode.opponentCoinsInsufficient, '상대의 엽전이 모자랍니다');
+    }
     logger.info('startRoomGame 성공', {'roomId': roomId, 'gameId': gameId, 'hostSide': hostSide.name});
     return gameId;
   }

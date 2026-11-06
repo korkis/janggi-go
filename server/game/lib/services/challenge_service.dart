@@ -25,6 +25,7 @@ import '../repositories/user_blocks_repository.dart';
 import '../repositories/users_private_repository.dart';
 import '../repositories/users_repository.dart';
 import '../tasks/task_scheduler.dart';
+import 'coin_rules.dart';
 import 'game_rules.dart';
 import 'game_service.dart';
 
@@ -102,7 +103,7 @@ class ChallengeService {
 
   /// [uid]가 [toUid]에게 대국을 신청하고 신청 ID를 돌려준다. 응답 마감에 `expireChallenge`를 예약한다.
   ///
-  /// 이용 정지 중이면 `sanctioned`, 이미 대기열·방·대국·신청 중 하나에 있으면 `busy`(방 초대면 그 방의 방장이어야 한다),
+  /// 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 이미 대기열·방·대국·신청 중 하나에 있으면 `busy`(방 초대면 그 방의 방장이어야 한다),
   /// 이 상대에게 연속 거절 제한이 걸렸으면 `challengeLimited`, 상대가 대국실에 없거나 신청 받기를 껐거나 다른 일(방, 대국, 신청)을
   /// 하고 있으면 `targetUnavailable`이다. 내가 차단한 상대도 `targetUnavailable`이다. 상대가 빠른 대국 대기열에 있는 것은 괜찮고
   /// 수락할 때 대기열에서 뺀다.
@@ -115,6 +116,7 @@ class ChallengeService {
   }) async {
     await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid, toUid], now);
+    await gameService.checkHasEntryFee(uid);
     final (targetPrivate, targetOnline, blockedByTarget, blockingTarget, limit) = await (
       usersPrivate.getUserPrivate(toUid),
       onlineUsers.getOnlineUser(toUid),
@@ -212,7 +214,8 @@ class ChallengeService {
   /// 받은 사람 [uid]가 [challengeId]에 응답한다. 수락하면 대국을 만들거나(방 초대면 방에 앉히고) 그 대국 또는 방을 돌려준다.
   ///
   /// 신청이 없거나, 내가 받은 신청이 아니거나, 이미 끝났거나 응답 마감이 지났으면 `notFound`다. 수락하는데 이용 정지 중이면
-  /// `sanctioned`, 초대한 방이 닫혔으면 `roomClosed`, 방에 그새 다른 사람이 들어왔으면 `roomFull`이고 이때 신청은 `cancelled`가 된다.
+  /// `sanctioned`, 내 엽전이 모자라면 `coinsInsufficient`(신청은 남아 거절할 수 있다), 보낸 사람의 엽전이 모자라면
+  /// `opponentCoinsInsufficient`(신청은 `cancelled`가 된다), 초대한 방이 닫혔으면 `roomClosed`, 방에 그새 다른 사람이 들어왔으면 `roomFull`이고 이때 신청은 `cancelled`가 된다.
   /// 거절과 응답 마감은 연속 거절 횟수를 세고, 수락은 횟수를 0으로 돌린다.
   Future<ChallengeResponse> respondChallenge(
     String challengeId, {
@@ -235,13 +238,23 @@ class ChallengeService {
       return (gameId: null, roomId: null);
     }
     await gameService.checkNotSanctioned(uid, now);
+    await gameService.checkHasEntryFee(uid);
     final roomId = challenge.roomId;
     if (roomId != null) {
       await _acceptRoomInvite(challengeId, challenge, roomId, user: user, now: now);
       logger.info('respondChallenge 방 초대 수락', {'challengeId': challengeId, 'uid': uid, 'roomId': roomId});
       return (gameId: null, roomId: roomId);
     }
-    final gameId = await _acceptGame(challengeId, challenge, now: now);
+    final String gameId;
+    try {
+      gameId = await _acceptGame(challengeId, challenge, now: now);
+    } on InsufficientCoinsException catch (short) {
+      if (short.uid == uid) {
+        rethrow;
+      }
+      await _closeChallenge(challengeId, ChallengeStatus.cancelled, now: now);
+      throw const CallableException.failedPrecondition(GameErrorCode.opponentCoinsInsufficient, '상대의 엽전이 모자랍니다');
+    }
     logger.info('respondChallenge 수락', {'challengeId': challengeId, 'uid': uid, 'gameId': gameId});
     return (gameId: gameId, roomId: null);
   }
