@@ -226,7 +226,7 @@ class FirestoreClient {
 
   /// [work]를 트랜잭션 안에서 실행하고 쓰기를 커밋한다.
   ///
-  /// 다른 요청과 부딪혀 커밋이 `ABORTED`로 실패하면 [maxAttempts]번까지 처음부터 다시 실행한다.
+  /// 다른 요청과 부딪혀 읽기나 커밋이 `ABORTED`로 실패하면 [maxAttempts]번까지 처음부터 다시 실행한다.
   /// 바로 다시 실행하면 부딪힌 요청들이 같은 순서로 또 부딪히므로 무작위 시간을 기다려 어긋나게 한다.
   /// [work]는 다시 실행될 수 있으므로 트랜잭션 밖에 부수 효과를 남기지 않는다.
   Future<T> runTransaction<T>(Future<T> Function(FirestoreTransaction transaction) work, {int maxAttempts = 5}) async {
@@ -238,19 +238,19 @@ class FirestoreClient {
         final result = await work(transaction);
         await commit(transaction._writes, transaction: transactionId);
         return result;
-      } on FirestoreException catch (error) {
-        if (error.status != 'ABORTED' || attempt >= maxAttempts) {
+      } catch (error) {
+        final aborted = transaction._readAborted || _isAborted(error);
+        if (!aborted || attempt >= maxAttempts) {
           await _rollbackQuietly(transactionId);
           rethrow;
         }
         retryTransaction = transactionId;
-      } catch (_) {
-        await _rollbackQuietly(transactionId);
-        rethrow;
       }
       await sleep(_getRetryDelay(attempt));
     }
   }
+
+  static bool _isAborted(Object error) => error is FirestoreException && error.status == 'ABORTED';
 
   /// [attempt]번째 실패 뒤 기다릴 시간. 0부터 상한 사이의 무작위 값이고 상한은 재시도마다 두 배로 늘린다.
   static Duration _getRetryDelay(int attempt) {
@@ -355,17 +355,26 @@ class FirestoreTransaction {
   final String id;
   final _writes = <FirestoreWrite>[];
 
+  // 읽기가 `ABORTED`로 실패했는지. 병렬 읽기(`(a, b).wait`)의 오류는 `ParallelWaitError`로 감싸져 나가므로 여기서 기억한다.
+  var _readAborted = false;
+
   FirestoreTransaction._(this._client, this.id);
 
   /// [path] 문서. 없으면 null.
   Future<Map<String, Object?>?> get(String path) async => (await getAll([path]))[path];
 
   /// [paths] 문서들을 한 번에 읽는다. 매칭처럼 여러 문서를 함께 볼 때 왕복을 줄인다.
-  Future<Map<String, Map<String, Object?>?>> getAll(List<String> paths) {
+  Future<Map<String, Map<String, Object?>?>> getAll(List<String> paths) async {
     if (_writes.isNotEmpty) {
       throw StateError('트랜잭션에서는 쓰기 전에 모두 읽어야 합니다: $paths');
     }
-    return _client.getDocuments(paths, transaction: id);
+    try {
+      return await _client.getDocuments(paths, transaction: id);
+    } on FirestoreException catch (error) {
+      // 병렬 읽기의 다른 실패가 지우지 않게 한 번 세우면 그대로 둔다.
+      _readAborted = _readAborted || FirestoreClient._isAborted(error);
+      rethrow;
+    }
   }
 
   void set(String path, Map<String, Object?> data) => _writes.add(SetWrite(path, data));

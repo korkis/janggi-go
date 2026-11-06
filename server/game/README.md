@@ -50,7 +50,7 @@ Dart용 Firebase Admin SDK가 공식으로 없어 REST API를 직접 부른다(`
 ### Firestore 에뮬레이터의 제약
 
 - 트랜잭션 안의 읽기는 `documents:batchGet`(POST)으로 한다. 에뮬레이터 REST는 GET의 `transaction` 쿼리를 읽지 못하고 연결을 끊는다.
-- 같은 문서를 읽은 트랜잭션들이 동시에 커밋하면 서로의 읽기 잠금을 기다리다 약 2초 뒤 `409 ABORTED`(`Transaction lock timeout`)로 끝난다. 운영 Firestore는 바로 `ABORTED`를 돌려준다. `FirestoreClient.runTransaction`은 어느 쪽이든 무작위 시간(첫 상한 200ms, 재시도마다 두 배)을 기다려 다시 실행한다. 기다리지 않으면 부딪힌 요청들이 또 같이 부딪혀 5번을 다 쓰고 실패한다. 그래서 동시 매칭 같은 경합은 에뮬레이터에서 부딪힐 때마다 2초쯤 느려지고, 드물게 `callable 실패`(INTERNAL)로 보일 수 있다.
+- 같은 문서를 읽은 트랜잭션들이 동시에 커밋하면 서로의 읽기 잠금을 기다리다 약 2초 뒤 `409 ABORTED`(`Transaction lock timeout`)로 끝난다. 운영 Firestore는 바로 `ABORTED`를 돌려준다. `FirestoreClient.runTransaction`은 어느 쪽이든, 읽기에서 난 `ABORTED`도 병렬 읽기로 감싸진 것까지 포함해 무작위 시간(첫 상한 200ms, 재시도마다 두 배)을 기다려 다시 실행한다. 기다리지 않으면 부딪힌 요청들이 또 같이 부딪혀 5번을 다 쓰고 실패한다. 그래서 동시 매칭 같은 경합은 에뮬레이터에서 부딪힐 때마다 2초쯤 느려지고, 드물게 `callable 실패`(INTERNAL)로 보일 수 있다.
 
 ## 환경 변수
 

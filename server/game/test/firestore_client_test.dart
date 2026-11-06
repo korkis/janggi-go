@@ -9,9 +9,14 @@ void main() {
   const root = 'projects/p/databases/(default)/documents';
 
   /// 트랜잭션 요청을 기록하고 [commitStatuses] 순서대로 커밋에 답하는 가짜 Firestore.
-  ({FirestoreClient client, List<String> calls, List<Duration> delays}) createClient(List<int> commitStatuses) {
+  /// [abortedReads]번째까지의 트랜잭션 읽기는 `ABORTED`로 답한다.
+  ({FirestoreClient client, List<String> calls, List<Duration> delays}) createClient(
+    List<int> commitStatuses, {
+    int abortedReads = 0,
+  }) {
     final calls = <String>[];
     final delays = <Duration>[];
+    var readCount = 0;
     var transactionCount = 0;
     var commitCount = 0;
     final client = MockClient((request) async {
@@ -43,6 +48,14 @@ void main() {
       expect(path, endsWith(':batchGet'));
       final body = jsonDecode(request.body) as Map;
       calls.add('get ${body['transaction']}');
+      if (++readCount <= abortedReads) {
+        return http.Response(
+          jsonEncode({
+            'error': {'code': 409, 'status': 'ABORTED', 'message': 'contention'},
+          }),
+          409,
+        );
+      }
       return http.Response(
         jsonEncode([
           {
@@ -112,6 +125,47 @@ void main() {
     for (final (index, limitMs) in [200, 400, 800].indexed) {
       expect(delays[index].inMilliseconds, inInclusiveRange(0, limitMs));
     }
+  });
+
+  test('병렬 읽기가 ABORTED면 오류가 감싸져도 처음부터 다시 실행한다', () async {
+    final (:client, :calls, :delays) = createClient([200], abortedReads: 1);
+    var runs = 0;
+
+    final result = await client.runTransaction((transaction) async {
+      runs++;
+      await (transaction.get('games/g1'), transaction.get('games/g2')).wait;
+      return runs;
+    });
+
+    expect(result, 2);
+    expect(delays, hasLength(1));
+    expect(calls.where((call) => call.startsWith('begin')), ['begin -', 'begin t1']);
+    expect(calls, isNot(contains('rollback t1')));
+  });
+
+  test('병렬 읽기가 maxAttempts번 모두 ABORTED면 되돌리고 오류를 던진다', () async {
+    final (:client, :calls, delays: _) = createClient([], abortedReads: 4);
+    await expectLater(
+      client.runTransaction((transaction) async {
+        await (transaction.get('games/g1'), transaction.get('games/g2')).wait;
+      }, maxAttempts: 2),
+      throwsA(isA<ParallelWaitError<Object?, Object?>>()),
+    );
+    expect(calls.where((call) => call.startsWith('begin')), hasLength(2));
+    expect(calls, contains('rollback t2'));
+  });
+
+  test('ABORTED가 아닌 오류는 감싸져도 다시 실행하지 않는다', () async {
+    final (:client, :calls, :delays) = createClient([]);
+    await expectLater(
+      client.runTransaction((transaction) async {
+        await (transaction.get('games/g1'), Future<void>.error(StateError('중단'))).wait;
+      }),
+      throwsA(isA<ParallelWaitError<Object?, Object?>>()),
+    );
+    expect(delays, isEmpty);
+    expect(calls.where((call) => call.startsWith('begin')), hasLength(1));
+    expect(calls, contains('rollback t1'));
   });
 
   test('쓰기 뒤에 읽으면 오류로 본다', () async {
