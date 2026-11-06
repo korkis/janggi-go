@@ -58,6 +58,21 @@ class AppConfig {
   /// 대국 중 놓아보기의 판당 값.
   final int coinGamePracticeCost;
 
+  /// 채팅을 쓸 수 있다. 끄면 채팅을 두지 않는다.
+  final bool chatEnabled;
+
+  /// 새로 가입할 수 있다.
+  final bool signupEnabled;
+
+  /// 웹을 쓸 수 있다. 끄면 웹은 안내 화면만 보여준다.
+  final bool webEnabled;
+
+  /// 이보다 낮은 앱에 업데이트 화면을 띄운다. `1.2.3` 모양이다.
+  final String minAppVersion;
+
+  /// 공지. 없으면 null.
+  final ServiceNotice? serviceNotice;
+
   const AppConfig({
     required this.disconnectLimitSeconds,
     required this.quickRematchLimit,
@@ -76,7 +91,26 @@ class AppConfig {
     required this.gamePracticeEnabled,
     required this.coinTimeExtensionCost,
     required this.coinGamePracticeCost,
+    required this.chatEnabled,
+    required this.signupEnabled,
+    required this.webEnabled,
+    required this.minAppVersion,
+    required this.serviceNotice,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) => _$AppConfigFromJson(json);
+}
+
+/// 공지(`docs/server.md`의 운영 스위치). 앱 언어가 한국어면 [messageKo], 그 밖에는 [messageEn]을 보여준다.
+@JsonSerializable(createToJson: false)
+class ServiceNotice {
+  final String messageKo;
+  final String messageEn;
+
+  /// 새 대국을 막는다. 앱은 서버의 거절로 안다.
+  final bool gamesBlocked;
+
+  const ServiceNotice({required this.messageKo, required this.messageEn, required this.gamesBlocked});
+
+  factory ServiceNotice.fromJson(Map<String, dynamic> json) => _$ServiceNoticeFromJson(json);
 }

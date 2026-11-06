@@ -145,8 +145,22 @@ const inviteLinkPathPrefix = 'r';
 /// 아이폰 앱 안 브라우저의 "앱에서 열기"가 쓰는 앱 주소 scheme. `janggigo://r/<방 ID>`. `ios/Runner/Info.plist`와 같다.
 const appUrlScheme = 'janggigo';
 
-/// 제재 이의 제기를 받는 운영 이메일(`docs/moderation.md`의 제재 단계와 안내). 제재 팝업에 보여준다.
-const sanctionAppealEmail = 'playkorkis@gmail.com';
+/// 운영 이메일. 제재 이의 제기(`docs/moderation.md`의 제재 단계와 안내)와 탈퇴 되돌리기(`docs/database.md`의 회원 탈퇴)를 받는다.
+const supportEmail = 'playkorkis@gmail.com';
+
+/// 플레이 스토어의 앱 주소.
+const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.gazuacup.janggigo';
+
+/// 앱스토어의 앱 주소. 앱을 등록하면 넣는다(`docs/release.md`의 운영 배포 전에 채울 값). 그 전에는 iOS의 업데이트 안내에 버튼을 두지 않는다.
+const String? appStoreUrl = null;
+
+/// 이 기기의 스토어 주소. 없으면 null이다.
+String? getStoreUrl() {
+  if (kIsWeb) {
+    return null;
+  }
+  return defaultTargetPlatform == TargetPlatform.iOS ? appStoreUrl : playStoreUrl;
+}
 
 /// 채팅 메시지 최대 글자 수. Functions의 `CHAT_MAX_LENGTH`(`server/functions/src/config.ts`)와 같다.
 const chatMaxLength = 100;

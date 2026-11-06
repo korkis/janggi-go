@@ -54,6 +54,7 @@ interface ModerationState {
   resolveReport: (reportId: string, input: ResolveReportInput) => Promise<void>;
   /** 신고 없이 제재를 건다. 성공하면 서버 응답으로 사용자 기록을 바꾼다. 실패하면 던진다. */
   sanctionUser: (uid: string, input: SanctionInput) => Promise<void>;
+  restoreAccount: (uid: string, reason: string) => Promise<void>;
   /** 로그아웃하면 읽어 둔 신고와 채팅 내용을 메모리에서 지운다. */
   reset: () => void;
 }
@@ -172,6 +173,19 @@ export const useModerationStore = create<ModerationState>()((set, get) => {
       try {
         set({submitting: true});
         const data = await adminApi.sanctionUser(uid, input);
+        set((state) => ({users: {...state.users, [uid]: {status: "loaded", data}}}));
+      } finally {
+        set({submitting: false});
+      }
+    },
+
+    restoreAccount: async (uid, reason) => {
+      if (get().submitting) {
+        return;
+      }
+      try {
+        set({submitting: true});
+        const data = await adminApi.restoreAccount(uid, reason);
         set((state) => ({users: {...state.users, [uid]: {status: "loaded", data}}}));
       } finally {
         set({submitting: false});

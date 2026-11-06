@@ -181,7 +181,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                           // 가입하기 / 로그인
                           : Text(signUp ? l10n.signUp : l10n.login),
                     ),
-                    if (!signUp) ...[
+                    if (!signUp && managers.appConfigManager.signupEnabled) ...[
                       const SizedBox(height: 4),
                       Wrap(
                         alignment: WrapAlignment.center,

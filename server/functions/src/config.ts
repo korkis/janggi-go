@@ -143,6 +143,21 @@ export const ADMIN_REASON_MAX_LENGTH = 200;
 // 끝난 제재를 지우는 예약 작업이 한 번에 읽어 지우는 사용자 수.
 export const SANCTION_EXPIRE_BATCH_SIZE = 500;
 
+// 탈퇴를 누른 뒤 실제로 지우기까지의 날 수. 그동안은 요청을 받아 되돌릴 수 있다(docs/database.md의 회원 탈퇴).
+export const ACCOUNT_DELETION_GRACE_DAYS = 30;
+
+// 탈퇴자를 지운 뒤 엽전 내역을 남겨 두는 해. 환불과 분쟁에 대비한다(docs/database.md의 회원 탈퇴).
+export const COIN_TRANSACTION_RETENTION_YEARS = 5;
+
+// 탈퇴자를 지우는 예약 작업이 한 번에 지우는 사람 수.
+export const ACCOUNT_PURGE_BATCH_SIZE = 100;
+
+// 공지(configs/app.serviceNotice) 문구의 최대 글자 수.
+export const SERVICE_NOTICE_MAX_LENGTH = 200;
+
+// configs/app.minAppVersion의 모양.
+export const APP_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+
 // Admin 웹에서 configs/app에 넣을 수 있는 값의 범위. 앱과 대국 서버가 멈추지 않는 범위로 막는다.
 export const APP_CONFIG_LIMITS = {
   disconnectLimitSeconds: {min: 10, max: 300},

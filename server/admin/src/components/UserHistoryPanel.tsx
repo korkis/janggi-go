@@ -23,6 +23,8 @@ export function UserHistoryPanel({user}: {user: UserHistoryView}) {
             가입 {formatDateTime(profile.createdAt)}
           </p>
         )}
+        {profile?.deletedAt != null && <p className="mt-1 text-sm">⚠ 탈퇴함 · {formatDateTime(profile.deletedAt)}</p>}
+        {profile === null && <p className="mt-1 text-sm text-slate-700">프로필이 없어요. 탈퇴해 지웠을 수 있어요.</p>}
         <div className="mt-3 text-sm">
           지금 제재:{" "}
           {sanction === null ? (

@@ -103,7 +103,7 @@ class ChallengeService {
 
   /// [uid]가 [toUid]에게 대국을 신청하고 신청 ID를 돌려준다. 응답 마감에 `expireChallenge`를 예약한다.
   ///
-  /// 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 이미 대기열·방·대국·신청 중 하나에 있으면 `busy`(방 초대면 그 방의 방장이어야 한다),
+  /// 공지가 새 대국을 막고 있으면 `gamesBlocked`(방 초대는 대국이 아니므로 받는다), 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 이미 대기열·방·대국·신청 중 하나에 있으면 `busy`(방 초대면 그 방의 방장이어야 한다),
   /// 이 상대에게 연속 거절 제한이 걸렸으면 `challengeLimited`, 상대가 대국실에 없거나 신청 받기를 껐거나 다른 일(방, 대국, 신청)을
   /// 하고 있으면 `targetUnavailable`이다. 내가 차단한 상대도 `targetUnavailable`이다. 상대가 빠른 대국 대기열에 있는 것은 괜찮고
   /// 수락할 때 대기열에서 뺀다.
@@ -114,6 +114,9 @@ class ChallengeService {
     ChallengeOptions options, {
     required DateTime now,
   }) async {
+    if (options.roomId == null) {
+      await gameService.checkGamesAllowed();
+    }
     await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid, toUid], now);
     await gameService.checkHasEntryFee(uid);

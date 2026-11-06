@@ -6,6 +6,7 @@ import '../auth/id_token_verifier.dart';
 import '../auth/jwt.dart';
 import '../clock.dart';
 import '../logging.dart';
+import '../repositories/configs_repository.dart';
 import '../repositories/users_repository.dart';
 import 'callable.dart';
 
@@ -18,6 +19,7 @@ Handler createCallableHandler({
   required CallableEndpoint endpoint,
   required FirebaseIdTokenVerifier idTokenVerifier,
   required UsersRepository usersRepository,
+  required ConfigsRepository configsRepository,
   required GameLogger logger,
   Clock clock = utcNow,
 }) {
@@ -27,8 +29,9 @@ Handler createCallableHandler({
     try {
       final data = await _readData(httpRequest);
       uid = await _verifyCaller(httpRequest, idTokenVerifier);
+      await _checkWebAllowed(httpRequest, configsRepository);
       final user = await usersRepository.getUser(uid);
-      if (user == null) {
+      if (user == null || user.deletedAt != null) {
         throw const CallableException.failedPrecondition(GameErrorCode.profileRequired, '닉네임을 먼저 정해야 합니다');
       }
       logger.debug('callable 시작', {'api': endpoint.name, 'uid': uid});
@@ -108,6 +111,18 @@ Future<String> _verifyCaller(Request httpRequest, FirebaseIdTokenVerifier idToke
     return verified.uid;
   } on AuthException catch (error) {
     throw CallableException(CallableStatus.unauthenticated, error.message);
+  }
+}
+
+/// 웹을 멈췄으면 웹에서 온 호출을 `featureDisabled`로 거절한다(`docs/server.md`의 운영 스위치). 브라우저는 `Origin` 헤더를 언제나
+/// 붙이고 앱(안드로이드, iOS)은 붙이지 않는다. 앱의 호출은 설정을 읽지 않는다.
+Future<void> _checkWebAllowed(Request httpRequest, ConfigsRepository configsRepository) async {
+  if (httpRequest.headers['origin'] == null) {
+    return;
+  }
+  final appConfig = await configsRepository.getAppConfig();
+  if (!appConfig.webEnabled) {
+    throw const CallableException.failedPrecondition(GameErrorCode.featureDisabled, '지금은 웹을 쓸 수 없습니다');
   }
 }
 

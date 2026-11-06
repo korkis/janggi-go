@@ -87,8 +87,8 @@ class _BlockListScreenState extends State<BlockListScreen> {
       for (final block in blocks) {
         children.add(
           _BlockTile(
-            // 알 수 없는 사용자
-            nickname: block.nickname ?? l10n.unknownUser,
+            // 탈퇴한 사용자
+            nickname: block.nickname ?? l10n.deletedUser,
             createdAt: block.createdAt,
             unblocking: _unblocking.contains(block.blockedUid),
             onUnblock: () => _onUnblock(block.blockedUid),

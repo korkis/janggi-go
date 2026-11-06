@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/player_state.dart';
 import '../repositories/app_repositories.dart';
+import '../utils/app_exception.dart';
 import 'auth_manager.dart';
 
 /// 내 `player_states` 문서. 로그인한 동안 듣는다(`docs/server.md`의 앱과 서버의 흐름).
@@ -36,6 +37,40 @@ class PlayerStateManager extends ChangeNotifier {
 
   /// 진행 중(상차림 포함) 대국.
   String? get gameId => _playerState?.gameId;
+
+  /// 방, 빠른 대국 대기열, 대국 신청에서 나온다. 회원 탈퇴 전에 부른다(`docs/database.md`의 회원 탈퇴). 방장이면 방이 닫힌다.
+  Future<void> leaveMatching() async {
+    final state = _playerState;
+    if (state == null) {
+      return;
+    }
+    final roomId = state.roomId;
+    if (roomId != null) {
+      await repositories.roomRepository.leaveRoom(roomId);
+    }
+    if (state.quickQueueJoinedAt != null) {
+      await repositories.gameRepository.leaveQuickQueue();
+    }
+    final outgoingChallengeId = state.outgoingChallengeId;
+    if (outgoingChallengeId != null) {
+      await repositories.challengeRepository.cancelChallenge(outgoingChallengeId);
+    }
+    final incomingChallengeId = state.incomingChallengeId;
+    if (incomingChallengeId != null) {
+      await _declineChallenge(incomingChallengeId);
+    }
+  }
+
+  /// 받은 신청을 거절한다. 그새 끝났으면 그대로 둔다.
+  Future<void> _declineChallenge(String challengeId) async {
+    try {
+      await repositories.challengeRepository.respondChallenge(challengeId, accepted: false);
+    } on AppException catch (error) {
+      if (error.code != AppErrorCode.gameNotFound) {
+        rethrow;
+      }
+    }
+  }
 
   void _onAuthChanged() {
     final uid = authManager.uid;

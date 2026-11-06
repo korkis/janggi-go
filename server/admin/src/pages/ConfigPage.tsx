@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import {ConfirmDialog} from "../components/ConfirmDialog";
 import {ErrorState, Loading, getErrorText} from "../components/States";
-import {APP_CONFIG_LIMITS} from "../config";
+import {APP_CONFIG_LIMITS, APP_VERSION_PATTERN, SERVICE_NOTICE_MAX_LENGTH} from "../config";
 import type {AppConfig} from "../models/admin";
 import {AdminApiError} from "../services/adminApi";
 import {useConfigStore} from "../stores/configStore";
@@ -13,7 +13,10 @@ type BooleanField =
   | "autoSanctionEnabled"
   | "entryFeeEnabled"
   | "timeExtensionEnabled"
-  | "gamePracticeEnabled";
+  | "gamePracticeEnabled"
+  | "chatEnabled"
+  | "signupEnabled"
+  | "webEnabled";
 
 interface NumberFieldInfo {
   key: NumberField;
@@ -57,6 +60,21 @@ const COIN_FIELDS: NumberFieldInfo[] = [
 
 const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
   {
+    key: "chatEnabled",
+    label: "채팅",
+    help: "끄면 앱에서 채팅이 사라지고 서버가 새 메시지를 거절해요. 신고는 받아요.",
+  },
+  {
+    key: "signupEnabled",
+    label: "새 가입",
+    help: "끄면 새로 가입할 수 없어요. 기존 사용자는 그대로예요.",
+  },
+  {
+    key: "webEnabled",
+    label: "웹",
+    help: "끄면 웹은 안내 화면만 보여주고 서버가 웹의 호출을 거절해요. 진행 중인 웹 대국은 끊김패나 시간패가 돼요.",
+  },
+  {
     key: "onlineUsersVisible",
     label: "접속자 목록 보이기",
     help: "대국실 접속자 탭과 방 대기실의 접속자 초대하기를 보여줘요.",
@@ -84,7 +102,14 @@ const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
 ];
 
 /** 폼에 입력 중인 숫자. 비우거나 잘못 적은 값도 그대로 두고 저장 전에 확인한다. */
-type Draft = Record<NumberField, string> & Record<BooleanField, boolean>;
+type Draft = Record<NumberField, string> &
+  Record<BooleanField, boolean> & {
+    minAppVersion: string;
+    noticeEnabled: boolean;
+    noticeMessageKo: string;
+    noticeMessageEn: string;
+    noticeGamesBlocked: boolean;
+  };
 
 function toDraft(config: AppConfig): Draft {
   const numbers = Object.fromEntries(
@@ -97,7 +122,25 @@ function toDraft(config: AppConfig): Draft {
     entryFeeEnabled: config.entryFeeEnabled,
     timeExtensionEnabled: config.timeExtensionEnabled,
     gamePracticeEnabled: config.gamePracticeEnabled,
+    chatEnabled: config.chatEnabled,
+    signupEnabled: config.signupEnabled,
+    webEnabled: config.webEnabled,
+    minAppVersion: config.minAppVersion,
+    noticeEnabled: config.serviceNotice !== null,
+    noticeMessageKo: config.serviceNotice?.messageKo ?? "",
+    noticeMessageEn: config.serviceNotice?.messageEn ?? "",
+    noticeGamesBlocked: config.serviceNotice?.gamesBlocked ?? false,
   };
+}
+
+function isNoticeMessageValid(message: string): boolean {
+  return message.trim() !== "" && message.length <= SERVICE_NOTICE_MAX_LENGTH;
+}
+
+function isNoticeValid(draft: Draft): boolean {
+  return (
+    !draft.noticeEnabled || (isNoticeMessageValid(draft.noticeMessageKo) && isNoticeMessageValid(draft.noticeMessageEn))
+  );
 }
 
 /** 범위 안의 정수면 그 값, 아니면 null. */
@@ -116,6 +159,9 @@ function toConfig(draft: Draft): AppConfig | null {
     }
     numbers[key] = value;
   }
+  if (!APP_VERSION_PATTERN.test(draft.minAppVersion) || !isNoticeValid(draft)) {
+    return null;
+  }
   return {
     ...numbers,
     onlineUsersVisible: draft.onlineUsersVisible,
@@ -123,6 +169,17 @@ function toConfig(draft: Draft): AppConfig | null {
     entryFeeEnabled: draft.entryFeeEnabled,
     timeExtensionEnabled: draft.timeExtensionEnabled,
     gamePracticeEnabled: draft.gamePracticeEnabled,
+    chatEnabled: draft.chatEnabled,
+    signupEnabled: draft.signupEnabled,
+    webEnabled: draft.webEnabled,
+    minAppVersion: draft.minAppVersion,
+    serviceNotice: draft.noticeEnabled
+      ? {
+          messageKo: draft.noticeMessageKo,
+          messageEn: draft.noticeMessageEn,
+          gamesBlocked: draft.noticeGamesBlocked,
+        }
+      : null,
   };
 }
 
@@ -131,7 +188,17 @@ function formatValue(config: AppConfig, key: keyof AppConfig): string {
   if (typeof value === "boolean") {
     return value ? "● 켬" : "○ 끔";
   }
+  if (value === null) {
+    return "없음";
+  }
+  if (typeof value === "object") {
+    return `“${value.messageKo}” / “${value.messageEn}” · 새 대국 ${value.gamesBlocked ? "막음" : "받음"}`;
+  }
   return String(value);
+}
+
+function isSameValue(a: AppConfig[keyof AppConfig], b: AppConfig[keyof AppConfig]): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 /** Firestore `configs/app` 바꾸기. 바뀌는 값을 확인 창에서 다시 보여주고 저장한다. */
@@ -171,7 +238,9 @@ export function ConfigPage() {
   const changedKeys =
     nextConfig === null
       ? []
-      : (Object.keys(serverConfig) as (keyof AppConfig)[]).filter((key) => serverConfig[key] !== nextConfig[key]);
+      : (Object.keys(serverConfig) as (keyof AppConfig)[]).filter(
+          (key) => !isSameValue(serverConfig[key], nextConfig[key]),
+        );
 
   async function submit(config: AppConfig): Promise<void> {
     try {
@@ -241,6 +310,83 @@ export function ConfigPage() {
             </span>
           </label>
         ))}
+      </div>
+      <h2 className="mt-6 font-semibold">앱 최소 버전</h2>
+      <div className="mt-2 rounded-xl border border-slate-200 bg-white p-4">
+        <label className="block text-sm">
+          <span className="font-medium">앱 최소 버전</span>{" "}
+          <span className="font-mono text-xs text-slate-500">minAppVersion</span>
+          <input
+            type="text"
+            value={draft.minAppVersion}
+            onChange={(event) => setDraft({...draft, minAppVersion: event.target.value})}
+            aria-invalid={!APP_VERSION_PATTERN.test(draft.minAppVersion)}
+            className={`mt-1 block w-28 rounded-md border px-2 py-1 ${
+              APP_VERSION_PATTERN.test(draft.minAppVersion) ? "border-slate-300" : "border-red-500"
+            }`}
+          />
+          <span className="mt-1 block text-xs text-slate-500">
+            이보다 낮은 앱(안드로이드, iOS)에 업데이트 화면을 띄워요. 서버는 막지 않아요.
+          </span>
+          {!APP_VERSION_PATTERN.test(draft.minAppVersion) && (
+            <span className="block text-xs text-red-700">⚠ 1.2.3 모양으로 적어 주세요.</span>
+          )}
+        </label>
+      </div>
+      <h2 className="mt-6 font-semibold">공지</h2>
+      <div className="mt-2 space-y-3 rounded-xl border border-slate-200 bg-white p-4 text-sm">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={draft.noticeEnabled}
+            onChange={(event) => setDraft({...draft, noticeEnabled: event.target.checked})}
+            className="mt-1"
+          />
+          <span>
+            <span className="font-medium">공지 띄우기</span>{" "}
+            <span className="font-mono text-xs text-slate-500">serviceNotice</span>
+          </span>
+        </label>
+        {draft.noticeEnabled && (
+          <>
+            <label className="block">
+              <span className="font-medium">한국어</span>
+              <textarea
+                value={draft.noticeMessageKo}
+                maxLength={SERVICE_NOTICE_MAX_LENGTH}
+                rows={2}
+                onChange={(event) => setDraft({...draft, noticeMessageKo: event.target.value})}
+                aria-invalid={!isNoticeMessageValid(draft.noticeMessageKo)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
+              />
+            </label>
+            <label className="block">
+              <span className="font-medium">영어</span>
+              <textarea
+                value={draft.noticeMessageEn}
+                maxLength={SERVICE_NOTICE_MAX_LENGTH}
+                rows={2}
+                onChange={(event) => setDraft({...draft, noticeMessageEn: event.target.value})}
+                aria-invalid={!isNoticeMessageValid(draft.noticeMessageEn)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
+              />
+            </label>
+            {!isNoticeValid(draft) && <p className="text-xs text-red-700">⚠ 두 언어를 모두 적어 주세요.</p>}
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={draft.noticeGamesBlocked}
+                onChange={(event) => setDraft({...draft, noticeGamesBlocked: event.target.checked})}
+                className="mt-1"
+              />
+              <span>
+                <span className="font-medium">새 대국 막기</span>{" "}
+                <span className="font-mono text-xs text-slate-500">gamesBlocked</span>
+                <span className="block text-xs text-slate-500">진행 중인 대국은 그대로 두고 새 대국만 막아요.</span>
+              </span>
+            </label>
+          </>
+        )}
       </div>
       <h2 className="mt-6 font-semibold">엽전</h2>
       <div className="mt-2 space-y-4 rounded-xl border border-slate-200 bg-white p-4">

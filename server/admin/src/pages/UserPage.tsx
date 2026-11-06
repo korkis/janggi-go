@@ -1,6 +1,7 @@
 import {useCallback, useEffect} from "react";
 import {Link, useParams} from "react-router";
 import {SanctionForm} from "../components/SanctionForm";
+import {RestoreAccountSection} from "../components/RestoreAccountSection";
 import {ErrorState, Loading} from "../components/States";
 import {UserHistoryPanel} from "../components/UserHistoryPanel";
 import type {ResolveReportInput} from "../models/admin";
@@ -38,18 +39,28 @@ export function UserPage() {
       {(resource === undefined || resource.status === "loading") && <Loading />}
       {resource?.status === "error" && <ErrorState error={resource.error} onRetry={reload} />}
       {resource?.status === "loaded" && (
-        <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_3fr]">
-          <SanctionForm
-            key={uid}
-            targetUid={uid}
-            targetNickname={resource.data.profile?.nickname ?? null}
-            currentSanction={resource.data.sanction}
-            sanctions={resource.data.sanctions}
-            reportId={null}
-            submitting={submitting}
-            onSubmit={submit}
-          />
-          <UserHistoryPanel user={resource.data} />
+        <div className="mt-4 space-y-4">
+          {resource.data.profile?.deletedAt != null && (
+            <RestoreAccountSection
+              key={uid}
+              uid={uid}
+              nickname={resource.data.profile.nickname}
+              deletedAt={resource.data.profile.deletedAt}
+            />
+          )}
+          <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
+            <SanctionForm
+              key={uid}
+              targetUid={uid}
+              targetNickname={resource.data.profile?.nickname ?? null}
+              currentSanction={resource.data.sanction}
+              sanctions={resource.data.sanctions}
+              reportId={null}
+              submitting={submitting}
+              onSubmit={submit}
+            />
+            <UserHistoryPanel user={resource.data} />
+          </div>
         </div>
       )}
     </div>

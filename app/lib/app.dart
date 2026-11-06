@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
 import 'managers/app_managers.dart';
+import 'screens/app_gate.dart';
 import 'screens/attendance_listener.dart';
 import 'screens/home_screen.dart';
 import 'screens/incoming_challenge_dialog.dart';
 import 'screens/sanction_dialog.dart';
+import 'screens/service_notice_dialog.dart';
 import 'theme/app_theme.dart';
 import 'widgets/adaptive_layout.dart';
 
@@ -46,10 +48,15 @@ class _JanggigoAppState extends State<JanggigoApp> {
   }
 
   Widget _buildApp(BuildContext context, Widget? child) {
-    return AttendanceListener(
-      child: SanctionListener(
-        navigatorKey: _navigatorKey,
-        child: ChallengeListener(navigatorKey: _navigatorKey, child: child ?? const SizedBox.shrink()),
+    return AppGate(
+      child: AttendanceListener(
+        child: SanctionListener(
+          navigatorKey: _navigatorKey,
+          child: ServiceNoticeListener(
+            navigatorKey: _navigatorKey,
+            child: ChallengeListener(navigatorKey: _navigatorKey, child: child ?? const SizedBox.shrink()),
+          ),
+        ),
       ),
     );
   }

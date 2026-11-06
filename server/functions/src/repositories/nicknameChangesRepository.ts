@@ -1,6 +1,6 @@
 import {Transaction, getFirestore} from "firebase-admin/firestore";
 import {NicknameChange} from "../models/nickname";
-import {modelConverter} from "./firestore";
+import {deleteQueryDocuments, modelConverter} from "./firestore";
 
 const COLLECTION = "nickname_changes";
 
@@ -8,6 +8,11 @@ const COLLECTION = "nickname_changes";
 export function createNicknameChangeInTransaction(transaction: Transaction, change: NicknameChange): void {
   const ref = getFirestore().collection(COLLECTION).doc().withConverter(modelConverter<NicknameChange>());
   transaction.create(ref, change);
+}
+
+/** [uid]의 닉네임 변경 기록을 지운다. */
+export async function deleteNicknameChangesByUid(uid: string): Promise<void> {
+  await deleteQueryDocuments(getFirestore().collection(COLLECTION).where("uid", "==", uid));
 }
 
 /** [uid]의 닉네임 변경 기록을 최근 것부터 읽는다. 색인: `uid` + `changedAt` 내림차순(server/firestore.indexes.json). */

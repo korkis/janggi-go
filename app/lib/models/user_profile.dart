@@ -19,7 +19,17 @@ class UserProfile {
   @TimestampConverter()
   final DateTime createdAt;
 
-  const UserProfile({required this.nickname, required this.rankLevel, required this.stats, required this.createdAt});
+  /// 회원 탈퇴를 누른 시각. 없으면 null이다(`docs/database.md`의 회원 탈퇴). [UserRepository]가 이런 프로필은 없는 것으로 돌려준다.
+  @TimestampConverter()
+  final DateTime? deletedAt;
+
+  const UserProfile({
+    required this.nickname,
+    required this.rankLevel,
+    required this.stats,
+    required this.createdAt,
+    this.deletedAt,
+  });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 }

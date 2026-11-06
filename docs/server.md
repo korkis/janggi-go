@@ -39,7 +39,7 @@ flowchart LR
 ### 대국 서버와 Functions의 경계 — 초안
 
 - 대국 상태(수, 시계, 결과, 급수)와 그 대국을 만드는 매칭 상태(대기열, 방, 신청, 사용자 활동)는 대국 서버만 쓴다. 한 사람이 대기열·방·대국·신청 중 하나에만 있도록 한 곳에서 관리하기 위해서다.
-- Functions는 대국 상태를 쓰지 않는다. 채팅 권한을 확인할 때 대국 정보를 읽기만 한다.
+- Functions는 대국 상태를 쓰지 않는다. 채팅 권한을 확인할 때 대국 정보를 읽기만 한다. 예외로 회원 탈퇴를 처리할 때 `player_states`를 읽고, 탈퇴자를 지울 때 그 사람의 `player_states`, `ratings`, `rooms`, `challenges`를 지운다.
 - `users/{uid}`는 둘이 함께 쓴다. 닉네임은 Functions, 급수와 전적은 대국 서버가 쓴다. 같은 필드를 둘이 쓰지 않는다.
 - `coin_wallets/{uid}`는 둘이 같은 필드를 쓴다. 그래서 언제나 트랜잭션 안에서 읽고 쓴다(아래 "엽전").
 - 제재 확인: 대국 서버는 대기열·방·신청을 시작할 때 이용 정지와 영구 정지를 확인하고, Functions는 채팅을 받을 때 채팅 제한까지 확인한다.
@@ -93,10 +93,11 @@ flowchart LR
 | `opponentCoinsInsufficient` | 상대의 엽전이 참가비보다 적다 |
 | `coinPriceChanged` | 앱이 보여준 값이 지금 값과 다르다 |
 | `featureDisabled` | 운영 스위치로 멈춘 기능이다 |
+| `gamesBlocked` | `configs/app.serviceNotice.gamesBlocked`로 새 대국을 막았다 |
 
 ## 대국 서버 API — 초안
 
-모든 API는 로그인과 닉네임(`users/{uid}`)이 있어야 한다.
+모든 API는 로그인과 닉네임(`users/{uid}`)이 있어야 한다. `users.deletedAt`이 있으면 닉네임이 없는 것으로 본다(`profileRequired`). 요청에 `Origin` 헤더가 있고 `configs/app.webEnabled`가 꺼져 있으면 `featureDisabled`다(아래 "운영 스위치").
 
 ### 접속자
 
@@ -423,8 +424,62 @@ flowchart LR
 | `claimAttendance` | 오늘의 출석 엽전을 준다. 결과 `granted`, `amount`, `streak`, `balance`. 오늘 이미 받았으면 `granted`가 false다. 프로필이 없으면 `profileRequired` |
 | `sendChatMessage` | `channel`, `gameId?`, `text`를 받아 권한과 채팅 제한을 확인하고 검사한다. 통과하면 `chats_*`와 `chat_checks`에 쓰고, 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 거절 사유를 돌려준다. 아래 "채팅 Callable" |
 | `reportMessage` | `channel`, `gameId?`, `messageId`를 받아 신고된 메시지와 앞뒤 메시지, 검사 결과 사본으로 `reports`를 만든다. 아래 "채팅 Callable" |
-| `deleteAccount` | 회원 탈퇴. 지울 범위는 [database.md](./database.md)의 미정 |
+| `deleteAccount` | 회원 탈퇴. 아래 "회원 탈퇴" |
 | Admin Callable | 신고 대기열·상세, 검사 기록, 사용자 조회, 제재 걸기, `configs/app` 바꾸기. 모두 `admin: true` claim을 다시 확인한다. 아래 "Admin Callable" |
+
+### 회원 탈퇴 — 확정 (2026-11-06)
+
+지우고 남기는 범위는 [database.md](./database.md)의 회원 탈퇴다. 흐름은 `accountService.ts`에 있다.
+
+`deleteAccount`(파라미터 없음):
+
+1. 한 트랜잭션에서 `users`와 `player_states`를 읽는다. `gameId`가 있으면 `inGame`, 대기열·방·신청이 남아 있으면 `busy`로 거절한다. 아니면 `users.deletedAt`을 쓴다.
+2. RTDB `connections/{uid}`, `online_users/{uid}`를 지운다.
+3. Auth 계정을 비활성화하고 리프레시 토큰을 끊는다. 프로필이 없으면(닉네임을 정하기 전) Auth 계정을 바로 지운다.
+
+- 중간에 실패해 앱이 다시 부르면 이미 표시한 사용자는 2부터 이어 간다.
+- 같은 트랜잭션에서 `player_states`를 확인하므로, 대기열·방·신청에 없음을 확인한 뒤에는 대국 서버가 이 사람을 대국에 묶을 수 없다.
+- 이미 받은 ID token은 1시간까지 유효하다. 그동안 들어오는 호출은 대국 서버의 프로필 확인과 `sendChatMessage`, `changeNickname`의 `deletedAt` 확인이 막는다.
+
+앱(설정의 회원 탈퇴):
+
+1. 대국 중이면 묻지 않고 알린다. 아니면 확인을 받는다.
+2. iOS의 애플 로그인 사용자는 애플 로그인을 한 번 더 거쳐 받은 코드로 토큰을 철회한다(`revokeTokenWithAuthorizationCode`). 애플 기준이다([애플 안내](https://developer.apple.com/news/?id=12m75xbj)). 안드로이드는 SDK가 코드를 주지 않고 웹은 철회 API가 없어([Firebase 문서](https://firebase.google.com/docs/auth/flutter/federated-auth)) 하지 않는다. 필요해지면 서버에서 애플 REST API로 철회한다.
+3. 대국실 항목을 지우고 방, 대기열, 신청에서 나온다.
+4. `deleteAccount`를 부르고 로그아웃한 뒤 홈으로 간다.
+
+`purgeDeletedAccounts`(예약 작업): `users.deletedAt`이 30일 지난 사람을 지운다. 사람마다 다음 순서로 한다. 중간에 실패해도 `users` 문서가 남아 다음 날 처음부터 다시 하고, 모두 여러 번 해도 결과가 같다.
+
+1. 제재가 남아 있으면 `deleted_accounts`를 쓴다. Auth 계정을 읽어야 하므로 먼저 한다.
+2. `blocks`, `nickname_changes`, `challenges`, `rooms`를 지우고 `coin_transactions`, `sanctions`에 `expiresAt`을 쓴다.
+3. Auth 계정을 지운다.
+4. 한 트랜잭션에서 `deletedAt`이 그대로인지 확인하고 `users`, `users_private`, `coin_wallets`, `ratings`, `player_states`, `nicknames`를 지운다.
+
+`createProfile`은 호출자의 로그인 수단으로 `deleted_accounts`를 찾아 아직 막혀 있으면 `signupBlocked`로 거절한다.
+
+되돌리기는 `adminRestoreAccount`다(아래 "Admin Callable"). `deletedAt`을 지우고 Auth 계정을 다시 켠다. 사용자는 다시 로그인한다. 애플 토큰을 철회했어도 다시 로그인하면 같은 계정이다.
+
+| 오류 코드 (`details.code`) | 뜻 |
+|---|---|
+| `inGame` | 진행 중인 대국이 있다 |
+| `busy` | 대기열, 방, 신청에 남아 있다 |
+| `signupBlocked` | `createProfile`: 제재가 남은 채 지워진 계정이라 아직 가입할 수 없다 |
+
+### 운영 스위치 — 확정 (2026-11-06)
+
+[release.md](./release.md)의 운영 설정과 멈춤 스위치 중 구현 순서 4번이다. 앱은 `AppConfigManager`가 `configs/app`을 계속 듣는다. 읽기 전이거나 읽지 못하면 막지 않는다. 설정을 읽지 못한다고 앱을 멈추지 않기 위해서다.
+
+| 설정 | 앱 | 서버 |
+|---|---|---|
+| `chatEnabled` | 대국실의 채팅 탭, 대국·관전 화면의 채팅을 두지 않는다 | `sendChatMessage`가 `featureDisabled`로 거절한다. 이미 있는 메시지의 신고는 받는다 |
+| `signupEnabled` | 이메일 가입 링크를 숨기고, 프로필이 없는 사람이 로그인하면 알린 뒤 로그아웃한다 | `createProfile`이 `featureDisabled`로 거절한다. 기존 사용자는 그대로다 |
+| `webEnabled` | 웹은 어느 화면 대신 안내 화면만 보여준다 | `Origin` 헤더가 있는 요청을 `featureDisabled`로 거절한다. 대국 서버 API 모두와 앱이 쓰는 Callable이고 `deleteAccount`와 Admin Callable은 뺀다 |
+| `minAppVersion` | 앱(안드로이드, iOS)의 버전이 이보다 낮으면 업데이트 화면만 보여준다 | 막지 않는다 |
+| `serviceNotice` | 어느 화면에서든 한 번 띄운다. 대국 중이면 끝난 뒤 띄운다 | `gamesBlocked`면 새 대국을 만들지 않는다(`gamesBlocked`) |
+
+- `webEnabled`: 브라우저는 앱의 서버 호출에 `Origin` 헤더를 언제나 붙이고 스크립트로 뺄 수 없다. 앱(안드로이드, iOS)은 붙이지 않는다. 그래서 헤더로 웹을 가른다. 브라우저 밖에서 일부러 헤더를 뺀 호출까지 막지는 못하지만 웹 서비스를 멈추는 목적에는 충분하다. 관전처럼 앱이 RTDB와 Firestore를 바로 읽는 것은 보안 규칙으로 열려 있어 서버가 막지 않고 앱의 안내 화면이 막는다. 진행 중인 웹 대국은 끄면 수를 둘 수 없어 접속 끊김패나 시간패가 된다.
+- `minAppVersion`: 옛 앱은 버전을 보내지 않으므로 서버는 알 수 없다. 첫 버전부터 앱이 화면을 띄우므로 서버 거절 없이 둔다. 웹은 새로 고치면 새 버전이라 보지 않는다. 비교는 `1.2.3`의 세 숫자를 앞에서부터 본다.
+- `serviceNotice.gamesBlocked`: `createGame`이 RTDB에 쓰기 전에 거절하므로 빠른 대국, 신청 수락, 방 대국 시작, 다시 두기 모두 막힌다. 먼저 알리려고 `joinQuickQueue`, `sendChallenge`(방 초대 제외), `requestRematch`도 처음에 확인한다. 진행 중인 대국은 그대로 둔다. 방 만들기와 들어가기는 대국이 아니므로 받는다. 이미 대기열에 있는 사람은 그대로 기다리고 풀리면 매칭된다.
 
 ### 닉네임 바꾸기 — 확정 (2026-11-03 구현)
 
@@ -482,12 +537,14 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | `adminGetUser` | `uid` 또는 `nickname` 하나 | 사용자 기록. 닉네임은 지금 닉네임으로 찾고 영문 대소문자를 가리지 않는다(`nicknames`) |
 | `adminSanctionUser` | `uid`, `type`, `durationDays?`, `reason` | 신고 없이 제재를 건다. 결과는 바뀐 사용자 기록 |
 | `adminGetAppConfig` | 없음 | `configs/app`을 캐시 없이 읽는다 |
-| `adminUpdateAppConfig` | `config`(모든 필드) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록, 엽전 숫자는 아래 "configs/app"의 범위) |
+| `adminUpdateAppConfig` | `config`(모든 필드) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록, 엽전 숫자는 아래 "configs/app"의 범위). `minAppVersion`은 `1.2.3` 모양, `serviceNotice`는 null이거나 두 언어의 문구가 1~200자여야 한다 |
+| `adminRestoreAccount` | `uid`, `reason` | 탈퇴 표시를 지우고 Auth 계정을 다시 켠다(위 "회원 탈퇴"). 결과는 바뀐 사용자 기록. 탈퇴한 사용자가 아니면 `notDeleted`, 이미 지웠으면 `notFound` |
 | `adminGetCoinStats` | 없음 | 엽전 지표. 잔액 구간별 지갑 수(`balanceBuckets`)와 최근 7일의 끝난 대국 수, 시간 연장·놓아보기 내역 수, 광고 시청 내역 수(`days`). 모두 세기 쿼리다. 광고는 그 기능이 생기면 쌓인다 |
 
-- 사용자 기록: 프로필(`users`, 없으면 null), 지금 제재(`users_private.sanction`, 끝났지만 예약 작업이 아직 지우지 않은 것도 그대로), 최근 제재 이력·신고된 기록·검사 기록·닉네임 변경 각각 20개.
+- 사용자 기록: 프로필(`users`, 없으면 null, 탈퇴를 누른 시각 `deletedAt` 포함), 지금 제재(`users_private.sanction`, 끝났지만 예약 작업이 아직 지우지 않은 것도 그대로), 최근 제재 이력·신고된 기록·검사 기록·닉네임 변경 각각 20개.
 - 목록의 `cursor`는 앞 쪽 마지막 항목의 정렬 시각과 문서 ID(`afterMs`, `afterId`)다. 다음 쪽이 없으면 `nextCursor`가 null이다.
-- 오류의 `details.code`는 AdminErrorCode(`notFound`: 신고나 사용자가 없다, `alreadyResolved`: 이미 처리한 신고). 입력이 틀리면 `invalid-argument`다.
+- 프로필이 지워진 사용자도 제재, 신고, 검사 기록이 남아 있으면 사용자 기록을 돌려준다. 처리 전 신고를 열 수 있어야 하기 때문이다.
+- 오류의 `details.code`는 AdminErrorCode(`notFound`: 신고나 사용자가 없다, `alreadyResolved`: 이미 처리한 신고, `notDeleted`: 탈퇴한 사용자가 아니다). 입력이 틀리면 `invalid-argument`다.
 - 사유(`reason`)는 앞뒤 공백을 지우고 1~200자다. 제재 사유는 제재 팝업으로 사용자에게 보인다.
 
 #### 신고 처리와 제재
@@ -504,9 +561,10 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | 이름 | 주기 | 하는 일 |
 |---|---|---|
 | `cleanupChats` | 하루 한 번 (04:00 서울) | 90일 지난 RTDB 채팅을 지운다. 로비 채팅은 `sentAt`(색인)으로 지난 메시지를 지운다. 대국·관전 채팅은 대국 ID를 얕게(`shallow`) 읽고 마지막 메시지가 90일 지난 대국의 채팅을 통째로 지운다 |
+| `purgeDeletedAccounts` | 하루 한 번 (04:30 서울) | 탈퇴하고 30일 지난 사람을 지운다. 한 번에 100명까지(위 "회원 탈퇴") |
 | `expireSanctions` | 한 시간마다 | 끝난 제재(`sanction.endsAt`이 지난 채팅 제한·이용 정지)를 `users_private.sanction`에서 지운다. 한 번에 500명까지 읽고 트랜잭션에서 다시 확인한다. 이력(`sanctions`)은 남긴다(2026-11-03 구현) |
 
-Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
+Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`, `coin_transactions`, `sanctions`, `deleted_accounts`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
 
 ## Admin 웹 — 확정 (2026-11-03 구현)
 
@@ -514,7 +572,7 @@ Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./databas
 
 - 위치: `server/admin`. Vite, React, TypeScript(strict), React Router, Zustand, Tailwind CSS. Firebase는 Auth와 Functions(Callable)만 쓰고 Firestore를 직접 읽지 않는다.
 - 로그인: 이메일과 비밀번호. ID token의 `admin: true` custom claim이 있어야 화면을 연다. 없으면 "관리자 권한이 없어요"와 "권한 다시 확인"(새 ID token을 받아 claim 다시 확인)을 보여준다.
-- 화면: 신고(처리 전, 처리함), 신고 상세(대화, 검사 결과, 피신고자 기록, 처리 입력), 검사 기록, 사용자 찾기와 사용자 기록(신고 없이 제재 걸기), 엽전 지표(잔액 분포, 최근 7일의 시간 연장·놓아보기 비율과 광고 시청 수), 설정. 조치는 사유를 적고 "검토하기"를 누르면 대상, 종류, 기간, 연결된 신고를 다시 보여주는 확인 창을 거친다.
+- 화면: 신고(처리 전, 처리함), 신고 상세(대화, 검사 결과, 피신고자 기록, 처리 입력), 검사 기록, 사용자 찾기와 사용자 기록(신고 없이 제재 걸기, 탈퇴한 사용자는 표시와 탈퇴 되돌리기), 엽전 지표(잔액 분포, 최근 7일의 시간 연장·놓아보기 비율과 광고 시청 수), 설정. 조치는 사유를 적고 "검토하기"를 누르면 대상, 종류, 기간, 연결된 신고를 다시 보여주는 확인 창을 거친다.
 - 보안 규칙: 관리자도 `reports`, `sanctions`, `moderation_logs`, 다른 사람의 `users_private`를 직접 읽거나 쓰지 못한다. 모두 Admin Callable로만 다룬다.
 
 ### 관리자 지정
@@ -653,6 +711,11 @@ sequenceDiagram
 | `gamePracticeEnabled` | boolean | `true` | 대국 중 놓아보기를 받는다. 끄면 앱은 버튼을 숨기고 서버는 새 결제를 거절한다 | [release.md](./release.md) |
 | `coinTimeExtensionCost` | number | `30` | 시간 연장 1회 값. 1~300 | [monetization.md](./monetization.md) |
 | `coinGamePracticeCost` | number | `30` | 대국 중 놓아보기 판당 값. 1~300 | [monetization.md](./monetization.md) |
+| `chatEnabled` | boolean | `true` | 채팅을 받는다. 위 "운영 스위치" | [release.md](./release.md) |
+| `signupEnabled` | boolean | `true` | 새 가입을 받는다. 위 "운영 스위치" | [release.md](./release.md) |
+| `webEnabled` | boolean | `true` | 웹을 연다. 위 "운영 스위치" | [release.md](./release.md) |
+| `minAppVersion` | string | `1.0.0` | 이보다 낮은 앱에 업데이트 화면을 띄운다. `1.2.3` 모양 | [release.md](./release.md) |
+| `serviceNotice` | map? | `null` | 공지. `messageKo`, `messageEn`(string, 1~200자), `gamesBlocked`(boolean, 새 대국을 막는다). 앱 언어가 한국어면 `messageKo`, 그 밖에는 `messageEn`을 보여준다 | [release.md](./release.md) |
 
 뒤 순서의 멈춤 스위치는 그 기능을 만들 때 더한다([release.md](./release.md)의 운영 설정과 멈춤 스위치).
 
@@ -700,6 +763,10 @@ sequenceDiagram
 | 검사 기록 보관 | 1년 | [moderation.md](./moderation.md) |
 | 닉네임 길이와 글자 | 한글·영문·숫자 2~10자 | [screens.md](./screens.md) |
 | 닉네임 변경 제한 | 7일 | [screens.md](./screens.md) |
+| 탈퇴 뒤 지우기까지 | 30일 (`ACCOUNT_DELETION_GRACE_DAYS`) | [database.md](./database.md)의 회원 탈퇴 |
+| 탈퇴자의 엽전 내역, 제재 이력 보관 | 5년, 1년 (`COIN_TRANSACTION_RETENTION_YEARS`, `MODERATION_LOG_RETENTION_DAYS`) | [database.md](./database.md)의 회원 탈퇴 |
+| 예약 작업이 한 번에 지우는 탈퇴자 | 100명 (`ACCOUNT_PURGE_BATCH_SIZE`) | 이 문서 |
+| 공지 문구 길이 | 200자 (`SERVICE_NOTICE_MAX_LENGTH`) | 이 문서 |
 | 연속 출석 한 바퀴 | 7일 (`COIN_ATTENDANCE_STREAK_DAYS`) | [monetization.md](./monetization.md) |
 | 출석의 하루 기준 | 서울 0시 (`COIN_DAY_UTC_OFFSET_HOURS`, 앱 `coinDayUtcOffset`) | [monetization.md](./monetization.md) |
 | 잔액 분포 구간, 지표의 날 수 | `COIN_BALANCE_BUCKET_STARTS`, 7일 (`COIN_STATS_DAYS`) | 이 문서 |

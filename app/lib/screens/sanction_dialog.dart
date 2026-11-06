@@ -136,7 +136,7 @@ class SanctionDialog extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             // 이의가 있으면 {email}로 메일을 보내 주세요
-            l10n.sanctionAppeal(sanctionAppealEmail),
+            l10n.sanctionAppeal(supportEmail),
             style: const TextStyle(color: LightColors.subText),
           ),
         ],

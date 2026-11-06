@@ -6,7 +6,7 @@ part 'app_config.g.dart';
 ///
 /// 필드는 앱의 `AppConfig`(`app/lib/models/app_config.dart`), Functions의 `AppConfig`
 /// (`server/functions/src/models/appConfig.ts`)와 일치시킨다. 필드 설명은 `docs/server.md`의 "configs/app"에 있다.
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class AppConfig {
   /// 한 대국에서 끊겨 있어도 되는 시간 합계(초).
   final int disconnectLimitSeconds;
@@ -58,6 +58,21 @@ class AppConfig {
   /// 대국 중 놓아보기의 판당 값.
   final int coinGamePracticeCost;
 
+  /// 채팅을 받는다. 대국 서버는 쓰지 않는다.
+  final bool chatEnabled;
+
+  /// 새 가입을 받는다. 대국 서버는 쓰지 않는다.
+  final bool signupEnabled;
+
+  /// 웹을 연다. 끄면 `Origin` 헤더가 있는 호출을 거절한다.
+  final bool webEnabled;
+
+  /// 이보다 낮은 앱에 업데이트 화면을 띄운다. 대국 서버는 쓰지 않는다.
+  final String minAppVersion;
+
+  /// 공지. 없으면 null.
+  final ServiceNotice? serviceNotice;
+
   const AppConfig({
     required this.disconnectLimitSeconds,
     required this.quickRematchLimit,
@@ -76,7 +91,26 @@ class AppConfig {
     required this.gamePracticeEnabled,
     required this.coinTimeExtensionCost,
     required this.coinGamePracticeCost,
+    required this.chatEnabled,
+    required this.signupEnabled,
+    required this.webEnabled,
+    required this.minAppVersion,
+    required this.serviceNotice,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) => _$AppConfigFromJson(json);
+}
+
+/// 공지(`docs/server.md`의 운영 스위치).
+@JsonSerializable()
+class ServiceNotice {
+  final String messageKo;
+  final String messageEn;
+
+  /// 새 대국을 막는다. 진행 중인 대국은 그대로 둔다.
+  final bool gamesBlocked;
+
+  const ServiceNotice({required this.messageKo, required this.messageEn, required this.gamesBlocked});
+
+  factory ServiceNotice.fromJson(Map<String, dynamic> json) => _$ServiceNoticeFromJson(json);
 }

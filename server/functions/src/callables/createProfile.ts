@@ -2,7 +2,7 @@ import {HttpsError, onCall} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import {createProfile as createProfileInDb} from "../services/profileService";
 import {findNicknameProblem} from "../services/nicknameService";
-import {requireUid} from "./auth";
+import {requireUid, requireWebAllowed} from "./auth";
 
 interface CreateProfileParams {
   nickname: string;
@@ -25,6 +25,7 @@ function validateParams(requestParams: CreateProfileParams): void {
 export const createProfile = onCall<CreateProfileParams>(async (request): Promise<Record<string, never>> => {
   const requestParams = request.data;
   const uid = requireUid(request);
+  await requireWebAllowed(request);
   validateParams(requestParams);
   logger.debug("createProfile 시작", {uid});
   await createProfileInDb(uid, requestParams.nickname);

@@ -25,6 +25,24 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => $checkedCreate('AppC
     gamePracticeEnabled: $checkedConvert('gamePracticeEnabled', (v) => v as bool),
     coinTimeExtensionCost: $checkedConvert('coinTimeExtensionCost', (v) => (v as num).toInt()),
     coinGamePracticeCost: $checkedConvert('coinGamePracticeCost', (v) => (v as num).toInt()),
+    chatEnabled: $checkedConvert('chatEnabled', (v) => v as bool),
+    signupEnabled: $checkedConvert('signupEnabled', (v) => v as bool),
+    webEnabled: $checkedConvert('webEnabled', (v) => v as bool),
+    minAppVersion: $checkedConvert('minAppVersion', (v) => v as String),
+    serviceNotice: $checkedConvert(
+      'serviceNotice',
+      (v) => v == null ? null : ServiceNotice.fromJson(v as Map<String, dynamic>),
+    ),
   );
   return val;
 });
+
+ServiceNotice _$ServiceNoticeFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('ServiceNotice', json, ($checkedConvert) {
+      final val = ServiceNotice(
+        messageKo: $checkedConvert('messageKo', (v) => v as String),
+        messageEn: $checkedConvert('messageEn', (v) => v as String),
+        gamesBlocked: $checkedConvert('gamesBlocked', (v) => v as bool),
+      );
+      return val;
+    });

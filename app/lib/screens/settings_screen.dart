@@ -4,20 +4,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../config.dart';
 import '../l10n/app_localizations.dart';
 import '../managers/app_managers.dart';
 import '../models/app_language.dart';
 import '../models/sign_in_method.dart';
 import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_exception.dart';
 import '../utils/dialog_utils.dart';
 import '../widgets/adaptive_layout.dart';
 
 /// 설정(`docs/screens.md`의 설정). 내 정보에서 열고, 1024 이상은 왼쪽 메뉴로도 연다. 로그인하지 않아도 본다.
 ///
-/// 대국(소리, 진동, 대국 신청 받기), 계정(로그인 방식, 로그아웃), 언어, 정보(이용약관, 개인정보처리방침, 버전, 오픈소스 라이선스)
+/// 대국(소리, 진동, 대국 신청 받기), 계정(로그인 방식, 로그아웃, 회원 탈퇴), 언어, 정보(이용약관, 개인정보처리방침, 버전, 오픈소스 라이선스)
 /// 묶음을 둔다. 대국 신청 받기와 계정은 로그인한 사용자에게만 보여준다. 진동은 웹에서 울릴 수 없어 웹에서는 두지 않는다.
-/// 회원 탈퇴는 구현 순서 4번, 약관과 처리방침 연결은 구현 순서 9번에서 넣는다.
+/// 약관과 처리방침 연결은 구현 순서 9번에서 넣는다.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -35,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool? _challengesEnabled;
   var _changingChallengesEnabled = false;
   var _signingOut = false;
+  var _deletingAccount = false;
 
   // 앱 버전. 읽기 전과 읽지 못했을 때는 null이다.
   String? _version;
@@ -173,7 +176,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             minTileHeight: 56,
             // 로그아웃
             title: _buildRowTitle(l10n.settingsSignOut),
-            onTap: _signingOut ? null : _onSignOut,
+            onTap: _signingOut || _deletingAccount ? null : _onSignOut,
+          ),
+          ListTile(
+            minTileHeight: 56,
+            // 회원 탈퇴
+            title: _buildRowTitle(l10n.settingsDeleteAccount),
+            onTap: _signingOut || _deletingAccount ? null : _onDeleteAccount,
           ),
         ],
       ),
@@ -362,6 +371,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           _signingOut = false;
+        });
+      }
+    }
+  }
+
+  /// 확인을 받고 탈퇴한 뒤 홈으로 간다. 진행 중인 대국이 있으면 알리고 탈퇴하지 않는다(`docs/server.md`의 회원 탈퇴).
+  Future<void> _onDeleteAccount() async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    if (managers.playerStateManager.gameId != null) {
+      // 대국 중에는 탈퇴할 수 없어요
+      await DialogUtils.showMessage(context, message: l10n.settingsDeleteAccountInGame);
+      return;
+    }
+    final confirmed = await DialogUtils.showConfirm(
+      context,
+      // 탈퇴하면 급수, 전적, 엽전, 산 상품이 없어져요. 남은 엽전은 돌려받을 수 없어요.\n\n30일 뒤 모두 지우고, 그때까지 같은 계정으로 다시 가입할 수 없어요. 되돌리려면 그 안에 {email}로 알려 주세요.\n\n기보는 닉네임 없이 남고, 엽전 내역은 5년 보관해요.
+      message: l10n.settingsDeleteAccountConfirm(supportEmail),
+      // 탈퇴하기
+      confirmLabel: l10n.settingsDeleteAccountButton,
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      setState(() {
+        _deletingAccount = true;
+      });
+      await repositories.authRepository.revokeAppleSignIn();
+      await managers.lobbyPresenceManager.leaveBeforeSignOut();
+      await managers.playerStateManager.leaveMatching();
+      await managers.authManager.deleteAccount();
+      if (mounted) {
+        // 탈퇴했어요
+        await DialogUtils.showMessage(context, message: l10n.settingsDeleteAccountDone);
+      }
+      navigator.popUntil(_isFirstRoute);
+    } catch (error, stackTrace) {
+      if (error is AppException && error.code == AppErrorCode.signInCanceled) {
+        return;
+      }
+      developer.log('회원 탈퇴 실패', error: error, stackTrace: stackTrace);
+      if (mounted) {
+        // 탈퇴하지 못했어요. 잠시 후 다시 해 주세요
+        final message = error is AppException ? error.getMessage(l10n) : l10n.errorDeleteAccount;
+        await DialogUtils.showMessage(context, message: message);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _deletingAccount = false;
         });
       }
     }

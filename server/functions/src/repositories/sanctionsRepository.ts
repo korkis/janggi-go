@@ -1,6 +1,6 @@
-import {Transaction, getFirestore} from "firebase-admin/firestore";
+import {Timestamp, Transaction, getFirestore} from "firebase-admin/firestore";
 import {Sanction} from "../models/sanction";
-import {modelConverter} from "./firestore";
+import {modelConverter, updateQueryDocuments} from "./firestore";
 
 const COLLECTION = "sanctions";
 
@@ -19,6 +19,11 @@ export function createSanctionInTransaction(transaction: Transaction, sanction: 
   const ref = sanctionsCollection().doc();
   transaction.create(ref, sanction);
   return ref.id;
+}
+
+/** [uid]의 제재 이력에 [expiresAt]을 쓴다. TTL 정책으로 지운다(docs/database.md의 회원 탈퇴). */
+export async function setSanctionsExpiry(uid: string, expiresAt: Timestamp): Promise<void> {
+  await updateQueryDocuments(sanctionsCollection().where("uid", "==", uid), {expiresAt});
 }
 
 /** [uid]의 제재 이력을 최근 것부터 읽는다. 색인: `uid` + `createdAt` 내림차순(server/firestore.indexes.json). */

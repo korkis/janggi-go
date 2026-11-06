@@ -31,6 +31,12 @@ export const SANCTION_DURATION_DAYS = [1, 7, 30];
 /** 조치 사유의 최대 글자 수. Functions의 ADMIN_REASON_MAX_LENGTH와 같다. */
 export const REASON_MAX_LENGTH = 200;
 
+/** 공지 문구의 최대 글자 수. Functions의 SERVICE_NOTICE_MAX_LENGTH와 같다. */
+export const SERVICE_NOTICE_MAX_LENGTH = 200;
+
+/** configs/app.minAppVersion의 모양. Functions의 APP_VERSION_PATTERN과 같다. */
+export const APP_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+
 /** configs/app에 넣을 수 있는 값의 범위. Functions의 APP_CONFIG_LIMITS와 같다. */
 export const APP_CONFIG_LIMITS = {
   disconnectLimitSeconds: {min: 10, max: 300},

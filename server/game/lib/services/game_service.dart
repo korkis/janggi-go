@@ -57,6 +57,12 @@ class NewGameSettings {
   }
 }
 
+/// 공지(`configs/app.serviceNotice.gamesBlocked`)가 새 대국을 막고 있다. 앱에는 `gamesBlocked`로 간다.
+class GamesBlockedException extends CallableException {
+  const GamesBlockedException()
+    : super(CallableStatus.failedPrecondition, '지금은 새 대국을 만들 수 없습니다', code: GameErrorCode.gamesBlocked);
+}
+
 /// 대국을 만들고, 판정하고, 끝내는 흐름(`docs/server.md`의 대국 진행).
 ///
 /// 대국 상태는 RTDB `games_active`, 대국자 묶기와 기보는 Firestore에 둔다. 시각이 지나서 일어나는 일은 [taskScheduler]로
@@ -110,11 +116,13 @@ class GameService {
   /// 묶는 트랜잭션에서 참가비를 받는다. 묶지 못하면 참가비도 나가지 않는다. 엽전이 모자란 사람이 있으면
   /// [InsufficientCoinsException]을 던진다.
   /// 묶은 뒤 두 사람의 `online_users` 상태를 `playing`으로 바꾼다.
+  /// 공지가 새 대국을 막고 있으면 RTDB에 쓰기 전에 [GamesBlockedException]을 던진다.
   Future<String> createGame(ActiveGame game, {required DateTime now, String? gameId, GameBindingCheck? check}) async {
     final uids = [game.meta.players.cho.uid, game.meta.players.han.uid];
     await settlePreviousGames(uids, now);
 
     final appConfig = await configs.getAppConfig();
+    _checkGamesAllowed(appConfig);
     final newGameId = gameId ?? activeGames.createGameId();
     await activeGames.createGame(newGameId, game);
     try {
@@ -491,6 +499,16 @@ class GameService {
       } on CallableException catch (error) {
         logger.warning('이전 대국을 판정하지 못했습니다', {'uid': uid, 'gameId': gameId, 'code': error.code?.name});
       }
+    }
+  }
+
+  /// 공지가 새 대국을 막고 있으면 [GamesBlockedException]을 던진다. 대국을 만들기 전에 먼저 알릴 때 부른다. 대국을 만들 때
+  /// [createGame]이 다시 확인한다.
+  Future<void> checkGamesAllowed() async => _checkGamesAllowed(await configs.getAppConfig());
+
+  void _checkGamesAllowed(AppConfig appConfig) {
+    if (appConfig.serviceNotice?.gamesBlocked == true) {
+      throw const GamesBlockedException();
     }
   }
 

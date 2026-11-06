@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import {Timestamp, Transaction} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
-import {SANCTION_EXPIRE_BATCH_SIZE} from "../config";
+import {MODERATION_LOG_RETENTION_DAYS, SANCTION_EXPIRE_BATCH_SIZE} from "../config";
 import {ActiveSanction, SanctionType, UserPrivate} from "../models/userPrivate";
 import {runTransaction} from "../repositories/firestore";
 import {createSanctionInTransaction} from "../repositories/sanctionsRepository";
@@ -25,7 +25,7 @@ export interface SanctionRequest {
 }
 
 /** [sanction]이 [now]에 아직 대국이나 채팅을 막고 있는지. 경고와 끝난 제재는 막지 않는다. */
-function isBlocking(sanction: ActiveSanction | null, now: dayjs.Dayjs): boolean {
+export function isBlocking(sanction: ActiveSanction | null, now: dayjs.Dayjs): boolean {
   if (sanction === null || sanction.type === SanctionType.warning) {
     return false;
   }
@@ -34,14 +34,15 @@ function isBlocking(sanction: ActiveSanction | null, now: dayjs.Dayjs): boolean 
 
 /**
  * 트랜잭션 안에서 제재를 걸고 제재 ID를 돌려준다. `sanctions`에 이력을 만들고 `users_private.sanction`을 바꾼다.
- * [userPrivate]는 같은 트랜잭션에서 미리 읽은 값이다(트랜잭션은 읽기를 쓰기보다 먼저 한다).
+ * [userPrivate]는 같은 트랜잭션에서 미리 읽은 값이다(트랜잭션은 읽기를 쓰기보다 먼저 한다). null이면 이미 지운 탈퇴자이므로 이력에만
+ * 남기고 그 이력도 보관 기간 뒤 지운다(docs/database.md의 회원 탈퇴).
  *
  * 새 제재가 지금 걸린 제재를 바꾼다. 다만 경고는 아직 막고 있는 제재(채팅 제한, 이용 정지, 영구 정지)를 풀지 않도록 이력에만 남긴다.
  */
 export function applySanctionInTransaction(
   transaction: Transaction,
   request: SanctionRequest,
-  userPrivate: UserPrivate,
+  userPrivate: UserPrivate | null,
   now: dayjs.Dayjs,
 ): string {
   const endsAt =
@@ -56,8 +57,12 @@ export function applySanctionInTransaction(
     reportId: request.reportId,
     adminUid: request.adminUid,
     createdAt: startsAt,
+    ...(userPrivate === null && {
+      expiresAt: Timestamp.fromDate(now.add(MODERATION_LOG_RETENTION_DAYS, "day").toDate()),
+    }),
   });
-  const keepCurrent = request.type === SanctionType.warning && isBlocking(userPrivate.sanction ?? null, now);
+  const keepCurrent =
+    userPrivate === null || (request.type === SanctionType.warning && isBlocking(userPrivate.sanction ?? null, now));
   if (!keepCurrent) {
     updateSanctionInTransaction(transaction, request.uid, {type: request.type, endsAt, reason: request.reason});
   }

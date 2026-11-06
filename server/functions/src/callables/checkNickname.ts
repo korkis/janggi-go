@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import {NicknameRejectReason} from "../models/nickname";
 import {getNickname} from "../repositories/nicknamesRepository";
 import {findNicknameProblem, getNicknameKey} from "../services/nicknameService";
-import {requireUid} from "./auth";
+import {requireUid, requireWebAllowed} from "./auth";
 
 // 입력하는 동안 부르는 확인이라 형식이 틀려도 오류가 아니라 결과로 돌려준다. 이보다 길면 요청 자체를 거절한다.
 const MAX_REQUEST_NICKNAME_LENGTH = 100;
@@ -30,6 +30,7 @@ function validateParams(requestParams: CheckNicknameParams): void {
 export const checkNickname = onCall<CheckNicknameParams>(async (request): Promise<CheckNicknameResult> => {
   const requestParams = request.data;
   const uid = requireUid(request);
+  await requireWebAllowed(request);
   validateParams(requestParams);
 
   const problem = findNicknameProblem(requestParams.nickname);

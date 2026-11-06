@@ -236,10 +236,10 @@ void main() {
     expect(find.text('차단한 사람의 채팅 메시지와 대국 신청은 보이지 않아요'), findsOneWidget);
     expect(find.text('악당'), findsOneWidget);
     // 프로필을 찾지 못한 사람.
-    expect(find.text('알 수 없는 사용자'), findsOneWidget);
+    expect(find.text('탈퇴한 사용자'), findsOneWidget);
     expect(find.textContaining('차단'), findsWidgets);
     // 최근에 차단한 사람이 위에 있다.
-    expect(tester.getTopLeft(find.text('알 수 없는 사용자')).dy, lessThan(tester.getTopLeft(find.text('악당')).dy));
+    expect(tester.getTopLeft(find.text('탈퇴한 사용자')).dy, lessThan(tester.getTopLeft(find.text('악당')).dy));
 
     await _tap(tester, find.widgetWithText(OutlinedButton, '차단 풀기').last);
     expect(fakes.blocks.writes.last, 'delete me bad');

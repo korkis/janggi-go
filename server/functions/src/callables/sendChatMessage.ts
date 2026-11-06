@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import {defineSecret} from "firebase-functions/params";
 import {CHAT_MAX_LENGTH} from "../config";
 import {sendChatMessage as sendChatMessageInDb} from "../services/chatService";
-import {requireUid} from "./auth";
+import {requireUid, requireWebAllowed} from "./auth";
 import {ChatTargetParams, validateChatTarget} from "./chatParams";
 
 // OpenAI API 키. Secret Manager에 두고, 에뮬레이터는 server/functions/.secret.local에서 읽는다.
@@ -41,6 +41,7 @@ export const sendChatMessage = onCall<SendChatMessageParams>(
   async (request): Promise<SendChatMessageResult> => {
     const requestParams = request.data;
     const uid = requireUid(request);
+    await requireWebAllowed(request);
     validateParams(requestParams);
     const gameId = requestParams.gameId ?? null;
     logger.debug("sendChatMessage 시작", {uid, channel: requestParams.channel, gameId});

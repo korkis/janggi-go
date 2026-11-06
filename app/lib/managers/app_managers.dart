@@ -1,3 +1,4 @@
+import 'app_config_manager.dart';
 import 'auth_manager.dart';
 import 'block_manager.dart';
 import 'challenge_manager.dart';
@@ -15,6 +16,7 @@ import 'sanction_manager.dart';
 late AppManagers managers;
 
 class AppManagers {
+  final AppConfigManager appConfigManager;
   final AuthManager authManager;
   final PlayerStateManager playerStateManager;
   final ConnectionManager connectionManager;
@@ -29,6 +31,7 @@ class AppManagers {
   final CoinManager coinManager;
 
   AppManagers({
+    required this.appConfigManager,
     required this.authManager,
     required this.playerStateManager,
     required this.connectionManager,
@@ -48,6 +51,7 @@ class AppManagers {
     final playerStateManager = PlayerStateManager(authManager: authManager);
     final connectionManager = ConnectionManager(authManager: authManager, playerStateManager: playerStateManager);
     return AppManagers(
+      appConfigManager: AppConfigManager(),
       authManager: authManager,
       playerStateManager: playerStateManager,
       connectionManager: connectionManager,

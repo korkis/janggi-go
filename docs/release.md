@@ -19,7 +19,7 @@
 
 - 2단계에 만든 기능 모두. 접속자 탭은 사람이 적을 동안 `configs/app.onlineUsersVisible`로 꺼 둔다.
 - 엽전, 상점, 앱 결제, 앱 광고, 시간 연장, 대국 중 놓아보기.
-- 회원 탈퇴. 앱 안에서 할 수 있어야 한다(앱스토어 심사 기준). 지울 범위는 [database.md](./database.md)의 미정을 정한다.
+- 회원 탈퇴. 앱 안에서 할 수 있어야 한다(앱스토어 심사 기준). 지울 범위는 [database.md](./database.md)의 회원 탈퇴다.
 - 이용약관과 개인정보처리방침 화면.
 - 앱 최소 버전 안내. 서버와 맞지 않는 옛 앱에 업데이트 화면을 띄운다. 나중에 넣으면 첫 버전 사용자에게 띄울 수 없으므로 첫 버전에 넣는다.
 - 아래쪽 탭([screens.md](./screens.md)의 홈).
@@ -85,6 +85,7 @@
 - 앱에서 숨기는 것으로 끝내지 않고 서버 API도 같은 설정을 확인해 거절한다. 옛 앱과 조작된 앱도 멈추기 위해서다.
 - 앱이 읽어 둔 값과 서버 캐시 때문에 화면에는 조금 늦게 반영될 수 있다. 바로 막는 것은 서버다.
 - `configs/app`은 누구나 읽으므로 악용될 값(어뷰징 탐지 기준 등)은 넣지 않는다.
+- 구현 순서 4번의 스위치가 앱과 서버에서 하는 일은 [server.md](./server.md)의 운영 스위치다. `minAppVersion`만 서버가 거절하지 않는다. 옛 앱은 버전을 보내지 않기 때문이다.
 - Admin 웹의 설정 화면과 `adminUpdateAppConfig`의 범위 검사를 필드가 늘 때마다 함께 늘린다.
 
 설정으로 못 고치는 것: 지난 운영에 대한 책임, 본인인증 도입(앱 업데이트 필요), 나라별 판매 중단(스토어 콘솔), 산 엽전 환불(스토어 환불과 약관 절차).
@@ -98,12 +99,15 @@
 - `apple-app-site-association`의 Content-Type(Hosting 에뮬레이터는 headers를 적용하지 않는다).
 - 두 계정의 실제 대국, Cloud Tasks 예약 작업(시간패, 상차림 마감).
 - 실제 결제와 환불, AdMob 서버 콜백, FCM 알림.
+- iOS의 애플 로그인 사용자 탈퇴와 토큰 철회, 되돌린 뒤 다시 로그인.
+- 탈퇴 뒤 구글, 애플 로그인이 막히는지, `purgeDeletedAccounts` 예약 작업, Firestore TTL.
+- 업데이트 안내의 스토어 열기.
 
 운영 배포 전에 채울 값:
 
 - `configs/app`의 새 필드. 서버를 배포하기 전에 `npm run init-app-config`를 실행한다([server.md](./server.md)의 `configs/app`).
 - `assetlinks.json`의 Play App Signing SHA-256(지금은 개발 PC 디버그 키만 있다).
-- AASA의 `APPLE_TEAM_ID`, Associated Domains, `invite.html`의 `APP_STORE_URL`.
+- AASA의 `APPLE_TEAM_ID`, Associated Domains, `invite.html`의 `APP_STORE_URL`, `app/lib/config.dart`의 `appStoreUrl`.
 - 운영 Firestore 규칙. [server.md](./server.md) 구현 순서 1번에 2026-11-30까지 열려 있다고 적힌 규칙이 운영에 남아 있는지 확인한다.
 
 운영 배포는 사용자가 정한 때만 한다.
@@ -133,6 +137,10 @@ Claude가 초안을 쓰고 사용자가 읽은 뒤 공개한다.
 | RevenueCat | 미국 | 사용자 ID, 구매 내역 | 위치를 문서로 확인한다 |
 
 Firestore, 대국 서버, Functions는 서울에 있어 국외 이전이 아니다.
+
+### 처리방침에 넣을 것
+
+- 탈퇴 뒤 보관: 30일 뒤 지움, 엽전·구매 내역 5년, 제재 이력 1년, 신고와 검사 기록 1년, 채팅 90일, 기보는 uid로 계속, 제재가 남은 계정의 로그인 식별자 해시는 제재가 끝날 때까지([database.md](./database.md)의 회원 탈퇴).
 
 ### 약관에 넣을 것
 
@@ -183,10 +191,10 @@ Firestore, 대국 서버, Functions는 서울에 있어 국외 이전이 아니�
 | 2 | 시간 연장과 놓아보기 (high) | `useTimeExtension`, 대국 중 놓아보기 결제, 버튼 줄 시안(폭 320 포함), 확인 창 | 1 |
 | 3 | 아래쪽 탭과 설정 (medium) | 탭, 상점 아이콘 자리, 설정 묶음(소리, 진동, 신청 받기, 계정, 정보) | 없음 |
 | 4 | 회원 탈퇴와 운영 스위치 (high) | 지울 범위 결정, `deleteAccount`, 앱 최소 버전 안내, 14세 동의 문구, 채팅·가입·웹·공지 스위치 | 3 |
-| 5 | 상점과 앱 결제 (high) | 상점 화면, RevenueCat, 기물·광고 제거·충전, 기물 적용과 7일 체험, 환불 처리, 웹 상점 표시 | 1, 3 |
+| 5 | 상점과 앱 결제 (high) | 상점 화면, RevenueCat, 기물·광고 제거·충전, 기물 적용과 7일 체험, 환불 처리, 웹 상점 표시, 탈퇴자를 지울 때 RevenueCat 고객도 지우기 | 1, 3 |
 | 6 | 앱 광고 (high) | AdMob 배너, 보상형과 서버 검증, UMP와 ATT, 광고 제거 연동, `app-ads.txt` | 1, 5 |
 | 7 | 효과음과 진동 (medium) | 무료 음원 후보, 파일만 바꾸면 되는 구조, 설정 연결 | 3 |
-| 8 | 매칭 알림 (high) | FCM, 앱 끈 사람의 대기열과 매칭, 알림 권한 | 없음 |
+| 8 | 매칭 알림 (high) | FCM, 앱 끈 사람의 대기열과 매칭, 알림 권한, 탈퇴 때 FCM 토큰 지우기 | 없음 |
 | 9 | HTML 페이지와 문서 초안 (medium) | 규칙, 접장기, 약관, 처리방침, Crashlytics, 스토어 소개 글과 답안 | 없음 |
 | 10 | 운영 배포와 제출 | 사용자가 정한 때. 위 "운영 배포로만 확인할 것"과 출시 순서대로 | 모두 |
 

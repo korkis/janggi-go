@@ -3,9 +3,12 @@ import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import {NICKNAME_CHANGE_COOLDOWN_DAYS, NICKNAME_FREE_CHANGE_COUNT} from "../config";
+import {AccountErrorCode} from "../models/account";
+import {FeatureErrorCode} from "../models/feature";
 import {NicknameChangeErrorCode, NicknameRejectReason} from "../models/nickname";
 import {getWalletInTransaction} from "../repositories/coinWalletsRepository";
 import {getAppConfig} from "../repositories/configsRepository";
+import {getDeletedAccountInTransaction} from "../repositories/deletedAccountsRepository";
 import {runTransaction} from "../repositories/firestore";
 import {createNicknameChangeInTransaction} from "../repositories/nicknameChangesRepository";
 import {
@@ -23,6 +26,7 @@ import {
   getUserPrivateInTransaction,
   updateNicknameChangeInTransaction,
 } from "../repositories/usersPrivateRepository";
+import {getIdentityHashesByUid} from "./accountService";
 import {grantSignupInTransaction, spendNicknameChangeInTransaction} from "./coinService";
 import {getNicknameKey} from "./nicknameService";
 
@@ -32,24 +36,44 @@ const INITIAL_RANK_LEVEL = 1;
 /**
  * 첫 가입의 프로필을 만든다. `nicknames`, `users`, `users_private`와 가입 엽전을 한 트랜잭션으로 만든다.
  * 같은 닉네임으로 다시 부르면(응답을 못 받고 다시 누른 경우) 성공으로 보고 엽전도 다시 주지 않는다.
+ * `signupEnabled`가 꺼져 있으면 `featureDisabled`, 제재가 남은 채 지워진 계정이면 `signupBlocked`로 거절한다.
  */
 export async function createProfile(uid: string, nickname: string): Promise<void> {
   const nicknameKey = getNicknameKey(nickname);
-  const {coinSignupBonus} = await getAppConfig();
+  const [{coinSignupBonus, signupEnabled}, identityHashes] = await Promise.all([
+    getAppConfig(),
+    getIdentityHashesByUid(uid),
+  ]);
   const created = await runTransaction(async (transaction) => {
     const existingUser = await getUserInTransaction(transaction, uid);
     const reservation = await getNicknameInTransaction(transaction, nicknameKey);
+    const deletedAccounts = await Promise.all(
+      identityHashes.map((hash) => getDeletedAccountInTransaction(transaction, hash)),
+    );
     if (existingUser !== null) {
       if (existingUser.nickname === nickname) {
         return false;
       }
       throw new HttpsError("failed-precondition", "이미 프로필이 있습니다", {code: "profileExists"});
     }
+    if (!signupEnabled) {
+      throw new HttpsError("failed-precondition", "지금은 가입을 받지 않습니다", {
+        code: FeatureErrorCode.featureDisabled,
+      });
+    }
+    const now = Timestamp.now();
+    const blocked = deletedAccounts.some(
+      (account) => account !== null && (account.expiresAt === null || account.expiresAt.toMillis() > now.toMillis()),
+    );
+    if (blocked) {
+      throw new HttpsError("failed-precondition", "아직 가입할 수 없는 계정입니다", {
+        code: AccountErrorCode.signupBlocked,
+      });
+    }
     if (reservation !== null) {
       throw new HttpsError("already-exists", "이미 쓰는 닉네임입니다", {code: NicknameRejectReason.taken});
     }
 
-    const now = Timestamp.now();
     createNicknameInTransaction(transaction, nicknameKey, {uid, createdAt: now});
     createUserInTransaction(transaction, uid, {
       nickname,
@@ -89,7 +113,7 @@ export async function changeNickname(uid: string, nickname: string, coinCost: nu
     const userPrivate = await getUserPrivateInTransaction(transaction, uid);
     const reservation = await getNicknameInTransaction(transaction, nicknameKey);
     const wallet = await getWalletInTransaction(transaction, uid);
-    if (user === null || userPrivate === null || wallet === null) {
+    if (user === null || user.deletedAt != null || userPrivate === null || wallet === null) {
       throw new HttpsError("failed-precondition", "닉네임을 먼저 정해야 합니다", {
         code: NicknameChangeErrorCode.profileRequired,
       });

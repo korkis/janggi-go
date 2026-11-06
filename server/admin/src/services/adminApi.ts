@@ -48,6 +48,7 @@ export type AdminApiErrorKind =
   | "notFound"
   // 이미 처리한 신고다.
   | "alreadyResolved"
+  | "notDeleted"
   // 입력이 서버 검사를 통과하지 못했다.
   | "invalid"
   // 네트워크나 서버 문제. 다시 시도할 수 있다.
@@ -85,6 +86,9 @@ function toAdminApiError(callable: string, error: unknown): AdminApiError {
     return new AdminApiError("retryable", callable, "알 수 없는 오류");
   }
   const detailsCode = getDetailsCode((error as FirebaseError & {details?: unknown}).details);
+  if (detailsCode === "notDeleted") {
+    return new AdminApiError("notDeleted", callable, error.message);
+  }
   if (detailsCode === "alreadyResolved") {
     return new AdminApiError("alreadyResolved", callable, error.message);
   }
@@ -238,6 +242,7 @@ function parseUserHistory(value: unknown, path: string): UserHistoryView {
           losses: asNumber(stats.losses, `${itemPath}.stats.losses`),
         },
         createdAt: asNumber(profile.createdAt, `${itemPath}.createdAt`),
+        deletedAt: asNullable(profile.deletedAt, `${itemPath}.deletedAt`, asNumber),
       };
     }),
     sanction: asNullable(record.sanction, `${path}.sanction`, parseActiveSanction),
@@ -283,6 +288,18 @@ function parseAppConfig(value: unknown): AppConfig {
     gamePracticeEnabled: asBoolean(record.gamePracticeEnabled, "config.gamePracticeEnabled"),
     coinTimeExtensionCost: asNumber(record.coinTimeExtensionCost, "config.coinTimeExtensionCost"),
     coinGamePracticeCost: asNumber(record.coinGamePracticeCost, "config.coinGamePracticeCost"),
+    chatEnabled: asBoolean(record.chatEnabled, "config.chatEnabled"),
+    signupEnabled: asBoolean(record.signupEnabled, "config.signupEnabled"),
+    webEnabled: asBoolean(record.webEnabled, "config.webEnabled"),
+    minAppVersion: asString(record.minAppVersion, "config.minAppVersion"),
+    serviceNotice: asNullable(record.serviceNotice, "config.serviceNotice", (item, itemPath) => {
+      const notice = asRecord(item, itemPath);
+      return {
+        messageKo: asString(notice.messageKo, `${itemPath}.messageKo`),
+        messageEn: asString(notice.messageEn, `${itemPath}.messageEn`),
+        gamesBlocked: asBoolean(notice.gamesBlocked, `${itemPath}.gamesBlocked`),
+      };
+    }),
   };
 }
 
@@ -338,6 +355,10 @@ export function findUserByNickname(nickname: string): Promise<UserHistoryView> {
 
 export function sanctionUser(uid: string, input: SanctionInput): Promise<UserHistoryView> {
   return call("adminSanctionUser", {uid, ...input}, (data) => parseUserHistory(data, "user"));
+}
+
+export function restoreAccount(uid: string, reason: string): Promise<UserHistoryView> {
+  return call("adminRestoreAccount", {uid, reason}, (data) => parseUserHistory(data, "user"));
 }
 
 export function getAppConfig(): Promise<AppConfig> {

@@ -16,4 +16,6 @@ export interface User {
   rankLevel: number;
   stats: UserStats;
   createdAt: Timestamp;
+  // 회원 탈퇴를 누른 시각. 없거나 null이면 탈퇴하지 않았다(docs/database.md의 회원 탈퇴).
+  deletedAt?: Timestamp | null;
 }

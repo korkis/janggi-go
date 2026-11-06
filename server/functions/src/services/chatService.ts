@@ -5,6 +5,7 @@ import * as logger from "firebase-functions/logger";
 import {CHAT_RETENTION_DAYS, MODERATION_LOG_RETENTION_DAYS} from "../config";
 import {ChatChannel, ChatErrorCode} from "../models/chat";
 import {createChatCheck} from "../repositories/chatChecksRepository";
+import {getAppConfig} from "../repositories/configsRepository";
 import {createMessage, createMessageId} from "../repositories/chatMessagesRepository";
 import {createModerationLog} from "../repositories/moderationLogsRepository";
 import {getUser} from "../repositories/usersRepository";
@@ -16,7 +17,7 @@ import {ModerationApiError} from "./openAiModeration";
 /**
  * 채팅 메시지를 검사해 저장하고 메시지 ID를 돌려준다(docs/server.md의 sendChatMessage).
  *
- * 권한, 프로필, 제재를 확인한 뒤 금칙어와 OpenAI Moderation으로 검사한다. 통과하면 `chat_checks`와 채팅 경로에 쓴다.
+ * `chatEnabled`가 꺼져 있으면 `featureDisabled`로 거절한다. 권한, 프로필, 제재를 확인한 뒤 금칙어와 OpenAI Moderation으로 검사한다. 통과하면 `chat_checks`와 채팅 경로에 쓴다.
  * 걸리면 저장하지 않고 `moderation_logs`에 남긴 뒤 messageBlocked로 거절한다.
  */
 export async function sendChatMessage(
@@ -26,8 +27,11 @@ export async function sendChatMessage(
   text: string,
   apiKey: string,
 ): Promise<string> {
-  const [user, userPrivate] = await Promise.all([getUser(uid), getUserPrivate(uid)]);
-  if (user === null) {
+  const [user, userPrivate, {chatEnabled}] = await Promise.all([getUser(uid), getUserPrivate(uid), getAppConfig()]);
+  if (!chatEnabled) {
+    throw new HttpsError("failed-precondition", "지금은 채팅을 받지 않습니다", {code: ChatErrorCode.featureDisabled});
+  }
+  if (user === null || user.deletedAt != null) {
     throw new HttpsError("failed-precondition", "닉네임을 먼저 정해야 합니다", {code: ChatErrorCode.profileRequired});
   }
   requireNotChatSanctioned(userPrivate);

@@ -64,6 +64,12 @@ Future<bool> ensureSignedInWithProfile(BuildContext context, LoginPurpose purpos
   if (!context.mounted) {
     return false;
   }
+  if (!managers.appConfigManager.signupEnabled) {
+    // 지금은 새로 가입할 수 없어요
+    await DialogUtils.showMessage(context, message: AppLocalizations.of(context).errorSignupDisabled);
+    await authManager.signOut();
+    return false;
+  }
   final created = await Navigator.of(context)
       .push<bool>(MaterialPageRoute(builder: (context) => NicknameScreen(purpose: purpose)));
   return created == true;

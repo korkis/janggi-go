@@ -100,6 +100,22 @@ class FakeAuthRepository implements AuthRepository {
     _uidController.add(null);
   }
 
+  /// [revokeAppleSignIn]을 부른 횟수.
+  var appleRevokeCalls = 0;
+
+  /// 다음 [revokeAppleSignIn]이 이 오류로 실패한다.
+  Object? nextAppleRevokeError;
+
+  @override
+  Future<void> revokeAppleSignIn() async {
+    appleRevokeCalls++;
+    final error = nextAppleRevokeError;
+    if (error != null) {
+      nextAppleRevokeError = null;
+      throw error;
+    }
+  }
+
   @override
   Future<bool> isSignInValid() async => _uid != null && signInValid;
 
@@ -172,6 +188,11 @@ class FakeUserRepository implements UserRepository {
 
   @override
   Future<void> createProfile(String nickname) async {
+    final error = nextCreateProfileError;
+    if (error != null) {
+      nextCreateProfileError = null;
+      throw error;
+    }
     if (takenNicknames.contains(nickname.toLowerCase())) {
       throw AppException.fromNicknameRejectReason(NicknameRejectReason.taken);
     }
@@ -183,6 +204,25 @@ class FakeUserRepository implements UserRepository {
       createdAt: DateTime.utc(2026, 11, 2),
     );
   }
+
+  /// 다음 [deleteAccount]가 이 오류로 실패한다.
+  Object? nextDeleteAccountError;
+
+  /// 탈퇴한 사용자.
+  final deletedAccounts = <String>[];
+
+  @override
+  Future<void> deleteAccount() async {
+    final error = nextDeleteAccountError;
+    if (error != null) {
+      nextDeleteAccountError = null;
+      throw error;
+    }
+    deletedAccounts.add(authRepository.currentUid!);
+  }
+
+  /// 다음 [createProfile]이 이 오류로 실패한다.
+  Object? nextCreateProfileError;
 
   /// 바꾼 닉네임. 예: `me 장기신`.
   final nicknameChanges = <String>[];
@@ -226,6 +266,35 @@ class FakeConfigRepository implements ConfigRepository {
   /// `configs/app.gamePracticeEnabled`.
   var gamePracticeEnabled = true;
 
+  /// `configs/app.chatEnabled`.
+  var chatEnabled = true;
+
+  /// `configs/app.signupEnabled`.
+  var signupEnabled = true;
+
+  /// `configs/app.webEnabled`.
+  var webEnabled = true;
+
+  /// `configs/app.minAppVersion`.
+  var minAppVersion = '1.0.0';
+
+  /// `configs/app.serviceNotice`.
+  ServiceNotice? serviceNotice;
+
+  // [emitConfig]를 듣는 쪽에 알린다.
+  final _changes = StreamController<void>.broadcast();
+
+  /// 운영자가 설정을 바꾼 것처럼 위 값을 보낸다.
+  void emitConfig() => _changes.add(null);
+
+  @override
+  Stream<AppConfig?> watchAppConfig() async* {
+    yield await getAppConfig();
+    await for (final _ in _changes.stream) {
+      yield await getAppConfig();
+    }
+  }
+
   @override
   FirebaseFirestore get firestore => throw UnimplementedError();
 
@@ -248,6 +317,11 @@ class FakeConfigRepository implements ConfigRepository {
     gamePracticeEnabled: gamePracticeEnabled,
     coinTimeExtensionCost: 30,
     coinGamePracticeCost: 30,
+    chatEnabled: chatEnabled,
+    signupEnabled: signupEnabled,
+    webEnabled: webEnabled,
+    minAppVersion: minAppVersion,
+    serviceNotice: serviceNotice,
   );
 }
 

@@ -17,6 +17,10 @@ export function setWalletInTransaction(transaction: Transaction, uid: string, wa
   transaction.set(walletRef(uid), wallet);
 }
 
+export function deleteWalletInTransaction(transaction: Transaction, uid: string): void {
+  transaction.delete(walletRef(uid));
+}
+
 /** 잔액이 [min] 이상이고 [max] 미만인 지갑 수. [max]가 null이면 위를 막지 않는다. `balance` 단일 필드 색인을 쓴다. */
 export async function countWalletsInBalanceRange(min: number, max: number | null): Promise<number> {
   let query = getFirestore().collection(COLLECTION).where("balance", ">=", min);

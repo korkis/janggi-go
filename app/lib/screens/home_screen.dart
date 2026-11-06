@@ -403,7 +403,7 @@ class _RecentGamesSectionState extends State<_RecentGamesSection> {
         for (final item in games)
           RecordTile(
             item: item,
-            opponentNickname: _nicknames[item.opponent.uid] ?? l10n.unknownUser,
+            opponentNickname: _nicknames[item.opponent.uid] ?? l10n.deletedUser,
             onTap: () => openArchivedReview(context, item, _nicknames),
           ),
       ],

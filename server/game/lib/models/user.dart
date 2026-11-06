@@ -19,7 +19,17 @@ class User {
   @TimestampConverter()
   final DateTime createdAt;
 
-  const User({required this.nickname, required this.rankLevel, required this.stats, required this.createdAt});
+  /// 회원 탈퇴를 누른 시각. 없으면 null이다(`docs/database.md`의 회원 탈퇴). 대국 서버는 이 사용자를 프로필이 없는 것으로 본다.
+  @TimestampConverter()
+  final DateTime? deletedAt;
+
+  const User({
+    required this.nickname,
+    required this.rankLevel,
+    required this.stats,
+    required this.createdAt,
+    this.deletedAt,
+  });
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }

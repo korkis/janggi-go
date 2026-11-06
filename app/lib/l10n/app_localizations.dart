@@ -407,7 +407,7 @@ abstract class AppLocalizations {
   /// 로그인 창 맨 아래의 약관 동의 안내
   ///
   /// In ko, this message translates to:
-  /// **'계속하면 {terms}과 {privacy}에\n동의하는 것으로 봅니다.'**
+  /// **'계속하면 만 14세 이상이며 {terms}과 {privacy}에\n동의하는 것으로 봅니다.'**
   String loginTermsNotice(String terms, String privacy);
 
   /// 이메일 로그인 화면 제목
@@ -1907,8 +1907,8 @@ abstract class AppLocalizations {
   /// 프로필을 찾지 못한 사용자
   ///
   /// In ko, this message translates to:
-  /// **'알 수 없는 사용자'**
-  String get unknownUser;
+  /// **'탈퇴한 사용자'**
+  String get deletedUser;
 
   /// 차단 목록의 차단한 날짜
   ///
@@ -2617,6 +2617,84 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'오픈소스 라이선스'**
   String get settingsLicenses;
+
+  /// 설정의 계정 묶음
+  ///
+  /// In ko, this message translates to:
+  /// **'회원 탈퇴'**
+  String get settingsDeleteAccount;
+
+  /// 진행 중인 대국이 있을 때 회원 탈퇴를 누르면
+  ///
+  /// In ko, this message translates to:
+  /// **'대국 중에는 탈퇴할 수 없어요'**
+  String get settingsDeleteAccountInGame;
+
+  /// 회원 탈퇴 확인 창
+  ///
+  /// In ko, this message translates to:
+  /// **'탈퇴하면 급수, 전적, 엽전, 산 상품이 없어져요. 남은 엽전은 돌려받을 수 없어요.\n\n30일 뒤 모두 지우고, 그때까지 같은 계정으로 다시 가입할 수 없어요. 되돌리려면 그 안에 {email}로 알려 주세요.\n\n기보는 닉네임 없이 남고, 엽전 내역은 5년 보관해요.'**
+  String settingsDeleteAccountConfirm(String email);
+
+  /// 회원 탈퇴 확인 창의 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'탈퇴하기'**
+  String get settingsDeleteAccountButton;
+
+  /// 회원 탈퇴를 마쳤을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'탈퇴했어요'**
+  String get settingsDeleteAccountDone;
+
+  /// 회원 탈퇴 실패
+  ///
+  /// In ko, this message translates to:
+  /// **'탈퇴하지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorDeleteAccount;
+
+  /// 탈퇴해 비활성화된 계정으로 로그인했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'탈퇴한 계정이에요. 되돌리려면 {email}로 알려 주세요'**
+  String errorAccountDisabled(String email);
+
+  /// signupEnabled가 꺼져 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 새로 가입할 수 없어요'**
+  String get errorSignupDisabled;
+
+  /// 제재가 남은 채 지워진 계정으로 다시 가입할 때
+  ///
+  /// In ko, this message translates to:
+  /// **'이 계정은 지금 다시 가입할 수 없어요'**
+  String get errorSignupBlocked;
+
+  /// 공지가 새 대국을 막고 있을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 대국을 시작할 수 없어요'**
+  String get errorGamesBlocked;
+
+  /// 앱이 minAppVersion보다 낮을 때의 안내 화면
+  ///
+  /// In ko, this message translates to:
+  /// **'새 버전으로 업데이트해 주세요'**
+  String get updateRequiredMessage;
+
+  /// 업데이트 안내 화면의 버튼. 스토어를 연다
+  ///
+  /// In ko, this message translates to:
+  /// **'업데이트'**
+  String get updateRequiredButton;
+
+  /// webEnabled가 꺼져 있을 때 웹의 안내 화면
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 웹에서 이용할 수 없어요. 앱을 이용해 주세요'**
+  String get webClosedMessage;
 }
 
 class _AppLocalizationsDelegate

@@ -27,6 +27,8 @@ export const ChatErrorCode = {
   messageBlocked: "messageBlocked",
   // 메시지를 검사하지 못해 저장하지 않았다.
   moderationUnavailable: "moderationUnavailable",
+  // 운영 스위치(`chatEnabled`, `webEnabled`)로 멈췄다.
+  featureDisabled: "featureDisabled",
 } as const;
 export type ChatErrorCode = (typeof ChatErrorCode)[keyof typeof ChatErrorCode];
 

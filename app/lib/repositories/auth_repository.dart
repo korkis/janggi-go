@@ -82,6 +82,24 @@ class AuthRepository {
     await auth.signOut();
   }
 
+  /// iOS의 애플 로그인 사용자면 애플 로그인을 한 번 더 거쳐 받은 코드로 토큰을 철회한다(`docs/server.md`의 회원 탈퇴). 탈퇴 전에 부른다.
+  /// 사용자가 창을 닫으면 `signInCanceled`다. 안드로이드와 웹은 SDK가 지원하지 않아 하지 않는다.
+  Future<void> revokeAppleSignIn() async {
+    final user = auth.currentUser;
+    final apple = user?.providerData.any(_isAppleProvider) ?? false;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS || user == null || !apple) {
+      return;
+    }
+    final credential = await _runAuthCall(() => user.reauthenticateWithProvider(AppleAuthProvider()));
+    final code = credential.additionalUserInfo?.authorizationCode;
+    if (code == null) {
+      throw StateError('애플 로그인에서 authorizationCode를 받지 못했습니다');
+    }
+    await _runAuthCall(() => auth.revokeTokenWithAuthorizationCode(code));
+  }
+
+  static bool _isAppleProvider(UserInfo info) => info.providerId == 'apple.com';
+
   /// 남아 있는 로그인이 아직 쓸 수 있는지 토큰을 새로 받아 본다. 계정이 지워졌거나 막혔거나 토큰이 무효가 되었으면 false다.
   /// 네트워크 오류처럼 로그인과 상관없는 실패는 그대로 던진다.
   Future<bool> isSignInValid() async {
@@ -114,9 +132,9 @@ class AuthRepository {
   };
 
   /// Firebase Auth 호출의 오류 중 사용자에게 알릴 수 있는 것을 AppException으로 바꾼다.
-  Future<void> _runAuthCall(Future<Object?> Function() call) async {
+  Future<T> _runAuthCall<T>(Future<T> Function() call) async {
     try {
-      await call();
+      return await call();
     } on FirebaseAuthException catch (error) {
       final code = _getErrorCode(error.code);
       if (code == null) {
@@ -137,6 +155,7 @@ class AuthRepository {
     'weak-password' => AppErrorCode.weakPassword,
     'too-many-requests' => AppErrorCode.tooManyRequests,
     'network-request-failed' => AppErrorCode.network,
+    'user-disabled' => AppErrorCode.accountDisabled,
     _ => null,
   };
 }

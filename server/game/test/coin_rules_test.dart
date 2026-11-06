@@ -25,6 +25,11 @@ AppConfig _config({bool entryFeeEnabled = true}) => AppConfig(
   gamePracticeEnabled: true,
   coinTimeExtensionCost: 30,
   coinGamePracticeCost: 30,
+  chatEnabled: true,
+  signupEnabled: true,
+  webEnabled: true,
+  minAppVersion: '1.0.0',
+  serviceNotice: null,
 );
 
 final _now = DateTime.utc(2026, 11, 6, 3);

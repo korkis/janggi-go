@@ -149,8 +149,8 @@ void main() {
     // 상대의 급수는 대국 시작 때의 급수다.
     expect(find.text('상대 · 15급'), findsOneWidget);
     expect(find.text('외통승 · 3수'), findsOneWidget);
-    // 프로필이 없어진 상대는 알 수 없는 사용자로 보여준다.
-    expect(find.text('알 수 없는 사용자 · 18급'), findsOneWidget);
+    // 프로필이 없어진 상대는 탈퇴한 사용자로 보여준다.
+    expect(find.text('탈퇴한 사용자 · 18급'), findsOneWidget);
     expect(find.text('기권패 · 1수'), findsOneWidget);
     expect(find.text('승'), findsOneWidget);
     expect(find.text('패'), findsOneWidget);

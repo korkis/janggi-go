@@ -14,22 +14,19 @@ class UserRepository {
 
   CollectionReference<Map<String, dynamic>> get _users => firestore.collection('users');
 
-  /// 공개 프로필. 아직 닉네임을 정하지 않았으면 null.
-  Future<UserProfile?> getUser(String uid) async {
-    final snapshot = await _users.doc(uid).get();
-    final data = snapshot.data();
-    if (data == null) {
-      return null;
-    }
-    return UserProfile.fromJson(data);
-  }
+  /// 공개 프로필. 아직 닉네임을 정하지 않았거나 탈퇴했으면 null.
+  Future<UserProfile?> getUser(String uid) async => _decode(await _users.doc(uid).get());
 
-  /// 공개 프로필을 듣는다. 급수처럼 대국 서버가 바꾸는 값을 바로 보여줄 때 쓴다. 프로필이 없으면 null을 보낸다.
+  /// 공개 프로필을 듣는다. 급수처럼 대국 서버가 바꾸는 값을 바로 보여줄 때 쓴다. 프로필이 없거나 탈퇴했으면 null을 보낸다.
   Stream<UserProfile?> watchUser(String uid) => _users.doc(uid).snapshots().map(_decode);
 
   static UserProfile? _decode(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data();
-    return data == null ? null : UserProfile.fromJson(data);
+    if (data == null) {
+      return null;
+    }
+    final profile = UserProfile.fromJson(data);
+    return profile.deletedAt == null ? profile : null;
   }
 
   /// 닉네임 정하기 화면에서 입력하는 동안 [nickname]을 쓸 수 있는지 서버에 묻는다.
@@ -48,11 +45,31 @@ class UserRepository {
       await functions.httpsCallable('createProfile').call<Object?>({'nickname': nickname});
     } on FirebaseFunctionsException catch (error) {
       final details = error.details;
-      final reason = details is Map ? NicknameRejectReason.fromName(details['code']) : null;
-      if (reason == null) {
-        rethrow;
+      final code = details is Map ? details['code'] : null;
+      final reason = NicknameRejectReason.fromName(code);
+      if (reason != null) {
+        throw AppException.fromNicknameRejectReason(reason);
       }
-      throw AppException.fromNicknameRejectReason(reason);
+      switch (code) {
+        case 'featureDisabled':
+          throw const AppException(AppErrorCode.signupDisabled);
+        case 'signupBlocked':
+          throw const AppException(AppErrorCode.signupBlocked);
+      }
+      rethrow;
+    }
+  }
+
+  /// 회원 탈퇴(`docs/server.md`의 회원 탈퇴). 진행 중인 대국이 있으면 그 이유의 AppException을 던진다.
+  Future<void> deleteAccount() async {
+    try {
+      await functions.httpsCallable('deleteAccount').call<Object?>();
+    } on FirebaseFunctionsException catch (error) {
+      final details = error.details;
+      if (details is Map && details['code'] == 'inGame') {
+        throw const AppException(AppErrorCode.accountInGame);
+      }
+      rethrow;
     }
   }
 

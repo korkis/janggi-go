@@ -168,6 +168,11 @@ describe("users_private", () => {
 });
 
 describe("서버 전용 컬렉션", () => {
+  test("deleted_accounts는 읽지도 쓰지도 못한다", async () => {
+    await assertFails(getDoc(doc(userDb(ALICE), "deleted_accounts/hash")));
+    await assertFails(setDoc(doc(userDb(ALICE), "deleted_accounts/hash"), {expiresAt: null}));
+  });
+
   test("nicknames는 읽지도 쓰지도 못한다", async () => {
     await assertFails(getDoc(doc(userDb(ALICE), "nicknames/앨리스")));
     await assertFails(setDoc(doc(userDb(BOB), "nicknames/밥"), {uid: BOB}));

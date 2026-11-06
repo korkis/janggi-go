@@ -367,6 +367,11 @@ class _NicknameScreenState extends State<NicknameScreen> {
       if (!mounted) {
         return;
       }
+      if (error is AppException &&
+          (error.code == AppErrorCode.signupDisabled || error.code == AppErrorCode.signupBlocked)) {
+        await _leaveSignup(error.getMessage(l10n));
+        return;
+      }
       final reason = error is AppException ? _getRejectReason(error.code) : null;
       if (reason != null) {
         setState(() {
@@ -383,6 +388,15 @@ class _NicknameScreenState extends State<NicknameScreen> {
       if (mounted) {
         setState(() => _submitting = false);
       }
+    }
+  }
+
+  /// 가입이 막혔다. 첫 가입 화면에는 뒤로 가기가 없으므로 알린 뒤 로그아웃하고 닫는다.
+  Future<void> _leaveSignup(String message) async {
+    await DialogUtils.showMessage(context, message: message);
+    await managers.authManager.signOut();
+    if (mounted) {
+      Navigator.of(context).pop(false);
     }
   }
 

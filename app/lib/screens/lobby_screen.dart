@@ -24,7 +24,8 @@ import 'spectate_screen.dart';
 
 /// 대국실(`docs/screens.md`의 대국실). 방 목록, 접속자, 로비 채팅 세 탭이 있다.
 ///
-/// 접속자 탭은 `configs/app.onlineUsersVisible`이 켜져 있을 때만 보여준다. 꺼져 있으면 방 목록과 채팅 두 탭이다.
+/// 접속자 탭은 `configs/app.onlineUsersVisible`이 켜져 있을 때만 보여준다. 꺼져 있으면 방 목록과 채팅 두 탭이다. 채팅 탭은
+/// `configs/app.chatEnabled`가 꺼져 있으면 두지 않는다.
 ///
 /// 방 목록은 공개되어 상대를 기다리는 방을 한 번 읽고, 당겨서 새로 읽는다(`docs/dev_rules.md`의 실시간이 아닌 목록).
 /// 열린 방이 없으면 진행 중인 대국 관전 목록을 대신 보여준다(`docs/game/matching.md`의 방 목록). AI 대국 버튼은 AI 대국(4단계)이
@@ -85,7 +86,12 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(listenable: managers.appConfigManager, builder: _buildPage);
+  }
+
+  Widget _buildPage(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
+    final chatEnabled = managers.appConfigManager.chatEnabled;
     final rooms = RefreshIndicator(onRefresh: _loadRooms, child: _buildList(context));
     final scaffold = Scaffold(
       appBar: AppBar(
@@ -107,7 +113,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             // 접속자
             if (_onlineUsersVisible) Tab(text: l10n.lobbyTabUsers),
             // 채팅
-            Tab(text: l10n.chat),
+            if (chatEnabled) Tab(text: l10n.chat),
           ],
         ),
       ),
@@ -116,10 +122,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
           children: [
             rooms,
             if (_onlineUsersVisible) const OnlineUsersTab(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: ChatView(chats: [_chat], style: ChatStyle.light),
-            ),
+            if (chatEnabled)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: ChatView(chats: [_chat], style: ChatStyle.light),
+              ),
           ],
         ),
       ),
@@ -127,10 +134,10 @@ class _LobbyScreenState extends State<LobbyScreen> {
     return AppPage(
       menu: AppMenu.lobby,
       layout: PageLayout.wide,
-      // 접속자 탭이 나타나면 탭 수가 바뀌므로 새 탭 컨트롤러를 만든다.
+      // 접속자 탭이나 채팅 탭이 나타나면 탭 수가 바뀌므로 새 탭 컨트롤러를 만든다.
       child: DefaultTabController(
-        key: ValueKey(_onlineUsersVisible),
-        length: _onlineUsersVisible ? 3 : 2,
+        key: ValueKey((_onlineUsersVisible, chatEnabled)),
+        length: 1 + (_onlineUsersVisible ? 1 : 0) + (chatEnabled ? 1 : 0),
         child: scaffold,
       ),
     );

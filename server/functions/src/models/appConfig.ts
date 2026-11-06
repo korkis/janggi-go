@@ -1,3 +1,11 @@
+/** 공지(docs/server.md의 운영 스위치). 앱 언어가 한국어면 [messageKo], 그 밖에는 [messageEn]을 보여준다. */
+export interface ServiceNotice {
+  messageKo: string;
+  messageEn: string;
+  // 새 대국을 막는다. 진행 중인 대국은 그대로 둔다.
+  gamesBlocked: boolean;
+}
+
 /**
  * Firestore `configs/app`. 앱, Functions, 대국 서버가 같이 읽는 운영 설정이다.
  * 필드는 앱의 `AppConfig`(app/lib/models/app_config.dart)와 일치시킨다. 필드 설명은 docs/server.md의 "configs/app".
@@ -20,6 +28,11 @@ export interface AppConfig {
   gamePracticeEnabled: boolean;
   coinTimeExtensionCost: number;
   coinGamePracticeCost: number;
+  chatEnabled: boolean;
+  signupEnabled: boolean;
+  webEnabled: boolean;
+  minAppVersion: string;
+  serviceNotice: ServiceNotice | null;
 }
 
 /** configs/app의 처음 값(docs/server.md의 "configs/app"). */
@@ -41,4 +54,9 @@ export const INITIAL_APP_CONFIG: AppConfig = {
   gamePracticeEnabled: true,
   coinTimeExtensionCost: 30,
   coinGamePracticeCost: 30,
+  chatEnabled: true,
+  signupEnabled: true,
+  webEnabled: true,
+  minAppVersion: "1.0.0",
+  serviceNotice: null,
 };

@@ -64,10 +64,11 @@ class QuickMatchService {
 
   /// [uid]를 대기열에 넣고 바로 한 번 매칭을 시도한다. 찾으면 새 대국 ID, 못 찾으면 null을 돌려준다.
   ///
-  /// 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`, 대기열이 아닌 다른 것(방, 대국, 신청)에 있으면
-  /// `busy`로 거절한다. 이미 대기열에 있으면
+  /// 공지가 새 대국을 막고 있으면 `gamesBlocked`, 이용 정지 중이면 `sanctioned`, 엽전이 참가비보다 적으면 `coinsInsufficient`,
+  /// 대기열이 아닌 다른 것(방, 대국, 신청)에 있으면 `busy`로 거절한다. 이미 대기열에 있으면
   /// 기다린 시간을 그대로 두고 매칭만 다시 시도한다. 못 찾으면 범위를 넓혀 다시 찾는 `retryQuickMatch`를 예약한다.
   Future<String?> joinQueue(String uid, {required DateTime now}) async {
+    await gameService.checkGamesAllowed();
     await gameService.checkNotSanctioned(uid, now);
     await gameService.settlePreviousGames([uid], now);
     await gameService.checkHasEntryFee(uid);
@@ -91,7 +92,14 @@ class QuickMatchService {
       return now;
     });
 
-    final gameId = await _tryMatch(uid, now);
+    final String? gameId;
+    try {
+      gameId = await _tryMatch(uid, now);
+    } on GamesBlockedException {
+      // 확인한 뒤에 막혔다. 앱이 대기 화면을 닫으므로 대기열에 남기지 않는다.
+      await leaveQueue(uid, now: now);
+      rethrow;
+    }
     if (gameId == null) {
       await _scheduleRetry(uid, joinedAt, now);
     }
@@ -120,7 +128,7 @@ class QuickMatchService {
   /// `retryQuickMatch` 예약 작업. [joinedAt]에 대기열에 들어온 [uid]가 아직 기다리고 있으면 넓어진 범위로 다시 찾는다.
   ///
   /// 그새 나갔거나 매칭됐거나 다시 들어왔으면(기다린 시각이 다르다) 아무것도 하지 않는다. 앱이 꺼져 연결이 하나도 없으면
-  /// 대기열에서 뺀다. 계속 못 찾으면 [stepInterval] 뒤에 다시 예약한다.
+  /// 대기열에서 뺀다. 계속 못 찾거나 공지가 새 대국을 막고 있으면 [stepInterval] 뒤에 다시 예약한다.
   Future<void> retryMatch(String uid, {required int joinedAt, required DateTime now}) async {
     final entry = await quickQueue.getEntry(uid);
     if (entry == null || entry.joinedAt.millisecondsSinceEpoch != joinedAt) {
@@ -133,13 +141,16 @@ class QuickMatchService {
       logger.info('retryQuickMatch 연결이 없어 대기열에서 뺌', {'uid': uid});
       return;
     }
-    final String? gameId;
+    String? gameId;
     try {
       gameId = await _tryMatch(uid, now);
     } on InsufficientCoinsException {
       // 기다리는 동안 엽전을 썼다. _tryMatch가 이미 대기열에서 뺐다.
       logger.info('retryQuickMatch 엽전이 모자라 대기열에서 뺌', {'uid': uid});
       return;
+    } on GamesBlockedException {
+      // 공지가 풀리면 다시 찾도록 그대로 기다린다.
+      logger.debug('retryQuickMatch 공지가 새 대국을 막고 있습니다', {'uid': uid});
     }
     if (gameId == null) {
       await _scheduleRetry(uid, entry.joinedAt, now);

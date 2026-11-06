@@ -6,7 +6,9 @@ import 'package:janggigo_game/firebase/firestore_client.dart';
 import 'package:janggigo_game/http/callable.dart';
 import 'package:janggigo_game/http/callable_handler.dart';
 import 'package:janggigo_game/logging.dart';
+import 'package:janggigo_game/models/app_config.dart';
 import 'package:janggigo_game/models/user.dart';
+import 'package:janggigo_game/repositories/configs_repository.dart';
 import 'package:janggigo_game/repositories/users_repository.dart';
 import 'package:janggigo_game/tasks/task_scheduler.dart';
 import 'package:shelf/shelf.dart';
@@ -35,21 +37,28 @@ void main() {
     'exp': toSeconds(now.add(const Duration(hours: 1))),
   });
 
-  Handler createHandler(CallableEndpoint endpoint, {Map<String, User> users = const {}}) {
+  Handler createHandler(CallableEndpoint endpoint, {Map<String, User> users = const {}, bool webEnabled = true}) {
     return createCallableHandler(
       endpoint: endpoint,
       idTokenVerifier: verifier,
       usersRepository: _FakeUsersRepository(users),
+      configsRepository: _FakeConfigsRepository(webEnabled: webEnabled),
       logger: logger,
       clock: () => now,
     );
   }
 
-  Request callRequest(Object? body, {String? token, String method = 'POST', String contentType = 'application/json'}) {
+  Request callRequest(
+    Object? body, {
+    String? token,
+    String method = 'POST',
+    String contentType = 'application/json',
+    String? origin,
+  }) {
     return Request(
       method,
       Uri.parse('http://localhost/devPing'),
-      headers: {'Content-Type': contentType, 'Authorization': ?token == null ? null : 'Bearer $token'},
+      headers: {'Content-Type': contentType, 'Authorization': ?token == null ? null : 'Bearer $token', 'Origin': ?origin},
       body: body is String ? body : jsonEncode(body),
     );
   }
@@ -61,6 +70,51 @@ void main() {
   }
 
   group('createCallableHandler', () {
+    group('운영 스위치와 탈퇴', () {
+      CallableEndpoint endpoint() => DevPingEndpoint(taskScheduler: _RecordingTaskScheduler(), logger: logger);
+
+      test('webEnabled를 끄면 Origin 헤더가 있는 호출만 featureDisabled로 거절한다', () async {
+        final handler = createHandler(endpoint(), users: {'user-1': user}, webEnabled: false);
+
+        final (webStatus, webBody) = await call(
+          handler,
+          callRequest({'data': {}}, token: tokenFor('user-1'), origin: 'https://janggi-go.web.app'),
+        );
+        expect(webStatus, 400);
+        expect(((webBody['error'] as Map)['details'] as Map)['code'], 'featureDisabled');
+
+        final (appStatus, _) = await call(handler, callRequest({'data': {}}, token: tokenFor('user-1')));
+        expect(appStatus, 200);
+      });
+
+      test('webEnabled가 켜져 있으면 Origin 헤더가 있어도 받는다', () async {
+        final handler = createHandler(endpoint(), users: {'user-1': user});
+
+        final (status, _) = await call(
+          handler,
+          callRequest({'data': {}}, token: tokenFor('user-1'), origin: 'https://janggi-go.web.app'),
+        );
+
+        expect(status, 200);
+      });
+
+      test('탈퇴한 사용자는 프로필이 없는 것으로 보고 profileRequired로 거절한다', () async {
+        final deleted = User(
+          nickname: '장기고수',
+          rankLevel: 1,
+          stats: const UserStats(games: 0, wins: 0, losses: 0),
+          createdAt: now,
+          deletedAt: now,
+        );
+        final handler = createHandler(endpoint(), users: {'user-1': deleted});
+
+        final (status, body) = await call(handler, callRequest({'data': {}}, token: tokenFor('user-1')));
+
+        expect(status, 400);
+        expect(((body['error'] as Map)['details'] as Map)['code'], 'profileRequired');
+      });
+    });
+
     test('성공하면 {"result": ...}를 돌려준다', () async {
       final scheduler = _RecordingTaskScheduler();
       final handler = createHandler(
@@ -226,6 +280,41 @@ void main() {
     expect(getBearerToken(withAuthorization('Basic abc')), isNull);
     expect(getBearerToken(withAuthorization(null)), isNull);
   });
+}
+
+class _FakeConfigsRepository implements ConfigsRepository {
+  final bool webEnabled;
+
+  _FakeConfigsRepository({required this.webEnabled});
+
+  @override
+  Future<AppConfig> getAppConfig() async => AppConfig(
+    disconnectLimitSeconds: 30,
+    quickRematchLimit: 5,
+    onlineUsersVisible: false,
+    autoSanctionEnabled: false,
+    heartbeatSeconds: 5,
+    entryFeeEnabled: true,
+    coinSignupBonus: 300,
+    coinEntryFee: 10,
+    coinWinReward: 12,
+    coinLossReward: 0,
+    coinAttendanceReward: 30,
+    coinAttendanceStreakReward: 100,
+    coinNicknameChangeCost: 300,
+    timeExtensionEnabled: true,
+    gamePracticeEnabled: true,
+    coinTimeExtensionCost: 30,
+    coinGamePracticeCost: 30,
+    chatEnabled: true,
+    signupEnabled: true,
+    webEnabled: webEnabled,
+    minAppVersion: '1.0.0',
+    serviceNotice: null,
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeUsersRepository implements UsersRepository {

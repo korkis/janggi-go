@@ -1,4 +1,6 @@
 import {CallableRequest, HttpsError} from "firebase-functions/https";
+import {FeatureErrorCode} from "../models/feature";
+import {getAppConfig} from "../repositories/configsRepository";
 
 /** 로그인한 호출자의 uid. 로그인하지 않았으면 unauthenticated 오류를 던진다. */
 export function requireUid(request: CallableRequest): string {
@@ -7,6 +9,20 @@ export function requireUid(request: CallableRequest): string {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다");
   }
   return uid;
+}
+
+/**
+ * 웹을 멈췄으면 웹에서 온 호출을 `featureDisabled`로 거절한다(docs/server.md의 운영 스위치). 브라우저는 `Origin` 헤더를 언제나 붙이고
+ * 앱(안드로이드, iOS)은 붙이지 않는다. 앱이 쓰는 Callable이 부른다. Admin 웹도 브라우저이므로 Admin Callable은 부르지 않는다.
+ */
+export async function requireWebAllowed(request: CallableRequest): Promise<void> {
+  if (request.rawRequest.headers?.origin === undefined) {
+    return;
+  }
+  const {webEnabled} = await getAppConfig();
+  if (!webEnabled) {
+    throw new HttpsError("failed-precondition", "지금은 웹을 쓸 수 없습니다", {code: FeatureErrorCode.featureDisabled});
+  }
 }
 
 /**

@@ -82,6 +82,12 @@ class AuthManager extends ChangeNotifier {
     await _syncUid(null);
   }
 
+  /// 회원 탈퇴하고 로그아웃한다(`docs/server.md`의 회원 탈퇴).
+  Future<void> deleteAccount() async {
+    await repositories.userRepository.deleteAccount();
+    await signOut();
+  }
+
   /// 지금 로그인한 사용자의 프로필을 다 읽을 때까지 기다린다. 로그인 직후 프로필이 있는지 볼 때 쓴다.
   Future<void> ensureProfileLoaded() => _syncUid(repositories.authRepository.currentUid);
 
@@ -113,11 +119,18 @@ class AuthManager extends ChangeNotifier {
 
   /// 프로필을 읽는다. 실패했는데 남아 있는 로그인을 더 쓸 수 없으면(계정이 지워졌거나 토큰이 무효) 로그아웃하고 오류 없이
   /// 끝낸다. 웹은 지난 로그인을 브라우저에 남겨 두므로 그 로그인으로 읽기가 계속 거절될 수 있다. 네트워크 오류처럼 로그인이
-  /// 멀쩡한 실패는 로그인을 두고 오류를 던진다.
+  /// 멀쩡한 실패는 로그인을 두고 오류를 던진다. 프로필이 없을 때도 로그인을 확인한다. 다른 기기에서 탈퇴했으면 프로필이 없는 것으로
+  /// 읽히는데, 닉네임 정하기로 보내지 않기 위해서다.
   Future<void> _loadProfile(String uid) async {
     try {
       final profile = await repositories.userRepository.getUser(uid);
       if (_uid != uid) {
+        return;
+      }
+      if (profile == null && await _isSignInInvalid()) {
+        _profileLoad = null;
+        developer.log('AuthManager 프로필이 없고 로그인이 무효라 로그아웃');
+        await signOut();
         return;
       }
       _profile = profile;

@@ -246,7 +246,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String loginTermsNotice(String terms, String privacy) {
-    return 'By continuing, you agree to the\n$terms and $privacy.';
+    return 'By continuing, you confirm you\'re 14 or older and agree to the\n$terms and $privacy.';
   }
 
   @override
@@ -1205,7 +1205,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnblock => 'Couldn\'t unblock. Please try again later';
 
   @override
-  String get unknownUser => 'Unknown player';
+  String get deletedUser => 'Deleted player';
 
   @override
   String blockListDate(DateTime date) {
@@ -1662,4 +1662,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLicenses => 'Open source licenses';
+
+  @override
+  String get settingsDeleteAccount => 'Delete account';
+
+  @override
+  String get settingsDeleteAccountInGame =>
+      'You can\'t delete your account during a game';
+
+  @override
+  String settingsDeleteAccountConfirm(String email) {
+    return 'Your rank, record, coins and purchases will be gone. Remaining coins can\'t be refunded.\n\nEverything is erased after 30 days, and you can\'t sign up again with this account until then. To undo this, email $email within that time.\n\nGame records stay without your nickname, and coin history is kept for 5 years.';
+  }
+
+  @override
+  String get settingsDeleteAccountButton => 'Delete';
+
+  @override
+  String get settingsDeleteAccountDone => 'Your account has been deleted';
+
+  @override
+  String get errorDeleteAccount =>
+      'Couldn\'t delete your account. Please try again later';
+
+  @override
+  String errorAccountDisabled(String email) {
+    return 'This account has been deleted. To undo this, email $email';
+  }
+
+  @override
+  String get errorSignupDisabled => 'New sign-ups are closed right now';
+
+  @override
+  String get errorSignupBlocked =>
+      'This account can\'t sign up again right now';
+
+  @override
+  String get errorGamesBlocked => 'New games can\'t be started right now';
+
+  @override
+  String get updateRequiredMessage => 'Please update to the new version';
+
+  @override
+  String get updateRequiredButton => 'Update';
+
+  @override
+  String get webClosedMessage =>
+      'The web version isn\'t available right now. Please use the app';
 }

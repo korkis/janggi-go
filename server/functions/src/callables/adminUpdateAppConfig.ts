@@ -1,6 +1,6 @@
 import {HttpsError, onCall} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
-import {APP_CONFIG_LIMITS} from "../config";
+import {APP_CONFIG_LIMITS, APP_VERSION_PATTERN, SERVICE_NOTICE_MAX_LENGTH} from "../config";
 import {AppConfig, INITIAL_APP_CONFIG} from "../models/appConfig";
 import {setAppConfig} from "../repositories/configsRepository";
 import {requireAdmin} from "./auth";
@@ -19,7 +19,30 @@ const BOOLEAN_KEYS: (keyof AppConfig)[] = [
   "entryFeeEnabled",
   "timeExtensionEnabled",
   "gamePracticeEnabled",
+  "chatEnabled",
+  "signupEnabled",
+  "webEnabled",
 ];
+
+/** 공지는 없거나, 두 언어의 문구가 1~SERVICE_NOTICE_MAX_LENGTH자이고 gamesBlocked가 boolean이어야 한다. 필드가 더 있으면 거절한다. */
+function validateServiceNotice(value: unknown): void {
+  if (value === null) {
+    return;
+  }
+  const fields = (typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const valid =
+    Object.keys(fields).length === 3 &&
+    isServiceNoticeMessage(fields.messageKo) &&
+    isServiceNoticeMessage(fields.messageEn) &&
+    typeof fields.gamesBlocked === "boolean";
+  if (!valid) {
+    throw new HttpsError("invalid-argument", "serviceNotice가 올바르지 않습니다");
+  }
+}
+
+function isServiceNoticeMessage(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= SERVICE_NOTICE_MAX_LENGTH;
+}
 
 function validateRange(value: unknown, name: keyof typeof APP_CONFIG_LIMITS): void {
   const {min, max} = APP_CONFIG_LIMITS[name];
@@ -47,6 +70,10 @@ function validateParams(requestParams: AdminUpdateAppConfigParams): void {
       throw new HttpsError("invalid-argument", "config의 boolean 필드가 올바르지 않습니다");
     }
   }
+  if (typeof fields.minAppVersion !== "string" || !APP_VERSION_PATTERN.test(fields.minAppVersion)) {
+    throw new HttpsError("invalid-argument", "minAppVersion은 1.2.3 모양이어야 합니다");
+  }
+  validateServiceNotice(fields.serviceNotice);
 }
 
 /**

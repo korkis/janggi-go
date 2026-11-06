@@ -1,7 +1,7 @@
 import {HttpsError, onCall} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import {reportMessage as reportMessageInDb} from "../services/reportService";
-import {requireUid} from "./auth";
+import {requireUid, requireWebAllowed} from "./auth";
 import {ChatTargetParams, isValidKey, validateChatTarget} from "./chatParams";
 
 interface ReportMessageParams extends ChatTargetParams {
@@ -20,6 +20,7 @@ function validateParams(requestParams: ReportMessageParams): void {
 export const reportMessage = onCall<ReportMessageParams>(async (request): Promise<Record<string, never>> => {
   const requestParams = request.data;
   const uid = requireUid(request);
+  await requireWebAllowed(request);
   validateParams(requestParams);
   const gameId = requestParams.gameId ?? null;
   logger.debug("reportMessage 시작", {uid, channel: requestParams.channel, gameId});

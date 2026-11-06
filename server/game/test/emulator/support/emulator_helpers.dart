@@ -131,6 +131,11 @@ Future<void> ensureAppConfig(FirestoreClient firestore) async {
         'gamePracticeEnabled': true,
         'coinTimeExtensionCost': 30,
         'coinGamePracticeCost': 30,
+        'chatEnabled': true,
+        'signupEnabled': true,
+        'webEnabled': true,
+        'minAppVersion': '1.0.0',
+        'serviceNotice': null,
       }),
     ]);
   } on FirestoreException catch (error) {

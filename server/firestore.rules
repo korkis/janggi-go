@@ -3,7 +3,7 @@ rules_version = '2';
 // 기본 거부에서 시작하고 필요한 경로만 연다(docs/database.md의 보안 규칙 방향).
 // 여기에 없는 컬렉션은 클라이언트가 읽지도 쓰지도 못한다. 서버(Admin SDK)는 규칙을 거치지 않는다.
 // 서버 전용: nicknames, ratings, nickname_changes, quick_queue, challenge_limits, reports,
-// moderation_logs, chat_checks, sanctions, coin_transactions. 관리자(admin claim)도 직접 읽지 않고 Admin Callable로만 다룬다.
+// moderation_logs, chat_checks, sanctions, coin_transactions, deleted_accounts. 관리자(admin claim)도 직접 읽지 않고 Admin Callable로만 다룬다.
 service cloud.firestore {
   match /databases/{database}/documents {
 

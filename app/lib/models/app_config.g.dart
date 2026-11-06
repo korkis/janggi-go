@@ -24,4 +24,17 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => AppConfig(
   gamePracticeEnabled: json['gamePracticeEnabled'] as bool,
   coinTimeExtensionCost: (json['coinTimeExtensionCost'] as num).toInt(),
   coinGamePracticeCost: (json['coinGamePracticeCost'] as num).toInt(),
+  chatEnabled: json['chatEnabled'] as bool,
+  signupEnabled: json['signupEnabled'] as bool,
+  webEnabled: json['webEnabled'] as bool,
+  minAppVersion: json['minAppVersion'] as String,
+  serviceNotice: json['serviceNotice'] == null
+      ? null
+      : ServiceNotice.fromJson(json['serviceNotice'] as Map<String, dynamic>),
+);
+
+ServiceNotice _$ServiceNoticeFromJson(Map<String, dynamic> json) => ServiceNotice(
+  messageKo: json['messageKo'] as String,
+  messageEn: json['messageEn'] as String,
+  gamesBlocked: json['gamesBlocked'] as bool,
 );

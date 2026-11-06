@@ -18,6 +18,10 @@ export async function getUserPrivateInTransaction(transaction: Transaction, uid:
   return snapshot.data() ?? null;
 }
 
+export function deleteUserPrivateInTransaction(transaction: Transaction, uid: string): void {
+  transaction.delete(userPrivateRef(uid));
+}
+
 /** 닉네임을 바꾼 횟수와 시각을 쓴다. */
 export function updateNicknameChangeInTransaction(
   transaction: Transaction,

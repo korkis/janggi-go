@@ -16,7 +16,7 @@ export const REPORT_ACTIONS = ["dismissed", ...SANCTION_TYPES] as const;
 export type ReportAction = (typeof REPORT_ACTIONS)[number];
 
 /** Admin Callable이 `details.code`로 보내는 거절 이유. */
-export const ADMIN_ERROR_CODES = ["notFound", "alreadyResolved"] as const;
+export const ADMIN_ERROR_CODES = ["notFound", "alreadyResolved", "notDeleted"] as const;
 export type AdminErrorCode = (typeof ADMIN_ERROR_CODES)[number];
 
 /** Firebase Auth ID token의 custom claim 중 Admin 웹이 보는 것. */
@@ -118,6 +118,8 @@ export interface UserProfileView {
   rankLevel: number;
   stats: {games: number; wins: number; losses: number};
   createdAt: number;
+  // 회원 탈퇴를 누른 시각. 탈퇴하지 않았으면 null.
+  deletedAt: number | null;
 }
 
 export interface UserHistoryView {
@@ -154,6 +156,19 @@ export interface AppConfig {
   gamePracticeEnabled: boolean;
   coinTimeExtensionCost: number;
   coinGamePracticeCost: number;
+  chatEnabled: boolean;
+  signupEnabled: boolean;
+  webEnabled: boolean;
+  minAppVersion: string;
+  serviceNotice: ServiceNotice | null;
+}
+
+/** 공지. 앱 언어가 한국어면 messageKo, 그 밖에는 messageEn을 보여준다. */
+export interface ServiceNotice {
+  messageKo: string;
+  messageEn: string;
+  // 새 대국을 막는다.
+  gamesBlocked: boolean;
 }
 
 /** 잔액이 [min] 이상 [max] 미만인 지갑 수. [max]가 null이면 위가 열려 있다. */

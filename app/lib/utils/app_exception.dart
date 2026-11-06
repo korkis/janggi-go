@@ -1,3 +1,4 @@
+import '../config.dart';
 import '../l10n/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/game_error_code.dart';
@@ -42,6 +43,11 @@ enum AppErrorCode {
   opponentCoinsInsufficient,
   extensionLimit,
   featureDisabled,
+  gamesBlocked,
+  accountInGame,
+  accountDisabled,
+  signupDisabled,
+  signupBlocked,
 }
 
 /// 사용자에게 다국어 메시지로 보여줄 오류. 사용자용 오류는 이 클래스로만 표현한다.
@@ -82,6 +88,7 @@ class AppException implements Exception {
       GameErrorCode.coinPriceChanged => AppErrorCode.coinPriceChanged,
       GameErrorCode.extensionLimit => AppErrorCode.extensionLimit,
       GameErrorCode.featureDisabled => AppErrorCode.featureDisabled,
+      GameErrorCode.gamesBlocked => AppErrorCode.gamesBlocked,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -92,6 +99,7 @@ class AppException implements Exception {
     final appCode = switch (code) {
       ChatErrorCode.messageBlocked => AppErrorCode.chatMessageBlocked,
       ChatErrorCode.chatRestricted || ChatErrorCode.sanctioned => AppErrorCode.chatRestricted,
+      ChatErrorCode.featureDisabled => AppErrorCode.featureDisabled,
       _ => null,
     };
     return appCode == null ? null : AppException(appCode);
@@ -170,5 +178,15 @@ class AppException implements Exception {
     AppErrorCode.extensionLimit => l10n.errorExtensionLimit,
     // 지금은 쓸 수 없어요
     AppErrorCode.featureDisabled => l10n.errorFeatureDisabled,
+    // 지금은 대국을 시작할 수 없어요
+    AppErrorCode.gamesBlocked => l10n.errorGamesBlocked,
+    // 대국 중에는 탈퇴할 수 없어요
+    AppErrorCode.accountInGame => l10n.settingsDeleteAccountInGame,
+    // 탈퇴한 계정이에요. 되돌리려면 {email}로 알려 주세요
+    AppErrorCode.accountDisabled => l10n.errorAccountDisabled(supportEmail),
+    // 지금은 새로 가입할 수 없어요
+    AppErrorCode.signupDisabled => l10n.errorSignupDisabled,
+    // 이 계정은 지금 다시 가입할 수 없어요
+    AppErrorCode.signupBlocked => l10n.errorSignupBlocked,
   };
 }

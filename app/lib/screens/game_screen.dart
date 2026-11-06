@@ -137,8 +137,8 @@ class _GameScreenState extends State<GameScreen> {
     blockManager: managers.blockManager,
   );
 
-  /// 채팅 창에 보여줄 채팅. 개발용 대국이면 비어 있다.
-  List<ChatManager> get _chats => [?_gameChat, ?_spectatorChat];
+  /// 채팅 창에 보여줄 채팅. 개발용 대국이거나 `configs/app.chatEnabled`가 꺼져 있으면 비어 있다.
+  List<ChatManager> get _chats => managers.appConfigManager.chatEnabled ? [?_gameChat, ?_spectatorChat] : const [];
 
   /// 지금 판. 온라인 대국은 처음 값을 받기 전이면 null이다.
   BoardManager? get _board => _online?.board ?? _localBoard;
@@ -146,7 +146,10 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return GameScaffold(
-      body: ListenableBuilder(listenable: (_online ?? _localBoard)!, builder: _buildBody),
+      body: ListenableBuilder(
+        listenable: Listenable.merge([(_online ?? _localBoard)!, managers.appConfigManager]),
+        builder: _buildBody,
+      ),
     );
   }
 

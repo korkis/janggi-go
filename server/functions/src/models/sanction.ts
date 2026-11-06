@@ -15,4 +15,6 @@ export interface Sanction {
   // 자동 제재면 null.
   adminUid: string | null;
   createdAt: Timestamp;
+  // 탈퇴한 사용자를 지울 때 정한다. 이미 지운 사용자에게 건 제재는 만들 때 정한다. TTL 정책으로 지운다.
+  expiresAt?: Timestamp;
 }

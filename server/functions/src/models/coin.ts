@@ -51,6 +51,8 @@ export interface CoinTransaction {
   // 대국과 관련된 움직임이면 그 대국.
   gameId: string | null;
   createdAt: Timestamp;
+  // 탈퇴한 사용자를 지울 때 정한다. TTL 정책으로 지운다.
+  expiresAt?: Timestamp;
 }
 
 /** `claimAttendance`의 결과. */

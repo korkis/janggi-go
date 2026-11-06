@@ -11,6 +11,8 @@ export const AdminErrorCode = {
   notFound: "notFound",
   // 이미 처리한 신고다. 두 관리자가 같은 신고를 처리하거나 응답을 못 받고 다시 누른 경우다.
   alreadyResolved: "alreadyResolved",
+  // 탈퇴한 사용자가 아니다.
+  notDeleted: "notDeleted",
 } as const;
 export type AdminErrorCode = (typeof AdminErrorCode)[keyof typeof AdminErrorCode];
 
@@ -117,6 +119,8 @@ export interface UserHistoryView {
     rankLevel: number;
     stats: {games: number; wins: number; losses: number};
     createdAt: number;
+    // 회원 탈퇴를 누른 시각. 탈퇴하지 않았으면 null.
+    deletedAt: number | null;
   } | null;
   // 지금 걸린 제재(`users_private.sanction`). 끝났지만 예약 작업이 아직 지우지 않은 제재도 그대로 담는다.
   sanction: ActiveSanctionView | null;

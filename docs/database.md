@@ -76,6 +76,7 @@
 | `rankLevel` | number | 대국 서버 (처음 값 1은 Functions) | 급수 |
 | `stats` | map | 대국 서버 | `games`, `wins`, `losses` (number). 온라인 대국을 모두 센다(종류와 급수 대국 여부 상관없음, 2026-11-03). `finalizeGame`이 기보와 같은 트랜잭션에서 더한다 |
 | `createdAt` | timestamp | Functions | 가입 시각 |
+| `deletedAt` | timestamp? | Functions | 회원 탈퇴를 누른 시각. 없거나 null이면 탈퇴하지 않았다. 아래 "회원 탈퇴" |
 
 - 읽기: 로그인한 사용자. 쓰기: 클라이언트 없음.
 - 레이팅은 여기 두지 않는다. 사용자에게 보이지 않는 값이다([rank.md](./game/rank.md)).
@@ -137,6 +138,7 @@
 | `paidBalance` | number | 이 움직임 뒤의 유상 잔액 |
 | `gameId` | string? | 대국과 관련된 움직임이면 그 대국 |
 | `createdAt` | timestamp | |
+| `expiresAt` | timestamp? | 탈퇴한 사용자를 지울 때 5년 뒤로 정한다. TTL 정책으로 지운다 |
 
 - 문서 ID는 `{reason}_{uid}` 또는 `{reason}_{uid}_{열쇠}`다. 한 번만 일어날 일의 열쇠를 넣어 같은 일이 두 번 기록되지 않게 한다.
 
@@ -373,9 +375,21 @@ Admin 웹에서 보는 닉네임 변경 기록이다([screens.md](./screens.md)�
 | `reportId` | string? | |
 | `adminUid` | string? | 자동 제재면 null |
 | `createdAt` | timestamp | |
+| `expiresAt` | timestamp? | 탈퇴한 사용자를 지울 때 1년 뒤로 정한다. 이미 지운 사용자에게 건 제재는 만들 때 정한다. TTL 정책으로 지운다 |
 
 - 채팅 제한과 이용 정지는 `endsAt`이 `startsAt`에서 1·7·30일 뒤다. 경고는 아직 막고 있는 제재가 있으면 이력에만 남고 `users_private.sanction`을 바꾸지 않는다([server.md](./server.md)의 신고 처리와 제재).
 - 색인: `uid` + `createdAt` 내림차순(Admin 웹의 제재 이력).
+
+### `deleted_accounts/{identityHash}` — 서버 전용
+
+제재가 남은 채로 지워진 계정의 재가입을 막는 기록이다. 아래 "회원 탈퇴".
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `expiresAt` | timestamp? | 이 시각까지 다시 가입할 수 없다. 영구 정지면 null이고 지우지 않는다. TTL 정책으로 지운다 |
+| `createdAt` | timestamp | |
+
+- `identityHash`는 로그인 수단마다 `{providerId}:{로그인 수단의 사용자 ID}`를 소문자로 바꾼 SHA-256이다. 구글과 애플은 계정 ID, 이메일은 이메일 주소다. 이메일과 계정 ID를 그대로 남기지 않는다.
 
 ## Realtime Database
 
@@ -528,7 +542,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `rooms` | | ID 읽기, 공개 대기 방 목록 | | 대국 서버 쓰기 |
 | `challenges` | | | 보낸 사람·받는 사람 읽기 | 대국 서버 쓰기 |
 | `games_archived` | | 읽기 | | 대국 서버 쓰기 |
-| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions` | | | | 서버 전용 |
+| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions`, `deleted_accounts` | | | | 서버 전용 |
 | RTDB `games_active`, `spectate_list` | 읽기 | 읽기 | | 대국 서버 쓰기 |
 | RTDB `spectators` | 만들기, 지우기 | 만들기, 지우기 | | 대국 서버 읽기 |
 | RTDB `connections` | | 읽기 | 쓰기 | 대국 서버 읽기 |
@@ -548,10 +562,42 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `moderation_logs` | 1년 | Firestore TTL |
 | `reports` | 처리 뒤 1년 | Firestore TTL |
 | `games_archived` | 계속 | |
-| `coin_transactions` | 계속 | 환불과 문의에 대비해 남긴다 |
+| `coin_transactions` | 탈퇴자를 지운 뒤 5년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
+| `sanctions` | 탈퇴자를 지운 뒤 1년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
+| `deleted_accounts` | 남은 제재가 끝날 때까지, 영구 정지면 계속 | Firestore TTL (`expiresAt`) |
+
+## 회원 탈퇴 — 확정 (2026-11-06)
+
+사용자가 하나씩 정했다. 탈퇴를 누르면 바로 지우지 않고 표시만 하고 30일 뒤 지운다. 그 사이에는 요청을 받아 Admin 웹에서 되돌린다. 흐름은 [server.md](./server.md)의 회원 탈퇴다.
+
+### 탈퇴를 누른 때
+
+- 진행 중인 대국(상차림 포함)이 있으면 막는다. 대국이 끝날 때 양쪽의 급수, 전적, 엽전을 함께 쓰기 때문이다.
+- 방, 빠른 대국 대기열, 대국 신청은 앱이 먼저 나온다. 방장이면 방이 닫힌다. 그래도 남아 있으면 서버가 `busy`로 거절한다.
+- `users.deletedAt`을 쓰고 Firebase Auth 계정을 비활성화한다. 로그인이 막혀 30일 동안 같은 계정으로 다시 가입할 수 없다. 서버는 이 사용자를 프로필이 없는 것으로 보고, 앱은 다른 사람에게 바로 "탈퇴한 사용자"로 보여준다.
+- RTDB `connections/{uid}`, `online_users/{uid}`는 이때 지운다.
+- 나머지는 그대로 둔다. 되돌리면 그대로 돌아온다. 닉네임도 30일 동안 다른 사람이 쓸 수 없다.
+- 닉네임을 정하기 전이면 지킬 것이 없으므로 Auth 계정을 바로 지운다.
+
+### 30일 뒤
+
+| 데이터 | 처리 | 이유 |
+|---|---|---|
+| `users`, `users/{uid}/blocks`, `users_private`, `coin_wallets`, `ratings`, `player_states`, `nickname_changes`, 내가 방장이었던 `rooms`, 내가 보내거나 받은 `challenges`, Firebase Auth 계정 | 지운다 | |
+| `nicknames` | 지운다. 닉네임은 바로 다른 사람이 쓸 수 있다 | 닉네임을 바꿀 때와 같다 |
+| `coin_transactions` | uid와 함께 5년 보관한 뒤 지운다 | 환불과 분쟁에 대비한다. 전자상거래법 시행령 제6조의 대금결제·재화 공급·청약철회 기록 5년(2차 자료로 확인, 원문은 처리방침을 쓸 때 다시 본다) |
+| `games_archived` | uid 그대로 둔다. 앱은 "탈퇴한 사용자"로 보여준다 | 상대의 전적과 복기 자료다. 닉네임이 없고, 프로필과 이메일을 지우면 uid로 사람을 찾을 수 없다 |
+| `reports`, `moderation_logs`, `chat_checks`, RTDB `chats_*` | 원래 보관 기간(1년, 90일)대로 둔다 | 탈퇴해서 신고를 무력화하지 못하게 한다. 대국·관전 채팅은 사람별로 찾을 수 없다 |
+| `sanctions` | 1년 보관한 뒤 지운다 | 이의 제기와 분쟁에 대비한다 |
+| `users/{다른 사람}/blocks/{uid}`, `challenge_limits` | 그대로 둔다 | uid뿐이고 사람별로 찾을 수 없다. 차단 목록에는 "탈퇴한 사용자"로 보인다 |
+| 구매 기록(구현 순서 5번) | `coin_transactions`와 같다 | RevenueCat 고객도 함께 지운다. 그때 넣는다 |
+
+- 남은 엽전과 산 상품은 돌려주지 않고 없어진다. 탈퇴 확인 창에 적는다. 산 엽전 환불은 스토어 절차다.
+- 이때 제재(채팅 제한, 이용 정지, 영구 정지)가 남아 있으면 `deleted_accounts`를 남겨 제재가 끝날 때까지 같은 계정의 재가입을 막는다. 영구 정지면 계속 막는다. 탈퇴로 제재를 풀 수 없게 하기 위해서다. 남은 제재가 없으면 기록을 남기지 않고, 다시 가입하면 새 사용자로 보고 가입 엽전도 다시 준다.
+- 처리 전 신고는 탈퇴 뒤에도 처리할 수 있다. 이미 지운 사용자에게 건 제재는 `sanctions`에만 남는다.
+- 위 보관 내용은 개인정보처리방침에 적는다(구현 순서 9번).
 
 ## 미정
 
-- 닫힌 방(`rooms`의 `status == closed`)을 지우는 때와 방법(TTL 또는 정리 작업).
-- 회원 탈퇴 때 지울 데이터와 남길 데이터. 기보(`games_archived`)는 uid만 남기고 앱이 "탈퇴한 사용자"로 보여주는 안을 검토한다.
+- 닫힌 방(`rooms`의 `status == closed`)을 지우는 때와 방법(TTL 또는 정리 작업). 탈퇴한 방장의 방은 위 "회원 탈퇴"에서 지운다.
 - 자체 금칙어 목록을 둘 곳(`config.ts` 또는 서버 전용 Firestore 문서)과 Admin 웹에서 고칠 수 있게 할지. 지금은 `config.ts`의 `BANNED_WORDS`다.

@@ -238,7 +238,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String loginTermsNotice(String terms, String privacy) {
-    return '계속하면 $terms과 $privacy에\n동의하는 것으로 봅니다.';
+    return '계속하면 만 14세 이상이며 $terms과 $privacy에\n동의하는 것으로 봅니다.';
   }
 
   @override
@@ -1132,7 +1132,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorUnblock => '차단을 풀지 못했어요. 잠시 후 다시 해 주세요';
 
   @override
-  String get unknownUser => '알 수 없는 사용자';
+  String get deletedUser => '탈퇴한 사용자';
 
   @override
   String blockListDate(DateTime date) {
@@ -1565,4 +1565,47 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsLicenses => '오픈소스 라이선스';
+
+  @override
+  String get settingsDeleteAccount => '회원 탈퇴';
+
+  @override
+  String get settingsDeleteAccountInGame => '대국 중에는 탈퇴할 수 없어요';
+
+  @override
+  String settingsDeleteAccountConfirm(String email) {
+    return '탈퇴하면 급수, 전적, 엽전, 산 상품이 없어져요. 남은 엽전은 돌려받을 수 없어요.\n\n30일 뒤 모두 지우고, 그때까지 같은 계정으로 다시 가입할 수 없어요. 되돌리려면 그 안에 $email로 알려 주세요.\n\n기보는 닉네임 없이 남고, 엽전 내역은 5년 보관해요.';
+  }
+
+  @override
+  String get settingsDeleteAccountButton => '탈퇴하기';
+
+  @override
+  String get settingsDeleteAccountDone => '탈퇴했어요';
+
+  @override
+  String get errorDeleteAccount => '탈퇴하지 못했어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String errorAccountDisabled(String email) {
+    return '탈퇴한 계정이에요. 되돌리려면 $email로 알려 주세요';
+  }
+
+  @override
+  String get errorSignupDisabled => '지금은 새로 가입할 수 없어요';
+
+  @override
+  String get errorSignupBlocked => '이 계정은 지금 다시 가입할 수 없어요';
+
+  @override
+  String get errorGamesBlocked => '지금은 대국을 시작할 수 없어요';
+
+  @override
+  String get updateRequiredMessage => '새 버전으로 업데이트해 주세요';
+
+  @override
+  String get updateRequiredButton => '업데이트';
+
+  @override
+  String get webClosedMessage => '지금은 웹에서 이용할 수 없어요. 앱을 이용해 주세요';
 }

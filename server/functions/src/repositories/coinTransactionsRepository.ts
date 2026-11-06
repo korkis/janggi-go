@@ -1,6 +1,6 @@
 import {Timestamp, Transaction, getFirestore} from "firebase-admin/firestore";
 import {CoinReason, CoinTransaction} from "../models/coin";
-import {modelConverter} from "./firestore";
+import {modelConverter, updateQueryDocuments} from "./firestore";
 
 const COLLECTION = "coin_transactions";
 
@@ -23,6 +23,11 @@ export function createCoinTransactionInTransaction(
   coinTransaction: CoinTransaction,
 ): void {
   transaction.create(transactionRef(transactionId), coinTransaction);
+}
+
+/** [uid]의 내역에 [expiresAt]을 쓴다. TTL 정책으로 지운다(docs/database.md의 회원 탈퇴). */
+export async function setCoinTransactionsExpiry(uid: string, expiresAt: Timestamp): Promise<void> {
+  await updateQueryDocuments(getFirestore().collection(COLLECTION).where("uid", "==", uid), {expiresAt});
 }
 
 /** [from] 이상 [to] 미만에 일어난 [reason] 내역 수. `reason` + `createdAt` 색인을 쓴다. */

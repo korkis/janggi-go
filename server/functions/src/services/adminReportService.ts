@@ -72,9 +72,6 @@ export async function resolveReport(
     let sanctionId: string | null = null;
     if (action !== "dismissed") {
       const userPrivate = await getUserPrivateInTransaction(transaction, report.targetUid);
-      if (userPrivate === null) {
-        throw new HttpsError("not-found", "피신고자가 없습니다", {code: AdminErrorCode.notFound});
-      }
       sanctionId = applySanctionInTransaction(
         transaction,
         {uid: report.targetUid, type: action, durationDays, reason, reportId, adminUid},

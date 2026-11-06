@@ -333,6 +333,7 @@ class GameServer {
           endpoint: endpoint,
           idTokenVerifier: idTokenVerifier,
           usersRepository: repositories.users,
+          configsRepository: repositories.configs,
           logger: logger,
           clock: clock,
         ),

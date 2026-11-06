@@ -93,7 +93,10 @@ class _SpectateScreenState extends State<SpectateScreen> {
   @override
   Widget build(BuildContext context) {
     return GameScaffold(
-      body: ListenableBuilder(listenable: Listenable.merge([_online, _spectate]), builder: _buildBody),
+      body: ListenableBuilder(
+        listenable: Listenable.merge([_online, _spectate, managers.appConfigManager]),
+        builder: _buildBody,
+      ),
     );
   }
 
@@ -120,6 +123,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
     final review = _review;
     final bottomSide = board.flipped ? Side.han : Side.cho;
     final resultChip = review == null ? null : _buildResultChip(context, board);
+    final chatEnabled = managers.appConfigManager.chatEnabled;
     if (getLayoutSize(context) == LayoutSize.expanded) {
       return GameWideLayout(
         onBack: _onLeave,
@@ -134,7 +138,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
           title: title,
           chip: resultChip,
           details: getGameDetails(l10n, game.meta),
-          body: ChatView(chats: [_chat], style: ChatStyle.dark),
+          body: chatEnabled ? ChatView(chats: [_chat], style: ChatStyle.dark) : null,
           buttons: _buildButtons(context, review),
         ),
       );
@@ -151,10 +155,11 @@ class _SpectateScreenState extends State<SpectateScreen> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: ChatPreviewLine(chats: [_chat]),
-        ),
+        if (chatEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: ChatPreviewLine(chats: [_chat]),
+          ),
         Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: _buildButtons(context, review)),
       ],
     );

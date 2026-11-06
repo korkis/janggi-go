@@ -26,7 +26,7 @@ export async function findUidByNickname(nickname: string): Promise<string> {
 
 /**
  * 사용자의 프로필, 지금 걸린 제재, 최근 제재·신고·검사 기록·닉네임 변경을 읽는다(docs/moderation.md의 Admin 웹 처리).
- * 프로필과 비공개 정보가 모두 없으면 notFound.
+ * 프로필과 비공개 정보, 남은 기록이 모두 없으면 notFound. 탈퇴해 지운 사용자도 처리 전 신고를 열 수 있도록 기록이 있으면 돌려준다.
  */
 export async function getUserHistory(uid: string): Promise<UserHistoryView> {
   const [userPrivate, sanctions, reports, logs, nicknameChanges] = await Promise.all([
@@ -38,7 +38,8 @@ export async function getUserHistory(uid: string): Promise<UserHistoryView> {
   ]);
   const users = await getUsers([uid, ...reports.map((entry) => entry.report.reporterUid)]);
   const user = users.get(uid) ?? null;
-  if (user === null && userPrivate === null) {
+  const hasRecords = sanctions.length > 0 || reports.length > 0 || logs.length > 0;
+  if (user === null && userPrivate === null && !hasRecords) {
     throw new HttpsError("not-found", "사용자가 없습니다", {code: AdminErrorCode.notFound});
   }
   const sanction = userPrivate?.sanction ?? null;
@@ -52,6 +53,7 @@ export async function getUserHistory(uid: string): Promise<UserHistoryView> {
             rankLevel: user.rankLevel,
             stats: user.stats,
             createdAt: user.createdAt.toMillis(),
+            deletedAt: user.deletedAt?.toMillis() ?? null,
           },
     sanction:
       sanction === null

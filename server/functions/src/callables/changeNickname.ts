@@ -2,7 +2,7 @@ import {HttpsError, onCall} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import {changeNickname as changeNicknameInDb} from "../services/profileService";
 import {findNicknameProblem} from "../services/nicknameService";
-import {requireUid} from "./auth";
+import {requireUid, requireWebAllowed} from "./auth";
 
 interface ChangeNicknameParams {
   nickname: string;
@@ -31,6 +31,7 @@ function validateParams(requestParams: ChangeNicknameParams): void {
 export const changeNickname = onCall<ChangeNicknameParams>(async (request): Promise<Record<string, never>> => {
   const requestParams = request.data;
   const uid = requireUid(request);
+  await requireWebAllowed(request);
   validateParams(requestParams);
   logger.debug("changeNickname 시작", {uid});
   await changeNicknameInDb(uid, requestParams.nickname, requestParams.coinCost ?? null);

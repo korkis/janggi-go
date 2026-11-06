@@ -269,7 +269,7 @@ class _TermsNotice extends StatelessWidget {
     final terms = l10n.termsOfService;
     // 개인정보처리방침
     final privacy = l10n.privacyPolicy;
-    // 계속하면 {terms}과 {privacy}에\n동의하는 것으로 봅니다.
+    // 계속하면 만 14세 이상이며 {terms}과 {privacy}에\n동의하는 것으로 봅니다.
     final notice = l10n.loginTermsNotice(terms, privacy);
     return Text.rich(
       TextSpan(children: _buildSpans(notice, [terms, privacy])),

@@ -1,4 +1,4 @@
-import {Transaction, getFirestore} from "firebase-admin/firestore";
+import {Timestamp, Transaction, getFirestore} from "firebase-admin/firestore";
 import {User} from "../models/user";
 import {modelConverter} from "./firestore";
 
@@ -38,6 +38,21 @@ export async function getUserInTransaction(transaction: Transaction, uid: string
 
 export function createUserInTransaction(transaction: Transaction, uid: string, user: User): void {
   transaction.create(userRef(uid), user);
+}
+
+/** 회원 탈퇴를 누른 시각을 쓰거나 되돌린다(null). */
+export function updateDeletedAtInTransaction(transaction: Transaction, uid: string, deletedAt: Timestamp | null): void {
+  transaction.update(userRef(uid), {deletedAt});
+}
+
+export function deleteUserInTransaction(transaction: Transaction, uid: string): void {
+  transaction.delete(userRef(uid));
+}
+
+/** [cutoff] 전에 탈퇴를 누른 사용자. `deletedAt` 단일 필드 색인을 쓴다. 탈퇴하지 않은 사람은 들어오지 않는다. */
+export async function getUidsDeletedBefore(cutoff: Timestamp, limit: number): Promise<string[]> {
+  const snapshot = await getFirestore().collection(COLLECTION).where("deletedAt", "<=", cutoff).limit(limit).get();
+  return snapshot.docs.map((doc) => doc.id);
 }
 
 /** 닉네임만 바꾼다. 급수와 전적은 대국 서버가 쓰므로 건드리지 않는다. */

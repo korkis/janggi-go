@@ -171,8 +171,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
       children.add(
         RecordTile(
           item: item,
-          // 알 수 없는 사용자
-          opponentNickname: _nicknames[item.opponent.uid] ?? l10n.unknownUser,
+          // 탈퇴한 사용자
+          opponentNickname: _nicknames[item.opponent.uid] ?? l10n.deletedUser,
           onTap: () => openArchivedReview(context, item, _nicknames),
         ),
       );
@@ -290,8 +290,8 @@ Future<void> openArchivedReview(BuildContext context, MyArchivedGame item, Map<S
 String _getReviewPlayerName(AppLocalizations l10n, MyArchivedGame item, Side side, Map<String, String?> nicknames) {
   final player = item.game.players.get(side);
   final nickname = side == item.mySide ? managers.authManager.profile?.nickname : nicknames[player.uid];
-  // {nickname} · {rank} (알 수 없는 사용자)
-  return l10n.playerNameWithRank(nickname ?? l10n.unknownUser, getRankLabel(l10n, player.rankLevel));
+  // {nickname} · {rank} (탈퇴한 사용자)
+  return l10n.playerNameWithRank(nickname ?? l10n.deletedUser, getRankLabel(l10n, player.rankLevel));
 }
 
 /// 내 기보 한 줄. 끝난 판 미리보기, 상대와 급수, 결과 종류와 수, 승패 표시를 둔다.

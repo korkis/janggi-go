@@ -378,6 +378,49 @@ void main() {
       expect((await getWallet(han)).balance, 290);
     });
 
+    test('공지가 새 대국을 막으면 시작만 거절하고 진행 중인 대국은 이어 간다', () async {
+      final cho = await createPlayer();
+      final han = await createPlayer();
+      final waiter = await createPlayer();
+      final gameId = await startGame(cho, han);
+      await server.firestore.commit([
+        UpdateWrite('configs/app', {
+          'serviceNotice': {'messageKo': '점검 중입니다', 'messageEn': 'Under maintenance', 'gamesBlocked': true},
+        }),
+      ]);
+      // 캐시 없는 서버로 새 값을 읽는다. `server`의 캐시는 건드리지 않는다.
+      final fresh = createServer();
+      final freshHttp = await fresh.serve(port: 0);
+      try {
+        await expectApiRejected(client, freshHttp.port, waiter, 'joinQuickQueue', {}, 'gamesBlocked');
+        final state = await server.repositories.playerStates.getPlayerState(waiter.uid);
+        expect(state?.quickQueueJoinedAt, isNull);
+        await expectApiRejected(
+          client,
+          freshHttp.port,
+          waiter,
+          'sendChallenge',
+          {'toUid': cho.uid, 'senderSide': 'random'},
+          'gamesBlocked',
+        );
+        await callApiOk(client, freshHttp.port, cho, 'useGamePractice', practice(gameId));
+        // 방 만들기는 대국이 아니므로 받고, 방의 대국 시작은 거절한다.
+        final created = await callApiOk(client, freshHttp.port, waiter, 'createRoom', {
+          'hostSide': 'random',
+          'listed': false,
+        });
+        final roomId = (created['result'] as Map)['roomId'] as String;
+        final guest = await createPlayer();
+        await callApiOk(client, freshHttp.port, guest, 'joinRoom', {'roomId': roomId});
+        await expectApiRejected(client, freshHttp.port, waiter, 'startRoomGame', {'roomId': roomId}, 'gamesBlocked');
+      } finally {
+        await server.firestore.commit([
+          UpdateWrite('configs/app', {'serviceNotice': null}),
+        ]);
+        await fresh.close();
+      }
+    });
+
     test('스위치를 끄면 서버가 거절하고, 이미 받은 값은 이어서 처리한다', () async {
       final cho = await createPlayer();
       final han = await createPlayer();

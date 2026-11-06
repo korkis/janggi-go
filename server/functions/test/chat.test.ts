@@ -5,6 +5,8 @@ import functionsTest from "firebase-functions-test";
 import {HttpsError} from "firebase-functions/https";
 import {reportMessage} from "../src/callables/reportMessage";
 import {sendChatMessage} from "../src/callables/sendChatMessage";
+import {INITIAL_APP_CONFIG} from "../src/models/appConfig";
+import {setAppConfig} from "../src/repositories/configsRepository";
 import {getRtdb} from "../src/repositories/rtdb";
 import {hasBannedWord} from "../src/services/bannedWordService";
 import {cleanupChats} from "../src/services/chatCleanupService";
@@ -79,6 +81,7 @@ async function getValue(path: string): Promise<unknown> {
 
 beforeEach(async () => {
   await clearFirestore();
+  await setAppConfig(INITIAL_APP_CONFIG);
   // 띄워 둔 에뮬레이터에서 돌려도 다른 데이터를 지우지 않도록 이 테스트가 쓰는 경로만 지운다.
   await rtdb.ref().update({
     chats_lobby: null,

@@ -21,6 +21,8 @@ export function getErrorText(error: AdminApiError): string {
       return "🔒 권한이 없어요. 관리자 계정으로 다시 로그인해 주세요.";
     case "notFound":
       return "찾을 수 없어요. 지워졌거나 잘못된 주소예요.";
+    case "notDeleted":
+      return "탈퇴한 사용자가 아니에요.";
     case "alreadyResolved":
       return "이미 다른 관리자가 처리한 신고예요. 새로 고친 결과를 확인해 주세요.";
     case "invalid":
