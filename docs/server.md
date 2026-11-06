@@ -561,6 +561,8 @@ sequenceDiagram
 | `autoSanctionEnabled` | boolean | `false` | 자동 제재 사용 | [moderation.md](./moderation.md) |
 | `heartbeatSeconds` | number | `5` | 대국 중 앱이 `lastSeenAt`을 갱신하는 주기 | 이 문서 |
 
+3단계에서 엽전 숫자와 멈춤 스위치를 더한다([release.md](./release.md)의 운영 설정과 멈춤 스위치).
+
 ### 대국 서버 설정 (`server/game/lib/config.dart`)
 
 알려지면 악용될 수 있거나 운영 중 바꿀 일이 드문 값이다. 바꾸려면 다시 배포한다.
