@@ -699,7 +699,8 @@ describe("Realtime Database connections", () => {
   test("시각은 서버 시각만 받는다", async () => {
     const db = testEnv.authenticatedContext(ALICE).database();
     await assertFails(set(ref(db, `connections/${ALICE}/c1`), {...connection(true), activeSince: 1234}));
-    await assertFails(update(ref(db, `connections/${ALICE}/old`), {lastSeenAt: Date.now()}));
+    // 지금 시각을 넣으면 에뮬레이터가 같은 PC의 시계를 쓰므로 규칙의 `now`와 밀리초까지 같아져 가끔 통과한다.
+    await assertFails(update(ref(db, `connections/${ALICE}/old`), {lastSeenAt: Date.now() - 60000}));
   });
 
   test("필드가 빠지거나 다른 필드가 있으면 막는다", async () => {
