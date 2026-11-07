@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app_links/app_links.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/widgets.dart';
 import 'package:janggi_core/janggi_core.dart';
 import 'package:janggigo/managers/app_managers.dart';
 import 'package:janggigo/models/active_game.dart';
@@ -25,6 +26,7 @@ import 'package:janggigo/models/sign_in_method.dart';
 import 'package:janggigo/models/spectate_list_entry.dart';
 import 'package:janggigo/models/user_private.dart';
 import 'package:janggigo/models/user_profile.dart';
+import 'package:janggigo/repositories/ad_repository.dart';
 import 'package:janggigo/repositories/app_repositories.dart';
 import 'package:janggigo/repositories/archived_game_repository.dart';
 import 'package:janggigo/repositories/auth_repository.dart';
@@ -281,6 +283,15 @@ class FakeConfigRepository implements ConfigRepository {
   /// `configs/app.coinSaleEnabled`.
   var coinSaleEnabled = true;
 
+  /// `configs/app.rewardedAdEnabled`.
+  var rewardedAdEnabled = true;
+
+  /// `configs/app.bannerAdEnabled`.
+  var bannerAdEnabled = true;
+
+  /// `configs/app.coinRewardedAdDailyLimit`.
+  var coinRewardedAdDailyLimit = 5;
+
   /// `configs/app.minAppVersion`.
   var minAppVersion = '1.0.0';
 
@@ -313,6 +324,10 @@ class FakeConfigRepository implements ConfigRepository {
     signupEnabled: signupEnabled,
     webEnabled: webEnabled,
     coinSaleEnabled: coinSaleEnabled,
+    rewardedAdEnabled: rewardedAdEnabled,
+    bannerAdEnabled: bannerAdEnabled,
+    coinRewardedAdReward: 30,
+    coinRewardedAdDailyLimit: coinRewardedAdDailyLimit,
     minAppVersion: minAppVersion,
     serviceNotice: serviceNotice,
   );
@@ -358,13 +373,15 @@ class FakeCoinWalletRepository implements CoinWalletRepository {
   }
 
   /// 서버가 [uid]의 잔액을 [balance]로 바꾼 것처럼 보낸다.
-  void emit(String uid, int balance) {
+  void emit(String uid, int balance, {String? rewardedAdDay, int? rewardedAdCount}) {
     final wallet = CoinWallet(
       freeCoins: balance,
       paidCoins: 0,
       balance: balance,
       attendanceDay: null,
       attendanceStreak: 0,
+      rewardedAdDay: rewardedAdDay,
+      rewardedAdCount: rewardedAdCount,
       updatedAt: DateTime.utc(2026, 11, 6),
     );
     _latest[uid] = wallet;
@@ -1235,6 +1252,67 @@ class FakeStorePurchaseRepository implements StorePurchaseRepository {
   }
 }
 
+/// 광고 SDK 없이 광고 흐름을 확인하는 가짜. 기본은 광고를 요청할 수 없어 다른 테스트의 화면에 배너가 끼지 않는다.
+class FakeAdRepository implements AdRepository {
+  /// [prepare]가 돌려줄 값. 동의를 받아 광고를 요청할 수 있는 경우다.
+  var adsAllowed = false;
+
+  /// [isPrivacyOptionsRequired]가 돌려줄 값.
+  var privacyOptionsRequired = false;
+
+  /// 다음 보상형 광고가 이 오류로 실패한다.
+  Object? nextRewardedAdError;
+
+  /// [showRewardedAd]를 받으면 끝날 때까지 기다린다. null이면 바로 끝난다.
+  Completer<void>? rewardedAdGate;
+
+  /// 보상형 광고를 본 사용자.
+  final rewardedAdUids = <String>[];
+  var bannerLoads = 0;
+  var bannerDisposes = 0;
+  var privacyOptionsShows = 0;
+
+  @override
+  Future<bool> prepare() async => adsAllowed;
+
+  @override
+  Future<bool> isPrivacyOptionsRequired() async => privacyOptionsRequired;
+
+  @override
+  Future<void> showPrivacyOptions() async {
+    privacyOptionsShows++;
+  }
+
+  @override
+  Future<AdBannerHandle?> loadBanner(double width) async {
+    bannerLoads++;
+    return AdBannerHandle(
+      widget: const SizedBox(key: fakeBannerKey),
+      width: width,
+      height: 60,
+      dispose: _onBannerDisposed,
+    );
+  }
+
+  void _onBannerDisposed() {
+    bannerDisposes++;
+  }
+
+  @override
+  Future<void> showRewardedAd(String uid) async {
+    rewardedAdUids.add(uid);
+    await rewardedAdGate?.future;
+    final error = nextRewardedAdError;
+    if (error != null) {
+      nextRewardedAdError = null;
+      throw error;
+    }
+  }
+}
+
+/// [FakeAdRepository]의 배너 위젯 키.
+const fakeBannerKey = ValueKey('fakeBanner');
+
 /// [setUpFakeApp]이 설정한 가짜 repository들.
 typedef FakeApp = ({
   FakeAuthRepository auth,
@@ -1257,6 +1335,7 @@ typedef FakeApp = ({
   FakeCoinWalletRepository coinWallets,
   FakeInventoryRepository inventories,
   FakeStorePurchaseRepository storePurchases,
+  FakeAdRepository ads,
 });
 
 /// 각 테스트에서 위젯을 만들기 전에 `repositories`, `managers` 순서로 가짜를 설정한다.
@@ -1281,6 +1360,7 @@ FakeApp setUpFakeApp() {
   final coinWalletRepository = FakeCoinWalletRepository();
   final inventoryRepository = FakeInventoryRepository();
   final storePurchaseRepository = FakeStorePurchaseRepository();
+  final adRepository = FakeAdRepository();
   repositories = AppRepositories(
     authRepository: authRepository,
     configRepository: configRepository,
@@ -1303,6 +1383,7 @@ FakeApp setUpFakeApp() {
     coinWalletRepository: coinWalletRepository,
     inventoryRepository: inventoryRepository,
     storePurchaseRepository: storePurchaseRepository,
+    adRepository: adRepository,
   );
   managers = AppManagers.createDefault();
   return (
@@ -1326,5 +1407,6 @@ FakeApp setUpFakeApp() {
     coinWallets: coinWalletRepository,
     inventories: inventoryRepository,
     storePurchases: storePurchaseRepository,
+    ads: adRepository,
   );
 }

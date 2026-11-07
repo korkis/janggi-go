@@ -175,5 +175,43 @@ String? getRevenueCatApiKey() {
   return key.isEmpty ? null : key;
 }
 
+/// 한 기기의 AdMob 광고 단위 ID.
+class AdUnitIds {
+  final String banner;
+  final String rewarded;
+
+  const AdUnitIds({required this.banner, required this.rewarded});
+}
+
+/// Google 테스트 광고 단위. 개발 중에는 이것만 쓴다(계정 정지를 막기 위해 실제 광고를 눌러 보지 않는다).
+const _testAdUnitIdsAndroid = AdUnitIds(
+  banner: 'ca-app-pub-3940256099942544/9214589741',
+  rewarded: 'ca-app-pub-3940256099942544/5224354917',
+);
+const _testAdUnitIdsIos = AdUnitIds(
+  banner: 'ca-app-pub-3940256099942544/2435281174',
+  rewarded: 'ca-app-pub-3940256099942544/1712485313',
+);
+
+/// 운영 광고 단위(`docs/release.md`의 운영 배포 전에 채울 값). 비어 있으면 운영 빌드는 광고를 내지 않는다.
+const _adUnitIdsAndroid = AdUnitIds(banner: '', rewarded: '');
+const _adUnitIdsIos = AdUnitIds(banner: '', rewarded: '');
+
+/// 이 빌드와 기기의 광고 단위. 광고가 없는 곳(웹, 데스크톱, 값을 채우지 않은 운영 빌드)이면 null이다.
+AdUnitIds? getAdUnitIds() {
+  if (kIsWeb) {
+    return null;
+  }
+  final android = defaultTargetPlatform == TargetPlatform.android;
+  if (!android && defaultTargetPlatform != TargetPlatform.iOS) {
+    return null;
+  }
+  if (!kReleaseMode || useFirebaseEmulator) {
+    return android ? _testAdUnitIdsAndroid : _testAdUnitIdsIos;
+  }
+  final ids = android ? _adUnitIdsAndroid : _adUnitIdsIos;
+  return ids.banner.isEmpty || ids.rewarded.isEmpty ? null : ids;
+}
+
 /// 채팅 메시지 최대 글자 수. Functions의 `CHAT_MAX_LENGTH`(`server/functions/src/config.ts`)와 같다.
 const chatMaxLength = 100;

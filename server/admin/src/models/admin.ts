@@ -160,6 +160,10 @@ export interface AppConfig {
   signupEnabled: boolean;
   webEnabled: boolean;
   coinSaleEnabled: boolean;
+  rewardedAdEnabled: boolean;
+  bannerAdEnabled: boolean;
+  coinRewardedAdReward: number;
+  coinRewardedAdDailyLimit: number;
   minAppVersion: string;
   serviceNotice: ServiceNotice | null;
 }

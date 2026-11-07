@@ -27,6 +27,12 @@ Future<void> main() async {
   await managers.effectSettingsManager.load();
   LicenseRegistry.addLicense(_getFontLicenses);
   runApp(const JanggigoApp());
+  // 동의 창은 첫 화면 위에 띄운다. iOS는 앱이 화면에 뜨기 전의 추적 동의 요청을 무시한다.
+  WidgetsBinding.instance.addPostFrameCallback(_startAds);
+}
+
+void _startAds(Duration timeStamp) {
+  managers.adManager.start();
 }
 
 /// 설정의 오픈소스 라이선스에 앱에 넣은 글꼴의 라이선스를 더한다(`docs/ui.md`의 디자인 방향).

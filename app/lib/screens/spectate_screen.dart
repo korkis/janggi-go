@@ -16,6 +16,7 @@ import '../theme/app_theme.dart';
 import '../utils/game_format.dart';
 import '../utils/rank_format.dart';
 import '../utils/score_format.dart';
+import '../widgets/ad_banner.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/chat_view.dart';
@@ -140,7 +141,11 @@ class _SpectateScreenState extends State<SpectateScreen> {
           chip: resultChip,
           details: getGameDetails(l10n, game.meta),
           body: chatEnabled ? ChatView(chats: [_chat], style: ChatStyle.dark) : null,
-          buttons: _buildButtons(context, review),
+          buttons: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [const AdBanner(), _buildButtons(context, review)],
+          ),
         ),
       );
     }
@@ -161,6 +166,7 @@ class _SpectateScreenState extends State<SpectateScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: ChatPreviewLine(chats: [_chat]),
           ),
+        const AdBanner(),
         Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: _buildButtons(context, review)),
       ],
     );

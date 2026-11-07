@@ -314,6 +314,10 @@ class _FakeConfigsRepository implements ConfigsRepository {
     signupEnabled: true,
     webEnabled: webEnabled,
     coinSaleEnabled: true,
+    rewardedAdEnabled: true,
+    bannerAdEnabled: true,
+    coinRewardedAdReward: 30,
+    coinRewardedAdDailyLimit: 5,
     minAppVersion: '1.0.0',
     serviceNotice: null,
   );

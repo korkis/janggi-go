@@ -17,7 +17,9 @@ type BooleanField =
   | "chatEnabled"
   | "signupEnabled"
   | "webEnabled"
-  | "coinSaleEnabled";
+  | "coinSaleEnabled"
+  | "rewardedAdEnabled"
+  | "bannerAdEnabled";
 
 interface NumberFieldInfo {
   key: NumberField;
@@ -57,6 +59,8 @@ const COIN_FIELDS: NumberFieldInfo[] = [
   {key: "coinNicknameChangeCost", label: "닉네임 변경", unit: "엽전", help: "두 번째 변경부터 받아요."},
   {key: "coinTimeExtensionCost", label: "시간 연장 1회", unit: "엽전"},
   {key: "coinGamePracticeCost", label: "대국 중 놓아보기 한 판", unit: "엽전"},
+  {key: "coinRewardedAdReward", label: "보상형 광고 1번", unit: "엽전"},
+  {key: "coinRewardedAdDailyLimit", label: "보상형 광고 하루 횟수", unit: "번", help: "서울 시간 0시에 다시 세요."},
 ];
 
 const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
@@ -79,6 +83,16 @@ const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
     key: "coinSaleEnabled",
     label: "엽전 충전 판매",
     help: "끄면 다음에 켜는 앱의 상점에서 충전 상품이 사라져요. 켜져 있는 앱은 다시 켤 때까지 살 수 있고, 결제가 끝난 충전은 지급해요.",
+  },
+  {
+    key: "rewardedAdEnabled",
+    label: "보상형 광고",
+    help: "끄면 다음에 켜는 앱에서 버튼이 사라지고 서버가 곧바로 지급을 멈춰요. 켜져 있는 앱에서 광고를 끝까지 봐도 엽전이 나가지 않아요.",
+  },
+  {
+    key: "bannerAdEnabled",
+    label: "배너 광고",
+    help: "끄면 다음에 켜는 앱부터 배너가 사라져요. 서버가 막을 수 없어 켜져 있는 앱은 다시 켤 때까지 그대로예요.",
   },
   {
     key: "onlineUsersVisible",
@@ -132,6 +146,8 @@ function toDraft(config: AppConfig): Draft {
     signupEnabled: config.signupEnabled,
     webEnabled: config.webEnabled,
     coinSaleEnabled: config.coinSaleEnabled,
+    rewardedAdEnabled: config.rewardedAdEnabled,
+    bannerAdEnabled: config.bannerAdEnabled,
     minAppVersion: config.minAppVersion,
     noticeEnabled: config.serviceNotice !== null,
     noticeMessageKo: config.serviceNotice?.messageKo ?? "",
@@ -180,6 +196,8 @@ function toConfig(draft: Draft): AppConfig | null {
     signupEnabled: draft.signupEnabled,
     webEnabled: draft.webEnabled,
     coinSaleEnabled: draft.coinSaleEnabled,
+    rewardedAdEnabled: draft.rewardedAdEnabled,
+    bannerAdEnabled: draft.bannerAdEnabled,
     minAppVersion: draft.minAppVersion,
     serviceNotice: draft.noticeEnabled
       ? {

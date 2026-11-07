@@ -1809,4 +1809,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nicknameStartHintStore => 'Next, we\'ll open the store';
+
+  @override
+  String get storeEarnCoinsTitle => 'Earn coins';
+
+  @override
+  String adRewardAction(int coins) {
+    return 'Watch an ad for $coins coins';
+  }
+
+  @override
+  String get storeAdWatch => 'Watch';
+
+  @override
+  String storeAdsLeft(int count) {
+    return '$count left today';
+  }
+
+  @override
+  String get storeAdsDone => 'All done for today';
+
+  @override
+  String adRewardComing(int coins) {
+    return '$coins coins will arrive shortly';
+  }
+
+  @override
+  String get errorAdUnavailable =>
+      'No ad available right now. Please try again later';
+
+  @override
+  String get errorAdNotCompleted => 'Watch the whole ad to get the coins';
+
+  @override
+  String get settingsAdPrivacy => 'Ad privacy settings';
+
+  @override
+  String get errorAdPrivacy =>
+      'Couldn\'t open ad settings. Please try again later';
 }

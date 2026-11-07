@@ -2857,6 +2857,66 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'정하고 나면 상점으로 가요'**
   String get nicknameStartHintStore;
+
+  /// 상점의 보상형 광고 묶음 제목
+  ///
+  /// In ko, this message translates to:
+  /// **'엽전 받기'**
+  String get storeEarnCoinsTitle;
+
+  /// 보상형 광고 버튼과 줄의 이름
+  ///
+  /// In ko, this message translates to:
+  /// **'광고 보고 {coins}엽전 받기'**
+  String adRewardAction(int coins);
+
+  /// 상점의 보상형 광고 버튼
+  ///
+  /// In ko, this message translates to:
+  /// **'보기'**
+  String get storeAdWatch;
+
+  /// 상점의 보상형 광고 남은 횟수
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 {count}번 남았어요'**
+  String storeAdsLeft(int count);
+
+  /// 오늘의 보상형 광고 횟수를 다 썼을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘은 다 받았어요'**
+  String get storeAdsDone;
+
+  /// 보상형 광고를 끝까지 봤을 때. 지급은 서버가 한다
+  ///
+  /// In ko, this message translates to:
+  /// **'곧 {coins}엽전이 들어와요'**
+  String adRewardComing(int coins);
+
+  /// 보상형 광고를 불러오거나 보여주지 못했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 광고를 볼 수 없어요. 잠시 후 다시 해 주세요'**
+  String get errorAdUnavailable;
+
+  /// 보상형 광고를 끝까지 보지 않았을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'광고를 끝까지 봐야 받을 수 있어요'**
+  String get errorAdNotCompleted;
+
+  /// 설정의 광고 동의 다시 고르기(유럽 등)
+  ///
+  /// In ko, this message translates to:
+  /// **'광고 개인정보 설정'**
+  String get settingsAdPrivacy;
+
+  /// 광고 동의 창을 띄우지 못했을 때
+  ///
+  /// In ko, this message translates to:
+  /// **'광고 설정을 열지 못했어요. 잠시 후 다시 해 주세요'**
+  String get errorAdPrivacy;
 }
 
 class _AppLocalizationsDelegate

@@ -32,7 +32,7 @@ flowchart LR
 | 구성 | 맡는 일 |
 |---|---|
 | 대국 서버 (`server/game`) | 대국 상태와 매칭에 관한 모든 쓰기. 빠른 대국, 방, 신청, 접속자 목록, 상차림, 수, 시계, 접속 끊김, 결과, 레이팅, 다시 두기, 참가비와 대국 보상 |
-| Functions (`server/functions`) | 대국 밖의 서버 기능. 프로필과 닉네임, 가입·출석 엽전, 앱 결제 웹훅, 채팅 검사와 저장, 신고, 제재, Admin 웹 Callable, 보관 기간 정리 |
+| Functions (`server/functions`) | 대국 밖의 서버 기능. 프로필과 닉네임, 가입·출석 엽전, 앱 결제 웹훅, 광고 보상 콜백, 채팅 검사와 저장, 신고, 제재, Admin 웹 Callable, 보관 기간 정리 |
 | 앱이 직접 쓰는 것 | 접속 상태(`connections`), 관전자 표시(`spectators`), 차단 목록, 신청 받기 설정 |
 | Cloud Tasks | 대국 서버가 정한 시각에 대국 서버를 다시 부른다. 시간패, 상차림 마감, 접속 끊김 마감, 매칭 범위 넓히기, 신청 응답 마감 |
 
@@ -271,6 +271,7 @@ flowchart LR
 | 시간 연장, 대국 중 놓아보기 | 대국 서버 `useTimeExtension`, `useGamePractice` | 아래 "시간 연장과 놓아보기" |
 | 반영하지 못한 시간 연장 돌려주기 | 대국 서버 `useTimeExtension`, `finalizeGame` | 아래 "시간 연장과 놓아보기" |
 | 충전, 충전 환불 | Functions `revenueCatWebhook` | 아래 "앱 결제" |
+| 보상형 광고 | Functions `admobRewardCallback` | 아래 "앱 광고" |
 
 틀어지지 않게 하는 방법:
 
@@ -288,7 +289,7 @@ flowchart LR
   - `startRoomGame`: 내가 모자라면 `coinsInsufficient`, 상대가 모자라면 `opponentCoinsInsufficient`다. 방은 그대로 `waiting`이다.
   - `respondChallenge`: 내가 모자라면 `coinsInsufficient`이고 신청이 남아 거절할 수 있다. 보낸 사람이 모자라면 신청을 `cancelled`로 끝내고 `opponentCoinsInsufficient`다.
   - 다시 두기: 내가 모자라면 `coinsInsufficient`다. 상대가 모자라면 새 대국을 만들 때 취소되어 `rematchUnavailable`이다.
-- 앱은 `coinsInsufficient`를 받으면 안내 창에 상점으로 가는 버튼을 붙인다(`showActionError`, 2026-11-07 구현). 광고 버튼은 구현 순서 6에서 붙인다.
+- 앱은 `coinsInsufficient`를 받으면 안내 창에 상점으로 가는 버튼과 광고 버튼을 붙인다(`showActionError`, 2026-11-07 구현).
 - 지갑의 무상이 음수일 수 있다(아래 "앱 결제"의 환불). 쓸 때의 계산은 그대로다. 잔액이 값보다 적으면 거절하고, 무상이 음수인 채 유상으로 쓰면 무상을 0으로 메운 만큼 유상에서 더 나간다.
 
 대국 끝 규칙(`finalizeGame`):
@@ -515,6 +516,63 @@ sequenceDiagram
 - 고른 기물은 앱이 `inventories.selectedMaterial`을 직접 바꾼다. 보안 규칙이 기본 기물이나 산 기물만 허용한다. Callable을 두지 않아 콜드 스타트 없이 바로 바뀐다.
 - 대국 서버의 `createGame`이 두 사람의 보관함을 읽어 `meta.players.{side}.pieceMaterial`에 쓴다. 고른 기물을 갖고 있지 않으면 쓰지 않는다. 옛 앱은 모르는 필드를 무시하고 기본 기물로 그린다.
 
+### 앱 광고 — 확정 (2026-11-07 구현)
+
+위치와 숫자는 [monetization.md](./monetization.md), 저장 구조는 [database.md](./database.md)의 `coin_wallets`, 사용자 할 일은 [release.md](./release.md)의 앱 광고 준비다. 흐름은 `rewardedAdService.ts`, 지급은 `coinService.ts`의 `grantRewardedAd`에 있다.
+
+```mermaid
+sequenceDiagram
+    participant A as 앱
+    participant G as AdMob
+    participant F as admobRewardCallback
+    participant D as Firestore
+    A->>G: 광고 불러오기, 보여주기(user_id = uid)
+    G-->>A: 끝까지 봄
+    G->>F: GET ?...&user_id&transaction_id&signature&key_id
+    F->>F: 구글 공개 키로 서명 확인
+    F->>D: 트랜잭션: coin_wallets, coin_transactions
+    D-->>A: 지갑을 듣다 바뀐 것을 본다
+```
+
+- 엽전은 콜백에서만 준다. 앱은 광고가 끝나면 "곧 30엽전이 들어와요"만 알리고 듣고 있는 지갑으로 안다.
+- 앱은 Callable을 부르지 않는다. 볼 수 있는지 먼저 묻는 호출을 두면 광고마다 콜드 스타트만큼 늦어지기 때문이다.
+- 웹은 광고 SDK를 불러오지도 않는다. 조건부 import로 웹 빌드에서 뺀다(`ad_repository_factory.dart`).
+
+`admobRewardCallback`(HTTP GET, 공개 주소):
+
+- 쿼리 문자열의 `&signature=` 앞까지가 서명된 내용이다. 디코딩하지 않은 그대로를 ECDSA(SHA-256, DER)로 확인한다. `signature`는 URL-safe base64다. 값은 서명된 내용에서만 읽어 서명 뒤에 덧붙인 파라미터는 쓰이지 않는다.
+- 공개 키는 `https://www.gstatic.com/admob/reward/verifier-keys.json`이다(구글 문서의 `gstatic.com`은 이리로 넘어간다). 메모리에 24시간 두고, 모르는 `key_id`가 오면 다시 읽되 60초에 한 번까지만 읽는다.
+- 서명 필드가 없거나 서명이 틀리면 403이다. 공개 키를 읽지 못하거나 트랜잭션이 실패하면 500이고 구글이 1초 간격으로 다섯 번까지 다시 보낸다.
+- 서명이 맞으면 주지 않더라도 200이다. 다시 보내도 결과가 같기 때문이다. 결과는 로그의 `result`로 찾는다(`RewardedAdResult`).
+
+| `result` | 뜻 |
+|---|---|
+| `granted` | 줬다 |
+| `duplicate` | 같은 `transaction_id`를 이미 줬다 |
+| `limitReached` | 오늘 `coinRewardedAdDailyLimit`번을 이미 받았다 |
+| `disabled` | `rewardedAdEnabled`가 꺼져 있다 |
+| `unknownAdUnit` | `ad_unit`이 `ADMOB_REWARDED_AD_UNITS`에 없다 |
+| `missingField` | `user_id`나 `transaction_id`가 없다 |
+| `noWallet` | 지갑이 없다(지운 계정 등) |
+
+틀어지지 않게 하는 방법:
+
+- 내역 `rewardedAd_{uid}_{transaction_id}`를 지갑과 같은 트랜잭션에서 읽고 `create`로 쓴다. 같은 콜백이 여러 번, 동시에 와도 한 번만 준다.
+- 하루 횟수는 지갑의 `rewardedAdDay`, `rewardedAdCount`로 트랜잭션 안에서 센다. 동시에 와도 넘지 않는다. 앱의 남은 횟수 표시도 같은 필드를 읽는다.
+- 값은 언제나 `configs/app`을 쓰고 콜백의 `reward_amount`는 쓰지 않는다.
+- 구글의 서명은 어느 AdMob 계정의 광고에나 붙으므로 서명만으로는 우리 광고인지 알 수 없다. 남이 자기 광고 단위의 콜백 주소를 여기로 정하면 서명이 맞는 콜백을 만들 수 있으므로 `ad_unit`을 `ADMOB_REWARDED_AD_UNITS`와 비교한다. 비어 있으면 아무것도 주지 않는다.
+- `user_id`는 앱이 정하는 값이다. 조작한 앱은 다른 사람의 uid로 광고를 볼 수 있지만 그 사람이 받을 뿐이고 하루 횟수는 그대로다. 자기 엽전은 늘지 않으므로 막지 않는다.
+- 탈퇴를 눌렀어도 지우기 전이면 준다. 앱 결제와 같다.
+
+동의(`AdManager.start`, 첫 화면이 뜬 뒤 앱을 켤 때마다):
+
+1. UMP 동의 정보를 읽고 필요하면 창을 띄운다(유럽 등). 실패해도 지난번 동의로 이어 간다.
+2. iOS는 아직 묻지 않았으면 ATT 창을 띄운다. 거절해도 광고는 나가고 광고 식별자만 빠진다.
+3. `canRequestAds`가 참이면 SDK를 켠다. 거짓이면 이번 실행에는 광고가 없다.
+4. UMP가 요구하면 설정에 "광고 개인정보 설정"을 둔다.
+
+개발 빌드와 에뮬레이터 빌드는 Google 테스트 광고 단위만 쓴다. 앱이 바라보는 값은 `app/lib/config.dart`의 `getAdUnitIds`다. 테스트 광고는 콜백을 부르지 않으므로 에뮬레이터에서 앱으로 광고를 봐도 엽전은 들어오지 않고, 지급은 가짜 서명 콜백을 부르는 `server/functions/test/rewardedAd.test.ts`로 확인한다.
+
 ### 운영 스위치 — 확정 (2026-11-06)
 
 [release.md](./release.md)의 운영 설정과 멈춤 스위치 중 구현 순서 4번이다. 앱은 `AppConfigManager`가 앱을 켤 때 `configs/app`을 한 번 읽는다(사용자 결정, 2026-11-07). 켜져 있는 앱의 화면은 다시 켤 때까지 그대로다. 실수로 값을 바꿔도 대국 중인 사람의 화면이 갑자기 막히지 않게 하기 위해서다. 서버의 거절은 캐시가 지나면(1분 안에) 켜져 있는 앱에도 바로 적용된다. 읽기 전이거나 읽지 못하면 막지 않는다. 설정을 읽지 못한다고 앱을 멈추지 않기 위해서다.
@@ -526,6 +584,8 @@ sequenceDiagram
 | `webEnabled` | 웹은 어느 화면 대신 안내 화면만 보여준다 | `Origin` 헤더가 있는 요청을 `featureDisabled`로 거절한다. 대국 서버 API 모두와 앱이 쓰는 Callable이고 `deleteAccount`와 Admin Callable은 뺀다 |
 | `minAppVersion` | 앱(안드로이드, iOS)의 버전이 이보다 낮으면 업데이트 화면만 보여준다 | 막지 않는다 |
 | `serviceNotice` | 어느 화면에서든 한 번 띄운다. 대국 중이면 끝난 뒤 띄운다 | `gamesBlocked`면 새 대국을 만들지 않는다(`gamesBlocked`) |
+| `rewardedAdEnabled` | 상점과 "엽전이 모자라요" 창의 광고 버튼을 두지 않는다 | `admobRewardCallback`이 지급하지 않는다. 위 "앱 광고" |
+| `bannerAdEnabled` | 배너를 두지 않는다 | 막지 않는다. 배너는 서버를 거치지 않는다 |
 
 - `webEnabled`: 브라우저는 앱의 서버 호출에 `Origin` 헤더를 언제나 붙이고 스크립트로 뺄 수 없다. 앱(안드로이드, iOS)은 붙이지 않는다. 그래서 헤더로 웹을 가른다. 브라우저 밖에서 일부러 헤더를 뺀 호출까지 막지는 못하지만 웹 서비스를 멈추는 목적에는 충분하다. 관전처럼 앱이 RTDB와 Firestore를 바로 읽는 것은 보안 규칙으로 열려 있어 서버가 막지 않고 앱의 안내 화면이 막는다. 진행 중인 웹 대국은 끄면 수를 둘 수 없어 접속 끊김패나 시간패가 된다.
 - `minAppVersion`: 옛 앱은 버전을 보내지 않으므로 서버는 알 수 없다. 첫 버전부터 앱이 화면을 띄우므로 서버 거절 없이 둔다. 웹은 새로 고치면 새 버전이라 보지 않는다. 비교는 `1.2.3`의 세 숫자를 앞에서부터 본다.
@@ -589,7 +649,7 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | `adminGetAppConfig` | 없음 | `configs/app`을 캐시 없이 읽는다 |
 | `adminUpdateAppConfig` | `config`(모든 필드) | `configs/app`을 바꾼다. 필드가 빠지거나 더 있으면 거절한다. 범위는 `APP_CONFIG_LIMITS`(끊김 허용 10~300초, 다시 두기 0~100번, 접속 확인 주기 1~5초: 대국 서버의 `presenceStaleSeconds` 15초 안에 세 번 갱신하도록, 엽전 숫자는 아래 "configs/app"의 범위). `minAppVersion`은 `1.2.3` 모양, `serviceNotice`는 null이거나 두 언어의 문구가 1~200자여야 한다 |
 | `adminRestoreAccount` | `uid`, `reason` | 탈퇴 표시를 지우고 Auth 계정을 다시 켠다(위 "회원 탈퇴"). 결과는 바뀐 사용자 기록. 탈퇴한 사용자가 아니면 `notDeleted`, 이미 지웠으면 `notFound` |
-| `adminGetCoinStats` | 없음 | 엽전 지표. 잔액 구간별 지갑 수(`balanceBuckets`)와 최근 7일의 끝난 대국 수, 시간 연장·놓아보기 내역 수, 광고 시청 내역 수(`days`). 모두 세기 쿼리다. 광고는 그 기능이 생기면 쌓인다 |
+| `adminGetCoinStats` | 없음 | 엽전 지표. 잔액 구간별 지갑 수(`balanceBuckets`)와 최근 7일의 끝난 대국 수, 시간 연장·놓아보기 내역 수, 광고 시청 내역 수(`days`). 모두 세기 쿼리다 |
 
 - 사용자 기록: 프로필(`users`, 없으면 null, 탈퇴를 누른 시각 `deletedAt` 포함), 지금 제재(`users_private.sanction`, 끝났지만 예약 작업이 아직 지우지 않은 것도 그대로), 최근 제재 이력·신고된 기록·검사 기록·닉네임 변경 각각 20개.
 - 목록의 `cursor`는 앞 쪽 마지막 항목의 정렬 시각과 문서 ID(`afterMs`, `afterId`)다. 다음 쪽이 없으면 `nextCursor`가 null이다.
@@ -765,6 +825,10 @@ sequenceDiagram
 | `signupEnabled` | boolean | `true` | 새 가입을 받는다. 위 "운영 스위치" | [release.md](./release.md) |
 | `webEnabled` | boolean | `true` | 웹을 연다. 위 "운영 스위치" | [release.md](./release.md) |
 | `coinSaleEnabled` | boolean | `true` | 엽전 충전을 판다. 끄면 앱은 상점에서 충전을 숨긴다. 서버는 결제가 끝난 충전을 지급한다. 위 "앱 결제" | [release.md](./release.md) |
+| `rewardedAdEnabled` | boolean | `true` | 보상형 광고 엽전을 준다. 끄면 앱은 버튼을 숨기고 서버는 지급을 거절한다. 위 "앱 광고" | [release.md](./release.md) |
+| `bannerAdEnabled` | boolean | `true` | 배너 광고를 보여준다. 끄면 다음에 켜는 앱부터 숨긴다. 서버가 막을 것은 없다 | [release.md](./release.md) |
+| `coinRewardedAdReward` | number | `30` | 보상형 광고 1번의 엽전. 1~300 | [monetization.md](./monetization.md) |
+| `coinRewardedAdDailyLimit` | number | `5` | 보상형 광고로 하루에 받을 수 있는 횟수. 1~20. 멈추려면 0이 아니라 `rewardedAdEnabled`를 끈다 | [monetization.md](./monetization.md) |
 | `minAppVersion` | string | `1.0.0` | 이보다 낮은 앱에 업데이트 화면을 띄운다. `1.2.3` 모양 | [release.md](./release.md) |
 | `serviceNotice` | map? | `null` | 공지. `messageKo`, `messageEn`(string, 1~200자), `gamesBlocked`(boolean, 새 대국을 막는다). 앱 언어가 한국어면 `messageKo`, 그 밖에는 `messageEn`을 보여준다 | [release.md](./release.md) |
 
@@ -810,6 +874,8 @@ sequenceDiagram
 | 제재 기간 | 1·7·30일 (`SANCTION_DURATION_DAYS`) | [moderation.md](./moderation.md) |
 | 조치 사유 길이 | 200자 (`ADMIN_REASON_MAX_LENGTH`) | 이 문서 |
 | `configs/app`에 넣을 수 있는 범위 | `APP_CONFIG_LIMITS` | 이 문서의 Admin Callable |
+| 우리 보상형 광고 단위 번호 | `ADMOB_REWARDED_AD_UNITS` | [release.md](./release.md)의 앱 광고 준비 |
+| 광고 콜백 공개 키 주소, 캐시, 다시 읽는 간격, 응답 기다리는 시간 | `ADMOB_VERIFIER_KEYS_*`. 24시간, 60초, 5초 | 이 문서의 앱 광고 |
 | 채팅 보관 | 90일 | [moderation.md](./moderation.md) |
 | 검사 기록 보관 | 1년 | [moderation.md](./moderation.md) |
 | 닉네임 길이와 글자 | 한글·영문·숫자 2~10자 | [screens.md](./screens.md) |

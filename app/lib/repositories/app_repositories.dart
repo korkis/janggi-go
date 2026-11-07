@@ -6,6 +6,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config.dart';
+import 'ad_repository.dart';
+import 'ad_repository_factory.dart';
 import 'archived_game_repository.dart';
 import 'auth_repository.dart';
 import 'challenge_repository.dart';
@@ -53,6 +55,7 @@ class AppRepositories {
   final CoinWalletRepository coinWalletRepository;
   final InventoryRepository inventoryRepository;
   final StorePurchaseRepository storePurchaseRepository;
+  final AdRepository adRepository;
 
   AppRepositories({
     required this.authRepository,
@@ -76,6 +79,7 @@ class AppRepositories {
     required this.coinWalletRepository,
     required this.inventoryRepository,
     required this.storePurchaseRepository,
+    required this.adRepository,
   });
 
   factory AppRepositories.createDefault() {
@@ -112,6 +116,7 @@ class AppRepositories {
       coinWalletRepository: CoinWalletRepository(firestore: firestore, functions: functions),
       inventoryRepository: InventoryRepository(firestore: firestore),
       storePurchaseRepository: StorePurchaseRepository(apiKey: getRevenueCatApiKey()),
+      adRepository: createAdRepository(),
     );
   }
 }

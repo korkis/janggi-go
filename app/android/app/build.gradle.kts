@@ -27,6 +27,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // AdMob 앱 ID. 없으면 SDK가 앱을 켤 때 멈춘다. 개발 중에는 Google 테스트 앱 ID만 쓴다.
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
     }
 
     buildTypes {
@@ -34,6 +36,8 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // 운영 AdMob 앱 ID(docs/release.md의 운영 배포 전에 채울 값). 값을 넣기 전까지는 테스트 앱 ID이고, 광고 단위가 비어 있어 광고를 요청하지 않는다.
+            // manifestPlaceholders["admobAppId"] = "ca-app-pub-..."
         }
     }
 }

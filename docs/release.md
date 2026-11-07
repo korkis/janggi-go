@@ -36,7 +36,7 @@
 - **빼는 곳:** 중국 앱스토어. 게임에 정부 허가 번호를 요구한다([App in China](https://appinchina.co/blog/update-apples-new-requirements-for-games-on-the-apple-app-store-china/), 2020년 자료라 등록할 때 다시 본다).
 - **유럽 등 광고 동의:** EEA, 영국, 스위스에 맞춤 광고를 내려면 구글 인증 동의 관리 도구가 필요하다([AdMob 도움말](https://support.google.com/admob/answer/13554020), [Flutter 안내](https://developers.google.com/admob/flutter/privacy/gdpr)). UMP SDK를 쓴다.
 - **유럽 앱스토어 판매자 정보:** 개인 개발자 계정은 주소(또는 사서함), 전화, 이메일이 공개된다([App Store Connect 도움말](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-eu-digital-services-act-compliance-information), [MacRumors](https://www.macrumors.com/2024/10/17/developers-eu-app-store-trader-requirements/)). 공개해도 된다고 사용자가 정했다(2026-11-06).
-- **iOS 추적 동의:** ATT 창을 쓰지 않으면 광고 식별자가 0이 되어 수익이 줄 수 있다([플러그인 문서](https://pub.dev/packages/app_tracking_transparency)). UMP와 함께 띄운다(초안).
+- **iOS 추적 동의:** ATT 창을 쓰지 않으면 광고 식별자가 0이 되어 수익이 줄 수 있다([플러그인 문서](https://pub.dev/packages/app_tracking_transparency)). 앱을 처음 켤 때 UMP 다음에 띄우고, 앞서 띄우는 설명 화면은 넣지 않는다(사용자 결정, 2026-11-07). 홈에 배너가 있어 켜자마자 광고를 요청하기 때문이다.
 - **서버:** 대국 서버는 서울 하나다. 먼 나라는 지연이 크고 시계는 보정하지 않는다([server.md](./server.md)의 시계). 이대로 낸다(초안).
 
 ## 알림 — 확정 (2026-11-06)
@@ -84,7 +84,9 @@
 
 - 앱에서 숨기는 것으로 끝내지 않고 서버 API도 같은 설정을 확인해 거절한다. 옛 앱과 조작된 앱도 멈추기 위해서다.
 - `coinSaleEnabled`만 앱에서 숨기는 것으로 끝낸다(사용자 결정, 2026-11-07). 결제는 스토어로 바로 가므로 서버가 끼어들려면 결제 전에 Callable을 한 번 더 불러야 하고, 드물게 쓸 스위치 때문에 매번 결제가 콜드 스타트만큼 느려지기 때문이다. 웹훅에서 거절하면 돈만 나가고 엽전을 받지 못하므로 웹훅은 지급하고 경고 로그를 남긴다. 켜져 있는 앱과 조작된 앱의 결제는 막지 못하지만 그 사람은 돈을 내고 엽전을 받는다.
-- 앱은 켤 때 한 번 읽는다(사용자 결정, 2026-11-07). 화면은 앱을 다시 켜야 바뀐다. 바로 막는 것은 서버이고 캐시 때문에 1분 안에 적용된다. 그래서 서버가 막지 않는 `coinSaleEnabled`, `minAppVersion`과 공지 문구는 켜져 있는 앱에 닿지 않는다.
+- `bannerAdEnabled`는 앱에서 숨기는 것으로 끝난다. 배너는 앱이 AdMob에서 바로 받아 서버를 거치지 않으므로 거절할 API가 없다.
+- `rewardedAdEnabled`는 `admobRewardCallback`이 지급을 거절한다. 켜져 있는 앱에서는 버튼이 남으므로 광고를 끝까지 봐도 엽전이 나가지 않는다. 볼 수 있는지 먼저 묻는 호출은 두지 않았다. 드물게 쓸 스위치 때문에 매번 광고가 콜드 스타트만큼 늦어지기 때문이다.
+- 앱은 켤 때 한 번 읽는다(사용자 결정, 2026-11-07). 화면은 앱을 다시 켜야 바뀐다. 바로 막는 것은 서버이고 캐시 때문에 1분 안에 적용된다. 그래서 서버가 막지 않는 `coinSaleEnabled`, `bannerAdEnabled`, `minAppVersion`과 공지 문구는 켜져 있는 앱에 닿지 않는다.
 - `configs/app`은 누구나 읽으므로 악용될 값(어뷰징 탐지 기준 등)은 넣지 않는다.
 - 구현 순서 4번의 스위치가 앱과 서버에서 하는 일은 [server.md](./server.md)의 운영 스위치다. `minAppVersion`만 서버가 거절하지 않는다. 옛 앱은 버전을 보내지 않기 때문이다.
 - Admin 웹의 설정 화면과 `adminUpdateAppConfig`의 범위 검사를 필드가 늘 때마다 함께 늘린다.
@@ -99,8 +101,9 @@
 - App Links, Universal Links, Install Referrer. 웹으로 받은 초대 링크가 앱의 같은 방으로 이어지는지.
 - `apple-app-site-association`의 Content-Type(Hosting 에뮬레이터는 headers를 적용하지 않는다).
 - 두 계정의 실제 대국, Cloud Tasks 예약 작업(시간패, 상차림 마감).
-- AdMob 서버 콜백, FCM 알림.
+- FCM 알림.
 - 결제와 환불(아래 "앱 결제에서 확인할 것").
+- 실제 광고와 AdMob 서버 콜백(아래 "앱 광고에서 확인할 것").
 - iOS의 애플 로그인 사용자 탈퇴와 토큰 철회, 되돌린 뒤 다시 로그인.
 - 탈퇴 뒤 구글, 애플 로그인이 막히는지, `purgeDeletedAccounts` 예약 작업, Firestore TTL.
 - 업데이트 안내의 스토어 열기.
@@ -116,11 +119,26 @@
 - 탈퇴자를 지울 때 RevenueCat 고객이 지워지는지. `REVENUECAT_SECRET_API_KEY`의 키 종류는 RevenueCat 문서에 적혀 있지 않아 비밀 키로 넣었다. 401이면 `purgeDeletedAccounts` 로그에 남고 그 사람을 지우지 않는다.
 - 외국 스토어 계정에서 현지 통화 가격이 보이는지.
 
+앱 광고에서 확인할 것(안드로이드 비공개 테스트와 TestFlight). 에뮬레이터 확인은 우리가 만든 키로 서명한 가짜 콜백으로 했고, Google 테스트 광고 단위는 콜백을 부르지 않는 것으로 안다(문서에 적혀 있지 않아 이것도 본다):
+
+- 실제 콜백의 구글 서명이 통과하는지. 광고를 끝까지 보고 몇 초 안에 잔액과 "오늘 N번 남았어요"가 바뀌는지. Functions 로그의 `admobRewardCallback 완료`로 본다. `서명 실패`면 쿼리 문자열을 다루는 부분(`getRawQuery`)을 본다.
+- 콜백의 `ad_unit`이 숫자만 오는지(문서 예시는 숫자만이고 앞부분이 붙는지 적혀 있지 않다). 로그의 `result`가 `unknownAdUnit`이면 `ADMOB_REWARDED_AD_UNITS`와 비교한다.
+- AdMob 콘솔의 "Verify URL"이 통과하는지. 이 요청의 내용이 문서에 없어, 서명이 맞으면 모르는 광고 단위도 200으로 받게 만들었다.
+- 콜드 스타트로 첫 콜백이 늦어도 지급되는지. 구글은 200이 아니면 1초 간격으로 다섯 번까지 다시 보낸다.
+- 하루 다섯 번을 다 본 뒤 버튼이 꺼지는지, 서울 0시에 다시 켜지는지.
+- `rewardedAdEnabled`를 끄면 1분 안에 지급이 멈추고 로그에 `result: disabled`가 찍히는지.
+- 유럽에서 UMP 창이 뜨는지, 거절하면 광고가 없는지, 설정의 "광고 개인정보 설정"으로 다시 고를 수 있는지. VPN이나 UMP의 debugGeography로 본다.
+- iOS의 ATT 창이 처음 켤 때 UMP 다음에 뜨는지(요청이 무시되면 창이 뜨지 않는다), 한국어와 영어 문구가 맞는지. `Info.plist`, `ko.lproj/InfoPlist.strings`, `project.pbxproj`는 Windows에서 손으로 고쳐 맥에서 빌드해 보지 못했다.
+- 실제 배너의 높이에서 관전 화면의 판이 쓸 만한 크기인지(폭 320 포함), 배너가 버튼과 충분히 떨어져 있는지. 배너 높이는 Google이 정하고 화면 높이의 15%까지 커질 수 있다.
+- 광고 제거를 사면 배너가 바로 사라지고 환불되면 다시 나오는지. 보상형은 그대로인지.
+- `app-ads.txt`를 AdMob이 인식하는지(최대 24시간). `web.app` 주소가 스토어의 개발자 웹사이트로 인정되지 않으면 자체 도메인을 붙인다. AdMob 문서는 한 단계 하위 도메인까지 찾는다고 하고 `web.app`을 따로 다루지 않는다.
+
 운영 배포 전에 채울 값:
 
 - `configs/app`의 새 필드. 서버를 배포하기 전에 `npm run init-app-config`를 실행한다([server.md](./server.md)의 `configs/app`).
 - `app/lib/config.dart`의 `revenueCatGoogleApiKey`, `revenueCatAppleApiKey`. 비어 있으면 앱은 "지금은 살 수 없어요"를 보여준다.
 - Secret Manager의 `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_SECRET_API_KEY`. 아래 사용자 할 일.
+- AdMob 값 다섯 가지. 아래 "앱 광고 준비". 하나라도 비면 광고가 나가지 않거나(광고 단위) 지급되지 않는다(`ADMOB_REWARDED_AD_UNITS`).
 - `assetlinks.json`의 Play App Signing SHA-256(지금은 개발 PC 디버그 키만 있다).
 - AASA의 `APPLE_TEAM_ID`, Associated Domains, `invite.html`의 `APP_STORE_URL`, `app/lib/config.dart`의 `appStoreUrl`.
 - 운영 Firestore 규칙. [server.md](./server.md) 구현 순서 1번에 2026-11-30까지 열려 있다고 적힌 규칙이 운영에 남아 있는지 확인한다.
@@ -148,6 +166,28 @@
 5. **비밀값.** 위 Authorization 값을 `firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH`, RevenueCat의 v1 비밀 API 키를 `firebase functions:secrets:set REVENUECAT_SECRET_API_KEY`로 넣는다. 비용이 드는 Secret Manager API를 처음 켜는 경우 사용자가 켠다.
 6. **앱 키.** RevenueCat의 공개 SDK 키(`goog_...`, `appl_...`)를 `app/lib/config.dart`에 넣는다.
 7. **iOS.** 맥의 Xcode에서 Runner 타깃에 In-App Purchase capability를 더한다.
+
+## 앱 광고 준비 — 사용자 할 일 (2026-11-07)
+
+계정이 필요해 사용자가 직접 한다. 개발 빌드는 Google 테스트 광고 ID만 쓰며, 운영 빌드는 아래 값을 넣기 전까지 광고를 요청하지 않는다. 실제 광고는 직접 누르지 않는다(무효 클릭으로 계정이 막힐 수 있다).
+
+1. **앱 등록.** AdMob에서 안드로이드(`com.gazuacup.janggigo`)와 iOS 앱을 등록해 앱 ID(`ca-app-pub-...~...`) 두 개를 받는다.
+2. **광고 단위.** 앱마다 배너(적응형)와 보상형을 만든다. 모두 네 개다. 보상형의 보상 값은 아무것이나 넣어도 된다. 서버는 `configs/app`의 값만 쓴다.
+3. **서버 콜백.** 첫 Functions 배포 뒤 보상형 광고 단위 두 개의 "서버 측 확인"에 `https://asia-northeast3-janggi-go.cloudfunctions.net/admobRewardCallback`을 넣고(콘솔에서 주소를 확인한다) "Verify URL"을 누른 뒤 저장한다.
+4. **값 넣기.**
+
+   | 값 | 넣을 곳 |
+   |---|---|
+   | 안드로이드 앱 ID | `app/android/app/build.gradle.kts`의 release `admobAppId` |
+   | iOS 앱 ID | `app/ios/Flutter/Release.xcconfig`의 `ADMOB_APP_ID` |
+   | 광고 단위 네 개 | `app/lib/config.dart`의 `_adUnitIdsAndroid`, `_adUnitIdsIos` |
+   | 보상형 광고 단위 두 개의 번호(`/` 뒤의 숫자) | `server/functions/src/config.ts`의 `ADMOB_REWARDED_AD_UNITS` |
+   | AdMob이 알려 주는 `app-ads.txt` 줄 | `app/web/app-ads.txt` |
+
+5. **유럽 동의 메시지.** AdMob의 개인정보 보호 및 메시지에서 GDPR 메시지를 만든다. 이것이 UMP 창의 내용이다. IDFA 안내 메시지는 만들지 않는다. 앱이 ATT 창을 직접 띄우므로 만들면 겹친다.
+6. **`app-ads.txt`.** 스토어 등록 정보의 개발자 웹사이트(구글 "연락처 세부정보", 애플 "마케팅 URL")를 `https://janggi-go.web.app`으로 둔다. 파일은 웹 빌드와 함께 Hosting 맨 위에 올라간다.
+7. **iOS 광고 네트워크.** `Info.plist`의 `SKAdNetworkItems`에는 Google 것만 넣었다. [Google 문서](https://developers.google.com/admob/ios/quick-start)의 타사 구매자 목록을 더하면 iOS 광고 수익에 도움이 될 수 있다.
+8. **광고 내용 제한(선택).** 주 사용자 층과 맞지 않는 광고 분류를 AdMob의 차단 설정에서 막는다.
 
 ## HTML 페이지 — 초안
 
@@ -194,7 +234,7 @@ Firestore, 대국 서버, Functions는 서울에 있어 국외 이전이 아니�
 | iOS 빌드 | 사용자의 맥에서 Xcode로 |
 | 앱 아이콘, 기능 그래픽 | 사용자가 디자인을 정하고 Claude가 크기를 맞춘다 |
 | 스크린샷, 소개 글(한국어, 영어) | Claude가 초안을 쓴다 |
-| 나이 등급 설문, 데이터 안전 항목, 개인정보 라벨 | Claude가 답안을 준비하고 사용자가 입력한다 |
+| 나이 등급 설문, 데이터 안전 항목, 개인정보 라벨 | Claude가 답안을 준비하고 사용자가 입력한다. 광고 식별자를 광고 목적으로 쓴다고 적는다(구글 "광고 ID", 애플 "추적") |
 | 심사용 시험 계정 | 운영 배포 뒤 사용자가 만든다. 로그인이 필요한 앱은 심사 계정이 있어야 한다 |
 
 ## 규정 확인 — 초안

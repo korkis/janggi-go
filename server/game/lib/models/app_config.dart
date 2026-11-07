@@ -70,6 +70,18 @@ class AppConfig {
   /// 엽전 충전을 판다. 앱이 숨긴다. 대국 서버는 쓰지 않는다.
   final bool coinSaleEnabled;
 
+  /// 보상형 광고 엽전을 준다. Functions가 거절한다. 대국 서버는 쓰지 않는다.
+  final bool rewardedAdEnabled;
+
+  /// 배너 광고를 보여준다. 앱이 숨긴다. 대국 서버는 쓰지 않는다.
+  final bool bannerAdEnabled;
+
+  /// 보상형 광고 1번의 엽전. 대국 서버는 쓰지 않는다.
+  final int coinRewardedAdReward;
+
+  /// 보상형 광고로 하루에 받을 수 있는 횟수. 대국 서버는 쓰지 않는다.
+  final int coinRewardedAdDailyLimit;
+
   /// 이보다 낮은 앱에 업데이트 화면을 띄운다. 대국 서버는 쓰지 않는다.
   final String minAppVersion;
 
@@ -98,6 +110,10 @@ class AppConfig {
     required this.signupEnabled,
     required this.webEnabled,
     required this.coinSaleEnabled,
+    required this.rewardedAdEnabled,
+    required this.bannerAdEnabled,
+    required this.coinRewardedAdReward,
+    required this.coinRewardedAdDailyLimit,
     required this.minAppVersion,
     required this.serviceNotice,
   });

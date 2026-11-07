@@ -9,6 +9,7 @@ import '../repositories/app_repositories.dart';
 import '../theme/app_theme.dart';
 import '../utils/game_record.dart';
 import '../utils/rank_format.dart';
+import '../widgets/ad_banner.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/board/board_view.dart';
 import '../widgets/game_scaffold.dart';
@@ -20,8 +21,7 @@ import 'setup_screen.dart';
 /// 내 기보 목록(`docs/screens.md`의 내 기보 목록). 끝난 대국을 날짜별로 묶어 최근 것부터 보여준다.
 ///
 /// 한 줄에 끝난 판 미리보기, 상대와 급수, 결과 종류, 수, 승패를 두고, 누르면 복기로 간다. 위쪽에 "새 판에서 놓아보기" 버튼을 둔다.
-/// 실시간으로 바뀌지 않고 화면을 열 때 한 쪽을 읽으며, 맨 아래 "더 보기"로 다음 쪽을 읽는다. 하단 광고 배너 자리는 광고가 생기면
-/// 넣는다.
+/// 실시간으로 바뀌지 않고 화면을 열 때 한 쪽을 읽으며, 맨 아래 "더 보기"로 다음 쪽을 읽는다. 맨 아래에 광고 배너를 둔다.
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
 
@@ -75,7 +75,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
           // 내 기보
           title: Text(l10n.recordsTitle),
         ),
-        body: SafeArea(child: _buildList(context)),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(child: _buildList(context)),
+              const AdBanner(),
+            ],
+          ),
+        ),
       ),
     );
   }

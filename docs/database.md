@@ -51,7 +51,7 @@
 | `ChatChannel` | `lobby`, `game`, `spectator` | 앱, Functions |
 | `SanctionType` | `warning`, `chatRestriction`, `suspension`, `permanentBan` | 앱, Functions, 대국 서버, Admin 웹 |
 | `ReportStatus` | `pending`, `resolved` | Functions, Admin 웹 |
-| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `timeExtensionRefund`, `gamePractice`, `rewardedAd`, `coinPurchase`, `coinPurchaseRefund` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`, `timeExtension`, `timeExtensionRefund`, `gamePractice`). `rewardedAd`는 그 기능이 생기면 쓴다 |
+| `CoinReason` | `signup`, `attendance`, `entryFee`, `entryFeeRefund`, `gameReward`, `nicknameChange`, `timeExtension`, `timeExtensionRefund`, `gamePractice`, `rewardedAd`, `coinPurchase`, `coinPurchaseRefund` | Functions(전부), 대국 서버(쓰는 `entryFee`, `entryFeeRefund`, `gameReward`, `timeExtension`, `timeExtensionRefund`, `gamePractice`) |
 | `PieceMaterial` | `plastic`, `wood`, `aluminum` | 앱, Functions, 대국 서버. [ui.md](./ui.md)의 기물 폴더 이름과 같다 |
 | `PurchaseStatus` | `granted`, `refunded`, `ungranted` | Functions |
 
@@ -111,7 +111,7 @@
 
 ### `coin_wallets/{uid}`
 
-엽전 잔액과 출석 기록이다([monetization.md](./monetization.md)의 엽전). Functions와 대국 서버가 트랜잭션 안에서만 바꾼다.
+엽전 잔액과 출석, 보상형 광고 횟수 기록이다([monetization.md](./monetization.md)의 엽전). Functions와 대국 서버가 트랜잭션 안에서만 바꾼다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
@@ -120,6 +120,8 @@
 | `balance` | number | `freeCoins` + `paidCoins`. 앱의 표시와 Admin 웹의 잔액 분포(세기 쿼리)에 쓴다 |
 | `attendanceDay` | string? | 마지막으로 출석한 날(서울 기준 yyyy-MM-dd) |
 | `attendanceStreak` | number | 연속 출석 몇째 날인지(1~7). 7째 날 다음은 1로 돌아간다 |
+| `rewardedAdDay` | string? | 마지막으로 보상형 광고 엽전을 받은 날(서울 기준 yyyy-MM-dd). Functions만 바꾸고 대국 서버는 읽은 값을 그대로 다시 쓴다. 이 필드가 생기기 전의 지갑에는 없다 |
+| `rewardedAdCount` | number? | `rewardedAdDay`에 받은 횟수. 날이 바뀌면 앱과 서버 모두 0으로 본다 |
 | `updatedAt` | timestamp | |
 
 - 읽기: 본인. 쓰기: 클라이언트 없음. 관리자도 직접 읽지 못한다.
@@ -155,6 +157,7 @@
 | `timeExtension` | `{대국 ID}_{그 대국에서 몇 번째}`(1부터) | − (무상부터) |
 | `timeExtensionRefund` | `timeExtension`과 같다 | `timeExtension`을 낸 그대로 + |
 | `gamePractice` | 대국 ID | − (무상부터) |
+| `rewardedAd` | AdMob 콜백의 `transaction_id` | 무상 + |
 | `coinPurchase` | 구매 ID(`purchases`의 문서 ID) | 유상 + |
 | `coinPurchaseRefund` | 구매 ID | − (유상부터, 모자라면 무상. 무상은 음수가 될 수 있다) |
 

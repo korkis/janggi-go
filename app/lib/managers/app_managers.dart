@@ -1,3 +1,4 @@
+import 'ad_manager.dart';
 import 'app_config_manager.dart';
 import 'auth_manager.dart';
 import 'block_manager.dart';
@@ -31,6 +32,7 @@ class AppManagers {
   final EffectSettingsManager effectSettingsManager;
   final CoinManager coinManager;
   final StoreManager storeManager;
+  final AdManager adManager;
 
   AppManagers({
     required this.appConfigManager,
@@ -47,14 +49,18 @@ class AppManagers {
     required this.effectSettingsManager,
     required this.coinManager,
     required this.storeManager,
+    required this.adManager,
   });
 
   factory AppManagers.createDefault() {
     final authManager = AuthManager();
     final playerStateManager = PlayerStateManager(authManager: authManager);
     final connectionManager = ConnectionManager(authManager: authManager, playerStateManager: playerStateManager);
+    final appConfigManager = AppConfigManager();
+    final coinManager = CoinManager(authManager: authManager);
+    final storeManager = StoreManager(authManager: authManager);
     return AppManagers(
-      appConfigManager: AppConfigManager(),
+      appConfigManager: appConfigManager,
       authManager: authManager,
       playerStateManager: playerStateManager,
       connectionManager: connectionManager,
@@ -66,8 +72,14 @@ class AppManagers {
       sanctionManager: SanctionManager(authManager: authManager),
       languageManager: LanguageManager(),
       effectSettingsManager: EffectSettingsManager(),
-      coinManager: CoinManager(authManager: authManager),
-      storeManager: StoreManager(authManager: authManager),
+      coinManager: coinManager,
+      storeManager: storeManager,
+      adManager: AdManager(
+        authManager: authManager,
+        appConfigManager: appConfigManager,
+        storeManager: storeManager,
+        coinManager: coinManager,
+      ),
     );
   }
 }

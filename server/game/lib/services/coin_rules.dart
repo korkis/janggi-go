@@ -234,6 +234,8 @@ CoinWallet _apply(CoinWallet wallet, {required int freeDelta, required int paidD
     balance: freeCoins + paidCoins,
     attendanceDay: wallet.attendanceDay,
     attendanceStreak: wallet.attendanceStreak,
+    rewardedAdDay: wallet.rewardedAdDay,
+    rewardedAdCount: wallet.rewardedAdCount,
     updatedAt: now,
   );
 }

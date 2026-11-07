@@ -29,6 +29,10 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => $checkedCreate('AppC
     signupEnabled: $checkedConvert('signupEnabled', (v) => v as bool),
     webEnabled: $checkedConvert('webEnabled', (v) => v as bool),
     coinSaleEnabled: $checkedConvert('coinSaleEnabled', (v) => v as bool),
+    rewardedAdEnabled: $checkedConvert('rewardedAdEnabled', (v) => v as bool),
+    bannerAdEnabled: $checkedConvert('bannerAdEnabled', (v) => v as bool),
+    coinRewardedAdReward: $checkedConvert('coinRewardedAdReward', (v) => (v as num).toInt()),
+    coinRewardedAdDailyLimit: $checkedConvert('coinRewardedAdDailyLimit', (v) => (v as num).toInt()),
     minAppVersion: $checkedConvert('minAppVersion', (v) => v as String),
     serviceNotice: $checkedConvert(
       'serviceNotice',

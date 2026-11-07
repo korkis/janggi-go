@@ -30,6 +30,16 @@ class AppConfigManager extends ChangeNotifier {
   bool get signupEnabled => _config?.signupEnabled ?? true;
   bool get coinSaleEnabled => _config?.coinSaleEnabled ?? true;
 
+  /// 광고는 값을 읽어야 보여준다. 읽지 못해도 앱을 쓰는 데는 지장이 없고, 멈춘 광고를 잠깐이라도 내보내지 않기 위해서다.
+  bool get rewardedAdEnabled => _config?.rewardedAdEnabled ?? false;
+  bool get bannerAdEnabled => _config?.bannerAdEnabled ?? false;
+
+  /// 보상형 광고 1번의 엽전. 읽기 전이면 null이다.
+  int? get coinRewardedAdReward => _config?.coinRewardedAdReward;
+
+  /// 보상형 광고로 하루에 받을 수 있는 횟수. 읽기 전이면 null이다.
+  int? get coinRewardedAdDailyLimit => _config?.coinRewardedAdDailyLimit;
+
   /// 웹이다. 상점에서 팔지 않는다.
   bool get onWeb => web;
 

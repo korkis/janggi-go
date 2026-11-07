@@ -15,12 +15,16 @@ export interface CoinWallet {
   attendanceDay: string | null;
   // 연속 출석 몇째 날인지(1~7). 7째 날 다음은 1로 돌아간다.
   attendanceStreak: number;
+  // 마지막으로 보상형 광고 엽전을 받은 날(서울 기준 yyyy-MM-dd). 받은 적이 없으면 null이거나 없다.
+  rewardedAdDay?: string | null;
+  // rewardedAdDay에 받은 횟수. 받은 적이 없으면 없을 수 있다.
+  rewardedAdCount?: number | null;
   updatedAt: Timestamp;
 }
 
 /**
  * 엽전이 움직인 이유. Functions와 대국 서버가 같은 값을 쓴다(docs/database.md의 공통 enum).
- * timeExtension, timeExtensionRefund, gamePractice는 대국 서버가 쓰고 Admin 웹의 지표가 센다. rewardedAd는 아직 쓰는 곳이 없다.
+ * timeExtension, timeExtensionRefund, gamePractice는 대국 서버가 쓰고 Admin 웹의 지표가 센다. rewardedAd는 AdMob 콜백이 쓴다.
  */
 export const CoinReason = {
   signup: "signup",
@@ -66,3 +70,20 @@ export interface ClaimAttendanceResult {
   streak: number;
   balance: number;
 }
+
+/** 보상형 광고 콜백을 처리한 결과. 로그에 남긴다. 어느 것이든 다시 보내도 같으므로 200으로 받는다. */
+export const RewardedAdResult = {
+  granted: "granted",
+  // 같은 광고의 콜백이 이미 지급되었다.
+  duplicate: "duplicate",
+  limitReached: "limitReached",
+  // rewardedAdEnabled가 꺼져 있다.
+  disabled: "disabled",
+  // 우리 광고 단위가 아니다. AdMob 콘솔의 콜백 주소 확인도 여기로 온다.
+  unknownAdUnit: "unknownAdUnit",
+  // user_id나 transaction_id가 없다.
+  missingField: "missingField",
+  // 지갑이 없다(지운 계정 등).
+  noWallet: "noWallet",
+} as const;
+export type RewardedAdResult = (typeof RewardedAdResult)[keyof typeof RewardedAdResult];

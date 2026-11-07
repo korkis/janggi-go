@@ -3,9 +3,13 @@ import {Timestamp, Transaction} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import {COIN_ATTENDANCE_STREAK_DAYS, COIN_DAY_UTC_OFFSET_HOURS} from "../config";
-import {ClaimAttendanceResult, CoinReason, CoinWallet} from "../models/coin";
+import {ClaimAttendanceResult, CoinReason, CoinWallet, RewardedAdResult} from "../models/coin";
 import {NicknameChangeErrorCode} from "../models/nickname";
-import {createCoinTransactionInTransaction, getCoinTransactionId} from "../repositories/coinTransactionsRepository";
+import {
+  createCoinTransactionInTransaction,
+  getCoinTransactionId,
+  hasCoinTransactionInTransaction,
+} from "../repositories/coinTransactionsRepository";
 import {getWalletInTransaction, setWalletInTransaction} from "../repositories/coinWalletsRepository";
 import {getAppConfig} from "../repositories/configsRepository";
 import {runTransaction} from "../repositories/firestore";
@@ -71,6 +75,8 @@ export function grantSignupInTransaction(transaction: Transaction, uid: string, 
     balance: 0,
     attendanceDay: null,
     attendanceStreak: 0,
+    rewardedAdDay: null,
+    rewardedAdCount: 0,
     updatedAt: now,
   };
   applyMoveInTransaction(
@@ -137,6 +143,41 @@ export function takeBackPurchasedCoinsInTransaction(
     {uid, reason: CoinReason.coinPurchaseRefund, key: purchaseId, freeDelta: fromPaid - coins, paidDelta: 0 - fromPaid},
     now,
   );
+}
+
+/**
+ * 본 광고의 엽전을 무상으로 준다(docs/server.md의 앱 광고). 값과 횟수는 configs/app이고, 콜백의 reward_amount는 쓰지 않는다.
+ * [adTransactionId] 광고마다 한 번이고 하루 횟수를 넘으면 주지 않는다. 멈춤 스위치도 여기서 본다.
+ */
+export async function grantRewardedAd(uid: string, adTransactionId: string): Promise<RewardedAdResult> {
+  const config = await getAppConfig();
+  if (!config.rewardedAdEnabled) {
+    return RewardedAdResult.disabled;
+  }
+  const transactionId = getCoinTransactionId(CoinReason.rewardedAd, uid, adTransactionId);
+  return runTransaction(async (transaction): Promise<RewardedAdResult> => {
+    const wallet = await getWalletInTransaction(transaction, uid);
+    if (wallet === null) {
+      return RewardedAdResult.noWallet;
+    }
+    if (await hasCoinTransactionInTransaction(transaction, transactionId)) {
+      return RewardedAdResult.duplicate;
+    }
+    const time = dayjs();
+    const today = getCoinDay(time);
+    const count = wallet.rewardedAdDay === today ? (wallet.rewardedAdCount ?? 0) : 0;
+    if (count >= config.coinRewardedAdDailyLimit) {
+      return RewardedAdResult.limitReached;
+    }
+    applyMoveInTransaction(
+      transaction,
+      wallet,
+      {uid, reason: CoinReason.rewardedAd, key: adTransactionId, freeDelta: config.coinRewardedAdReward, paidDelta: 0},
+      Timestamp.fromMillis(time.valueOf()),
+      {rewardedAdDay: today, rewardedAdCount: count + 1},
+    );
+    return RewardedAdResult.granted;
+  });
 }
 
 /**

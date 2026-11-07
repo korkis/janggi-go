@@ -16,6 +16,11 @@ export function getCoinTransactionId(reason: CoinReason, uid: string, key: strin
   return key === null ? `${reason}_${uid}` : `${reason}_${uid}_${key}`;
 }
 
+/** 이 ID의 내역이 있는지. 같은 일이 다시 왔을 때 오류 없이 넘어가려고 쓴다. */
+export async function hasCoinTransactionInTransaction(transaction: Transaction, transactionId: string): Promise<boolean> {
+  return (await transaction.get(transactionRef(transactionId))).exists;
+}
+
 /** 내역을 만든다. 같은 ID가 이미 있으면 커밋이 실패해 지갑도 바뀌지 않는다. */
 export function createCoinTransactionInTransaction(
   transaction: Transaction,

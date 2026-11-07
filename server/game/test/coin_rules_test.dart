@@ -29,6 +29,10 @@ AppConfig _config({bool entryFeeEnabled = true}) => AppConfig(
   signupEnabled: true,
   webEnabled: true,
   coinSaleEnabled: true,
+  rewardedAdEnabled: true,
+  bannerAdEnabled: true,
+  coinRewardedAdReward: 30,
+  coinRewardedAdDailyLimit: 5,
   minAppVersion: '1.0.0',
   serviceNotice: null,
 );
@@ -41,6 +45,8 @@ CoinWallet _wallet({int free = 0, int paid = 0}) => CoinWallet(
   balance: free + paid,
   attendanceDay: null,
   attendanceStreak: 0,
+  rewardedAdDay: '2026-11-06',
+  rewardedAdCount: 2,
   updatedAt: _now,
 );
 
@@ -110,6 +116,12 @@ CoinPlan _planEnd(
 
 void main() {
   group('참가비', () {
+    test('지갑을 다시 써도 보상형 광고 횟수는 그대로 둔다', () {
+      final wallet = _planFee(_wallet(free: 20)).wallets['u1'];
+      expect(wallet?.rewardedAdDay, '2026-11-06');
+      expect(wallet?.rewardedAdCount, 2);
+    });
+
     test('무상부터 쓴다', () {
       final plan = _planFee(_wallet(free: 20, paid: 5));
       expect(plan.wallets['u1']?.freeCoins, 10);

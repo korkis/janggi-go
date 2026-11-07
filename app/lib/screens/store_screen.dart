@@ -69,7 +69,7 @@ class _StoreScreenState extends State<StoreScreen> {
         ),
         body: SafeArea(
           child: ListenableBuilder(
-            listenable: Listenable.merge([managers.storeManager, managers.appConfigManager]),
+            listenable: Listenable.merge([managers.storeManager, managers.appConfigManager, managers.adManager]),
             builder: _buildList,
           ),
         ),
@@ -107,6 +107,12 @@ class _StoreScreenState extends State<StoreScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        if (managers.adManager.rewardedAdReward != null) ...[
+          // 엽전 받기
+          _buildSectionTitle(l10n.storeEarnCoinsTitle),
+          _buildRewardedAdCard(context),
+          const SizedBox(height: 24),
+        ],
         if (managers.appConfigManager.coinSaleEnabled) ...[
           // 엽전 충전
           _buildSectionTitle(l10n.storeCoinsTitle),
@@ -153,6 +159,31 @@ class _StoreScreenState extends State<StoreScreen> {
       child: Text(
         title,
         style: const TextStyle(fontSize: AppTextSizes.title, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  /// 보상형 광고 줄. 지갑을 읽기 전에는 남은 횟수를 쓰지 않고 버튼을 끈다.
+  Widget _buildRewardedAdCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final ads = managers.adManager;
+    final left = ads.rewardedAdsLeft;
+    String? subtitle;
+    if (left != null) {
+      // 오늘 3번 남았어요 / 오늘은 다 받았어요
+      subtitle = left > 0 ? l10n.storeAdsLeft(left) : l10n.storeAdsDone;
+    }
+    return Card(
+      child: _ProductRow(
+        leading: const Icon(Icons.play_circle_outline, color: LightColors.accent),
+        // 광고 보고 30엽전 받기
+        title: l10n.adRewardAction(ads.rewardedAdReward!),
+        subtitle: subtitle,
+        trailing: FilledButton(
+          onPressed: _busy || !ads.rewardedAdWatchable || ads.rewardedAdShowing ? null : _onWatchRewardedAd,
+          // 보기
+          child: Text(l10n.storeAdWatch),
+        ),
       ),
     );
   }
@@ -274,6 +305,8 @@ class _StoreScreenState extends State<StoreScreen> {
     };
   }
 
+  Future<void> _onWatchRewardedAd() => watchRewardedAd(context);
+
   Future<void> _onBuy(StoreItem item) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -350,13 +383,15 @@ class _StoreScreenState extends State<StoreScreen> {
 class _ProductRow extends StatelessWidget {
   final Widget? leading;
   final String title;
+  final String? subtitle;
   final Widget trailing;
 
-  const _ProductRow({this.leading, required this.title, required this.trailing});
+  const _ProductRow({this.leading, required this.title, this.subtitle, required this.trailing});
 
   @override
   Widget build(BuildContext context) {
     final leading = this.leading;
+    final subtitle = this.subtitle;
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 64),
       child: Padding(
@@ -365,7 +400,17 @@ class _ProductRow extends StatelessWidget {
           children: [
             if (leading != null) ...[leading, const SizedBox(width: 16)],
             Expanded(
-              child: Text(title, style: const TextStyle(fontSize: AppTextSizes.body)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: AppTextSizes.body)),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: AppTextSizes.body, color: LightColors.subText),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(width: 12),
             trailing,
@@ -376,26 +421,120 @@ class _ProductRow extends StatelessWidget {
   }
 }
 
-/// 서버가 거절한 일의 사유를 알린다. 엽전이 모자라서면(`docs/monetization.md`) 상점으로 가는 버튼을 붙인다. 충전을 멈췄으면 상점에서 해결할 수 없으므로
-/// 붙이지 않는다. 상점을 열면 닫을 때까지 기다린다.
+/// 서버가 거절한 일의 사유를 알린다. 엽전이 모자라서면(`docs/monetization.md`) 광고 버튼과 상점으로 가는 버튼을 붙인다. 충전을 멈췄으면 상점에서
+/// 해결할 수 없으므로 상점 버튼을 붙이지 않는다. 광고를 볼 수 없으면(웹, 스위치 꺼짐, 오늘 횟수를 다 썼다) 광고 버튼을 붙이지 않는다. 상점을 열면 닫을 때까지
+/// 기다린다.
 Future<void> showActionError(BuildContext context, {required Object error, required String fallback}) async {
   final l10n = AppLocalizations.of(context);
   if (error is! AppException) {
     await DialogUtils.showMessage(context, message: fallback);
     return;
   }
-  if (error.code != AppErrorCode.coinsInsufficient || !managers.appConfigManager.coinSaleEnabled) {
+  final storeAvailable = managers.appConfigManager.coinSaleEnabled;
+  final adAvailable = managers.adManager.rewardedAdWatchable;
+  if (error.code != AppErrorCode.coinsInsufficient || (!storeAvailable && !adAvailable)) {
     await DialogUtils.showMessage(context, message: error.getMessage(l10n));
     return;
   }
-  final confirmed = await DialogUtils.showConfirm(
-    context,
-    // 엽전이 모자라요
-    message: l10n.errorCoinsInsufficient,
-    // 상점으로 가기
-    confirmLabel: l10n.storeGo,
+  final goToStore = await showDialog<bool>(
+    context: context,
+    builder: (context) => _CoinsInsufficientDialog(storeAvailable: storeAvailable, adAvailable: adAvailable),
   );
-  if (confirmed && context.mounted) {
+  if ((goToStore ?? false) && context.mounted) {
     await StoreScreen.open(context);
+  }
+}
+
+/// 보상형 광고를 보여준다. 끝까지 보면 곧 들어온다고 알린다. 엽전은 서버가 주고 지갑을 듣는 쪽에 들어온다(`docs/server.md`의 앱 광고).
+Future<void> watchRewardedAd(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final reward = managers.adManager.rewardedAdReward;
+  if (reward == null) {
+    return;
+  }
+  try {
+    await managers.adManager.showRewardedAd();
+    // 곧 30엽전이 들어와요
+    messenger.showSnackBar(SnackBar(content: Text(l10n.adRewardComing(reward))));
+  } catch (error, stackTrace) {
+    if (error is AppException && error.code == AppErrorCode.adNotCompleted) {
+      return;
+    }
+    developer.log('AdManager.showRewardedAd 실패', error: error, stackTrace: stackTrace);
+    if (context.mounted) {
+      // 지금은 광고를 볼 수 없어요. 잠시 후 다시 해 주세요
+      final message = error is AppException ? error.getMessage(l10n) : l10n.errorAdUnavailable;
+      await DialogUtils.showMessage(context, message: message);
+    }
+  }
+}
+
+/// "엽전이 모자라요" 창. 상점으로 가면 true로 닫는다. 광고를 불러오는 동안 창을 그대로 두어 누른 것이 보이게 한다.
+class _CoinsInsufficientDialog extends StatefulWidget {
+  final bool storeAvailable;
+  final bool adAvailable;
+
+  const _CoinsInsufficientDialog({required this.storeAvailable, required this.adAvailable});
+
+  @override
+  State<_CoinsInsufficientDialog> createState() => _CoinsInsufficientDialogState();
+}
+
+class _CoinsInsufficientDialogState extends State<_CoinsInsufficientDialog> {
+  var _watching = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final reward = managers.adManager.rewardedAdReward;
+    return PopScope(
+      canPop: !_watching,
+      child: AlertDialog(
+        // 엽전이 모자라요
+        content: Text(l10n.errorCoinsInsufficient),
+        actions: [
+          TextButton(
+            onPressed: _watching ? null : _onCancel,
+            // 취소
+            child: Text(l10n.cancel),
+          ),
+          if (widget.storeAvailable)
+            TextButton(
+              onPressed: _watching ? null : _onStore,
+              // 상점으로 가기
+              child: Text(l10n.storeGo),
+            ),
+          if (widget.adAvailable && reward != null)
+            TextButton(
+              onPressed: _watching ? null : _onWatchAd,
+              // 광고 보고 30엽전 받기
+              child: Text(l10n.adRewardAction(reward)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _onCancel() {
+    Navigator.of(context).pop(false);
+  }
+
+  void _onStore() {
+    Navigator.of(context).pop(true);
+  }
+
+  Future<void> _onWatchAd() async {
+    final navigator = Navigator.of(context);
+    setState(() {
+      _watching = true;
+    });
+    await watchRewardedAd(context);
+    if (mounted) {
+      setState(() {
+        _watching = false;
+      });
+      navigator.pop(false);
+    }
   }
 }

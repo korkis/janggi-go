@@ -44,6 +44,10 @@ enum AppErrorCode {
   purchaseCanceled,
   purchasePending,
   purchaseAlreadyOwned,
+  adUnavailable,
+
+  /// 사용자가 보상형 광고를 끝까지 보지 않고 닫았다. 메시지를 보여주지 않는다.
+  adNotCompleted,
   opponentCoinsInsufficient,
   extensionLimit,
   featureDisabled,
@@ -184,6 +188,10 @@ class AppException implements Exception {
     AppErrorCode.purchasePending => l10n.errorPurchasePending,
     // 이 스토어 계정으로 이미 산 상품이에요
     AppErrorCode.purchaseAlreadyOwned => l10n.errorPurchaseAlreadyOwned,
+    // 지금은 광고를 볼 수 없어요. 잠시 후 다시 해 주세요
+    AppErrorCode.adUnavailable => l10n.errorAdUnavailable,
+    // 광고를 끝까지 봐야 받을 수 있어요
+    AppErrorCode.adNotCompleted => l10n.errorAdNotCompleted,
     // 상대의 엽전이 모자라요
     AppErrorCode.opponentCoinsInsufficient => l10n.errorOpponentCoinsInsufficient,
     // 시간 연장을 더 쓸 수 없어요

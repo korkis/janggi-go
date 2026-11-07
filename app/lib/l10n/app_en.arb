@@ -630,5 +630,36 @@
   "errorPurchasePending": "It will arrive once the payment completes",
   "errorPurchaseAlreadyOwned": "This store account already owns this item",
   "loginSheetTitleStore": "Sign in to use\nthe store",
-  "nicknameStartHintStore": "Next, we'll open the store"
+  "nicknameStartHintStore": "Next, we'll open the store",
+  "storeEarnCoinsTitle": "Earn coins",
+  "adRewardAction": "Watch an ad for {coins} coins",
+  "@adRewardAction": {
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "storeAdWatch": "Watch",
+  "storeAdsLeft": "{count} left today",
+  "@storeAdsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storeAdsDone": "All done for today",
+  "adRewardComing": "{coins} coins will arrive shortly",
+  "@adRewardComing": {
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "errorAdUnavailable": "No ad available right now. Please try again later",
+  "errorAdNotCompleted": "Watch the whole ad to get the coins",
+  "settingsAdPrivacy": "Ad privacy settings",
+  "errorAdPrivacy": "Couldn't open ad settings. Please try again later"
 }

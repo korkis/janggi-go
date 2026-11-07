@@ -15,6 +15,7 @@ import '../utils/dialog_utils.dart';
 import '../utils/game_record.dart';
 import '../utils/rank_format.dart';
 import '../utils/spectate_order.dart';
+import '../widgets/ad_banner.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/game_scaffold.dart';
 import '../widgets/rank_progress_bar.dart';
@@ -49,7 +50,16 @@ class HomeScreen extends StatelessWidget {
       menu: AppMenu.home,
       layout: PageLayout.wide,
       child: Scaffold(
-        body: _InviteLinkHandler(child: SafeArea(child: expanded ? _buildWide(context) : _buildNarrow(context))),
+        body: _InviteLinkHandler(
+          child: SafeArea(
+            child: Column(
+              children: [
+                Expanded(child: expanded ? _buildWide(context) : _buildNarrow(context)),
+                const AdBanner(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

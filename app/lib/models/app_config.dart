@@ -70,6 +70,18 @@ class AppConfig {
   /// 엽전 충전을 판다. 끄면 상점에서 충전 상품을 숨긴다.
   final bool coinSaleEnabled;
 
+  /// 보상형 광고 엽전을 준다. 끄면 버튼을 숨기고 서버가 지급을 거절한다.
+  final bool rewardedAdEnabled;
+
+  /// 배너 광고를 보여준다. 끄면 다음에 켤 때부터 숨긴다.
+  final bool bannerAdEnabled;
+
+  /// 보상형 광고 1번의 엽전.
+  final int coinRewardedAdReward;
+
+  /// 보상형 광고로 하루에 받을 수 있는 횟수.
+  final int coinRewardedAdDailyLimit;
+
   /// 이보다 낮은 앱에 업데이트 화면을 띄운다. `1.2.3` 모양이다.
   final String minAppVersion;
 
@@ -98,6 +110,10 @@ class AppConfig {
     required this.signupEnabled,
     required this.webEnabled,
     required this.coinSaleEnabled,
+    required this.rewardedAdEnabled,
+    required this.bannerAdEnabled,
+    required this.coinRewardedAdReward,
+    required this.coinRewardedAdDailyLimit,
     required this.minAppVersion,
     required this.serviceNotice,
   });

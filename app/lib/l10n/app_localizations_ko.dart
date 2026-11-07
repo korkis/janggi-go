@@ -1702,4 +1702,40 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get nicknameStartHintStore => '정하고 나면 상점으로 가요';
+
+  @override
+  String get storeEarnCoinsTitle => '엽전 받기';
+
+  @override
+  String adRewardAction(int coins) {
+    return '광고 보고 $coins엽전 받기';
+  }
+
+  @override
+  String get storeAdWatch => '보기';
+
+  @override
+  String storeAdsLeft(int count) {
+    return '오늘 $count번 남았어요';
+  }
+
+  @override
+  String get storeAdsDone => '오늘은 다 받았어요';
+
+  @override
+  String adRewardComing(int coins) {
+    return '곧 $coins엽전이 들어와요';
+  }
+
+  @override
+  String get errorAdUnavailable => '지금은 광고를 볼 수 없어요. 잠시 후 다시 해 주세요';
+
+  @override
+  String get errorAdNotCompleted => '광고를 끝까지 봐야 받을 수 있어요';
+
+  @override
+  String get settingsAdPrivacy => '광고 개인정보 설정';
+
+  @override
+  String get errorAdPrivacy => '광고 설정을 열지 못했어요. 잠시 후 다시 해 주세요';
 }

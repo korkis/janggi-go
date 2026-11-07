@@ -2345,5 +2345,60 @@
   "nicknameStartHintStore": "정하고 나면 상점으로 가요",
   "@nicknameStartHintStore": {
     "description": "닉네임 정하기 안내"
+  },
+  "storeEarnCoinsTitle": "엽전 받기",
+  "@storeEarnCoinsTitle": {
+    "description": "상점의 보상형 광고 묶음 제목"
+  },
+  "adRewardAction": "광고 보고 {coins}엽전 받기",
+  "@adRewardAction": {
+    "description": "보상형 광고 버튼과 줄의 이름",
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "storeAdWatch": "보기",
+  "@storeAdWatch": {
+    "description": "상점의 보상형 광고 버튼"
+  },
+  "storeAdsLeft": "오늘 {count}번 남았어요",
+  "@storeAdsLeft": {
+    "description": "상점의 보상형 광고 남은 횟수",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storeAdsDone": "오늘은 다 받았어요",
+  "@storeAdsDone": {
+    "description": "오늘의 보상형 광고 횟수를 다 썼을 때"
+  },
+  "adRewardComing": "곧 {coins}엽전이 들어와요",
+  "@adRewardComing": {
+    "description": "보상형 광고를 끝까지 봤을 때. 지급은 서버가 한다",
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "errorAdUnavailable": "지금은 광고를 볼 수 없어요. 잠시 후 다시 해 주세요",
+  "@errorAdUnavailable": {
+    "description": "보상형 광고를 불러오거나 보여주지 못했을 때"
+  },
+  "errorAdNotCompleted": "광고를 끝까지 봐야 받을 수 있어요",
+  "@errorAdNotCompleted": {
+    "description": "보상형 광고를 끝까지 보지 않았을 때"
+  },
+  "settingsAdPrivacy": "광고 개인정보 설정",
+  "@settingsAdPrivacy": {
+    "description": "설정의 광고 동의 다시 고르기(유럽 등)"
+  },
+  "errorAdPrivacy": "광고 설정을 열지 못했어요. 잠시 후 다시 해 주세요",
+  "@errorAdPrivacy": {
+    "description": "광고 동의 창을 띄우지 못했을 때"
   }
 }

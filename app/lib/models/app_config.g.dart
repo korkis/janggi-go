@@ -28,6 +28,10 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => AppConfig(
   signupEnabled: json['signupEnabled'] as bool,
   webEnabled: json['webEnabled'] as bool,
   coinSaleEnabled: json['coinSaleEnabled'] as bool,
+  rewardedAdEnabled: json['rewardedAdEnabled'] as bool,
+  bannerAdEnabled: json['bannerAdEnabled'] as bool,
+  coinRewardedAdReward: (json['coinRewardedAdReward'] as num).toInt(),
+  coinRewardedAdDailyLimit: (json['coinRewardedAdDailyLimit'] as num).toInt(),
   minAppVersion: json['minAppVersion'] as String,
   serviceNotice: json['serviceNotice'] == null
       ? null

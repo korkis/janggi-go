@@ -1,0 +1,2 @@
+# Replace pub-XXXXXXXXXXXXXXXX with the publisher ID from AdMob and remove the leading # below (docs/release.md).
+# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

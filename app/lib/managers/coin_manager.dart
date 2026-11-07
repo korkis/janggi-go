@@ -44,6 +44,15 @@ class CoinManager extends ChangeNotifier {
   /// 잔액. 아직 읽지 못했거나 지갑이 없으면 null.
   int? get balance => _wallet?.balance;
 
+  /// 오늘 보상형 광고 엽전을 받은 횟수. 지갑을 읽지 못했으면 null.
+  int? get rewardedAdsToday {
+    final wallet = _wallet;
+    if (wallet == null) {
+      return null;
+    }
+    return wallet.rewardedAdDay == _getCoinDay(DateTime.now()) ? (wallet.rewardedAdCount ?? 0) : 0;
+  }
+
   /// 다른 앱에서 돌아오는 것을 듣기 시작한다. `main()`이 한 번 부른다.
   void observeAppLifecycle() {
     _lifecycleListener ??= AppLifecycleListener(onResume: _claimAttendance);

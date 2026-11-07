@@ -25,6 +25,12 @@ class CoinWallet {
   /// 연속 출석 몇째 날인지(1~7).
   final int attendanceStreak;
 
+  /// 마지막으로 보상형 광고 엽전을 받은 날(서울 기준 yyyy-MM-dd). Functions만 바꾸고 대국 서버는 그대로 다시 쓴다.
+  final String? rewardedAdDay;
+
+  /// [rewardedAdDay]에 받은 횟수.
+  final int? rewardedAdCount;
+
   @TimestampConverter()
   final DateTime updatedAt;
 
@@ -34,6 +40,8 @@ class CoinWallet {
     required this.balance,
     required this.attendanceDay,
     required this.attendanceStreak,
+    required this.rewardedAdDay,
+    required this.rewardedAdCount,
     required this.updatedAt,
   });
 

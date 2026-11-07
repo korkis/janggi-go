@@ -13,6 +13,8 @@ CoinWallet _$CoinWalletFromJson(Map<String, dynamic> json) => $checkedCreate('Co
     balance: $checkedConvert('balance', (v) => (v as num).toInt()),
     attendanceDay: $checkedConvert('attendanceDay', (v) => v as String?),
     attendanceStreak: $checkedConvert('attendanceStreak', (v) => (v as num).toInt()),
+    rewardedAdDay: $checkedConvert('rewardedAdDay', (v) => v as String?),
+    rewardedAdCount: $checkedConvert('rewardedAdCount', (v) => (v as num?)?.toInt()),
     updatedAt: $checkedConvert('updatedAt', (v) => const TimestampConverter().fromJson(v as DateTime)),
   );
   return val;
@@ -24,6 +26,8 @@ Map<String, dynamic> _$CoinWalletToJson(CoinWallet instance) => <String, dynamic
   'balance': instance.balance,
   'attendanceDay': instance.attendanceDay,
   'attendanceStreak': instance.attendanceStreak,
+  'rewardedAdDay': instance.rewardedAdDay,
+  'rewardedAdCount': instance.rewardedAdCount,
   'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
 };
 

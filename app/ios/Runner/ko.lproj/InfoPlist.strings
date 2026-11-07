@@ -1,0 +1,2 @@
+/* iOS 추적 동의(ATT) 창의 설명. 영어는 Info.plist에 있다. */
+"NSUserTrackingUsageDescription" = "더 알맞은 광고를 보여주는 데 쓰여요. 허용하지 않아도 장기고를 똑같이 쓸 수 있어요.";

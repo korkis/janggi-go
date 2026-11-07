@@ -83,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 20),
               // 정보
               _buildGroupTitle(l10n.settingsInfoGroup),
-              _buildInfoCard(context),
+              ListenableBuilder(listenable: managers.adManager, builder: _buildInfoCard),
             ],
           ),
         ),
@@ -206,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context) {
+  Widget _buildInfoCard(BuildContext context, Widget? child) {
     final l10n = AppLocalizations.of(context);
     final version = _version;
     return Card(
@@ -226,6 +226,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // 개인정보처리방침
             title: _buildRowTitle(l10n.privacyPolicy),
           ),
+          if (managers.adManager.privacyOptionsRequired)
+            ListTile(
+              minTileHeight: 56,
+              // 광고 개인정보 설정
+              title: _buildRowTitle(l10n.settingsAdPrivacy),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _onAdPrivacy,
+            ),
           ListTile(
             minTileHeight: 56,
             // 오픈소스 라이선스
@@ -428,6 +436,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   static bool _isFirstRoute(Route<dynamic> route) => route.isFirst;
+
+  Future<void> _onAdPrivacy() async {
+    try {
+      await managers.adManager.showPrivacyOptions();
+    } catch (error, stackTrace) {
+      developer.log('AdManager.showPrivacyOptions 실패', error: error, stackTrace: stackTrace);
+      if (mounted) {
+        // 광고 설정을 열지 못했어요. 잠시 후 다시 해 주세요
+        await DialogUtils.showMessage(context, message: AppLocalizations.of(context).errorAdPrivacy);
+      }
+    }
+  }
 
   void _onLicenses() {
     final l10n = AppLocalizations.of(context);

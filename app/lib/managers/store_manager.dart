@@ -19,6 +19,9 @@ class StoreManager extends ChangeNotifier {
   String? _uid;
   Inventory? _inventory;
 
+  // 지금 사용자의 보관함을 한 번이라도 읽었다. 문서가 없어도 읽은 것이다.
+  var _inventoryRead = false;
+
   // 상품 ID별 기기 통화 가격 글자. 읽지 못했으면 비어 있다.
   Map<String, String> _prices = const {};
 
@@ -47,6 +50,9 @@ class StoreManager extends ChangeNotifier {
   BoardMaterials get materials => (cho: selectedMaterial, han: selectedMaterial);
 
   bool get adsRemoved => _inventory?.adsRemoved ?? false;
+
+  /// [adsRemoved]를 믿을 수 있다. 로그아웃했으면 산 것이 없고, 로그인했으면 보관함을 읽은 뒤다.
+  bool get inventoryLoaded => _uid == null || _inventoryRead;
 
   bool isOwned(PieceMaterial material) {
     return material == PieceMaterial.plastic || (_inventory?.materials.contains(material) ?? false);
@@ -103,6 +109,7 @@ class StoreManager extends ChangeNotifier {
     _subscription?.cancel();
     _subscription = null;
     _inventory = null;
+    _inventoryRead = false;
     if (uid != null) {
       _subscription = repositories.inventoryRepository
           .watchInventory(uid)
@@ -115,6 +122,7 @@ class StoreManager extends ChangeNotifier {
 
   void _onInventoryChanged(Inventory? inventory) {
     _inventory = inventory;
+    _inventoryRead = true;
     notifyListeners();
   }
 

@@ -292,6 +292,10 @@ function parseAppConfig(value: unknown): AppConfig {
     signupEnabled: asBoolean(record.signupEnabled, "config.signupEnabled"),
     webEnabled: asBoolean(record.webEnabled, "config.webEnabled"),
     coinSaleEnabled: asBoolean(record.coinSaleEnabled, "config.coinSaleEnabled"),
+    rewardedAdEnabled: asBoolean(record.rewardedAdEnabled, "config.rewardedAdEnabled"),
+    bannerAdEnabled: asBoolean(record.bannerAdEnabled, "config.bannerAdEnabled"),
+    coinRewardedAdReward: asNumber(record.coinRewardedAdReward, "config.coinRewardedAdReward"),
+    coinRewardedAdDailyLimit: asNumber(record.coinRewardedAdDailyLimit, "config.coinRewardedAdDailyLimit"),
     minAppVersion: asString(record.minAppVersion, "config.minAppVersion"),
     serviceNotice: asNullable(record.serviceNotice, "config.serviceNotice", (item, itemPath) => {
       const notice = asRecord(item, itemPath);

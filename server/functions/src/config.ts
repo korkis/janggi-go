@@ -52,6 +52,22 @@ export const REVENUECAT_API_URL = "https://api.revenuecat.com/v1";
 // RevenueCat REST API 응답을 기다리는 최대 시간(밀리초).
 export const REVENUECAT_API_TIMEOUT_MS = 10000;
 
+// 우리 보상형 광고 단위의 번호(ca-app-pub-.../ 뒤의 숫자. docs/release.md의 운영 배포 전에 채울 값). 콜백의 ad_unit과 비교한다.
+// 구글의 서명은 어느 AdMob 계정의 광고에나 붙으므로, 남의 광고 단위가 이 주소로 보낸 콜백을 걸러야 한다. 비어 있으면 아무것도 주지 않는다.
+export const ADMOB_REWARDED_AD_UNITS: string[] = [];
+
+// 콜백 서명을 확인하는 구글 공개 키 주소(docs/server.md의 앱 광고).
+export const ADMOB_VERIFIER_KEYS_URL = "https://www.gstatic.com/admob/reward/verifier-keys.json";
+
+// 공개 키를 메모리에 두는 시간(시). 구글 문서가 24시간 넘게 두지 말라고 한다.
+export const ADMOB_VERIFIER_KEYS_CACHE_HOURS = 24;
+
+// 모르는 key_id가 왔을 때 키를 다시 읽는 최소 간격(초). 가짜 요청으로 구글 주소를 계속 부르지 않기 위해서다.
+export const ADMOB_VERIFIER_KEYS_REFRESH_SECONDS = 60;
+
+// 공개 키 응답을 기다리는 최대 시간(밀리초).
+export const ADMOB_VERIFIER_KEYS_TIMEOUT_MS = 5000;
+
 // 운영진을 사칭하는 단어. 닉네임에 들어 있으면(영문은 대소문자 무시) 쓸 수 없다.
 export const NICKNAME_IMPERSONATION_WORDS = [
   "운영자",
@@ -196,4 +212,7 @@ export const APP_CONFIG_LIMITS = {
   coinNicknameChangeCost: {min: 1, max: 3000},
   coinTimeExtensionCost: {min: 1, max: 300},
   coinGamePracticeCost: {min: 1, max: 300},
+  coinRewardedAdReward: {min: 1, max: 300},
+  // 보상형 광고를 멈추려면 횟수를 0으로 두지 않고 rewardedAdEnabled를 끈다.
+  coinRewardedAdDailyLimit: {min: 1, max: 20},
 };

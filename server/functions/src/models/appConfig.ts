@@ -32,6 +32,10 @@ export interface AppConfig {
   signupEnabled: boolean;
   webEnabled: boolean;
   coinSaleEnabled: boolean;
+  rewardedAdEnabled: boolean;
+  bannerAdEnabled: boolean;
+  coinRewardedAdReward: number;
+  coinRewardedAdDailyLimit: number;
   minAppVersion: string;
   serviceNotice: ServiceNotice | null;
 }
@@ -59,6 +63,10 @@ export const INITIAL_APP_CONFIG: AppConfig = {
   signupEnabled: true,
   webEnabled: true,
   coinSaleEnabled: true,
+  rewardedAdEnabled: true,
+  bannerAdEnabled: true,
+  coinRewardedAdReward: 30,
+  coinRewardedAdDailyLimit: 5,
   minAppVersion: "1.0.0",
   serviceNotice: null,
 };

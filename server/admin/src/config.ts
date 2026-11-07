@@ -51,4 +51,6 @@ export const APP_CONFIG_LIMITS = {
   coinNicknameChangeCost: {min: 1, max: 3000},
   coinTimeExtensionCost: {min: 1, max: 300},
   coinGamePracticeCost: {min: 1, max: 300},
+  coinRewardedAdReward: {min: 1, max: 300},
+  coinRewardedAdDailyLimit: {min: 1, max: 20},
 };

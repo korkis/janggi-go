@@ -1,1 +1,4 @@
 #include "Generated.xcconfig"
+// AdMob 앱 ID. Info.plist의 GADApplicationIdentifier가 읽는다. 운영 값을 넣기 전까지는 Google 테스트 앱 ID이고(docs/release.md의 운영 배포 전에 채울 값),
+// 광고 단위가 비어 있어 광고를 요청하지 않는다.
+ADMOB_APP_ID = ca-app-pub-3940256099942544~1458002511
