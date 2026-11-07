@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.gazuacup" "\0"
+            VALUE "CompanyName", "com.zupion" "\0"
             VALUE "FileDescription", "janggigo" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "janggigo" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.gazuacup. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.zupion. All rights reserved." "\0"
             VALUE "OriginalFilename", "janggigo.exe" "\0"
             VALUE "ProductName", "janggigo" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

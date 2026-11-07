@@ -172,7 +172,7 @@
 
 계정이 필요해 사용자가 직접 한다. 개발 빌드는 Google 테스트 광고 ID만 쓰며, 운영 빌드는 아래 값을 넣기 전까지 광고를 요청하지 않는다. 실제 광고는 직접 누르지 않는다(무효 클릭으로 계정이 막힐 수 있다).
 
-1. **앱 등록.** AdMob에서 안드로이드(`com.gazuacup.janggigo`)와 iOS 앱을 등록해 앱 ID(`ca-app-pub-...~...`) 두 개를 받는다.
+1. **앱 등록.** AdMob에서 안드로이드(`com.zupion.janggigo`)와 iOS 앱을 등록해 앱 ID(`ca-app-pub-...~...`) 두 개를 받는다.
 2. **광고 단위.** 앱마다 배너(적응형)와 보상형을 만든다. 모두 네 개다. 보상형의 보상 값은 아무것이나 넣어도 된다. 서버는 `configs/app`의 값만 쓴다.
 3. **서버 콜백.** 첫 Functions 배포 뒤 보상형 광고 단위 두 개의 "서버 측 확인"에 `https://asia-northeast3-janggi-go.cloudfunctions.net/admobRewardCallback`을 넣고(콘솔에서 주소를 확인한다) "Verify URL"을 누른 뒤 저장한다.
 4. **값 넣기.**

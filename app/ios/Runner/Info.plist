@@ -26,7 +26,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.gazuacup.janggigo.invite</string>
+			<string>com.zupion.janggigo.invite</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>janggigo</string>

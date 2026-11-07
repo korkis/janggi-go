@@ -1,4 +1,4 @@
-package com.gazuacup.janggigo;
+package com.zupion.janggigo;
 
 import android.content.SharedPreferences;
 import android.os.RemoteException;

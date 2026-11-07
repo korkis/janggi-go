@@ -8,7 +8,7 @@
 PRODUCT_NAME = janggigo
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.gazuacup.janggigo
+PRODUCT_BUNDLE_IDENTIFIER = com.zupion.janggigo
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.gazuacup. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.zupion. All rights reserved.

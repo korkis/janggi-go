@@ -78,7 +78,7 @@ FirebaseOptions getEmulatorFirebaseOptions() {
       messagingSenderId: messagingSenderId,
       projectId: projectId,
       databaseURL: databaseURL,
-      iosBundleId: 'com.gazuacup.janggigo',
+      iosBundleId: 'com.zupion.janggigo',
     );
   }
   return FirebaseOptions(
@@ -149,7 +149,7 @@ const appUrlScheme = 'janggigo';
 const supportEmail = 'playkorkis@gmail.com';
 
 /// 플레이 스토어의 앱 주소.
-const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.gazuacup.janggigo';
+const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.zupion.janggigo';
 
 /// 앱스토어의 앱 주소. 앱을 등록하면 넣는다(`docs/release.md`의 운영 배포 전에 채울 값). 그 전에는 iOS의 업데이트 안내에 버튼을 두지 않는다.
 const String? appStoreUrl = null;

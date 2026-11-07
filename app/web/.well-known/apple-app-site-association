@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["APPLE_TEAM_ID.com.gazuacup.janggigo"],
+        "appIDs": ["APPLE_TEAM_ID.com.zupion.janggigo"],
         "components": [{"/": "/r/*", "comment": "초대 링크"}]
       }
     ]
