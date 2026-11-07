@@ -193,6 +193,24 @@
 - 문서 ID는 `{store}_{transactionId}`(영수증 번호는 URL 인코딩)다. 고정 ID라 같은 영수증이 두 번 지급되지 않는다.
 - 같은 사람과 상품의 다른 구매를 찾는 조회는 같음 조건 셋이라 복합 색인이 없어도 된다.
 
+### `revenuecat_events/{eventId}` — 서버 전용
+
+인증을 통과한 RevenueCat 웹훅의 원문이다. 이상한 결제를 추적하기 위해 처리하기 전에 저장한다(사용자 결정, 2026-11-07). 문서 ID는 웹훅의 `event.id`이고 다시 보내도 같다. Firebase 콘솔에서 `uid`나 `transactionId`로 찾는다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `type`, `productId`, `transactionId`, `store`, `environment` | string? | 원문에서 꺼낸 값 |
+| `uid` | string? | 찾아낸 Firebase uid. `TRANSFER`처럼 없는 일은 null |
+| `payload` | string | 요청 본문 전체의 JSON. 색인하지 않는다 |
+| `deliveryCount` | number | 받은 횟수 |
+| `result` | string? | `granted`, `refunded`, `ungranted`, `duplicate`, `beforePurchase`, `ignored`, `unresolved`, `invalid`, `failed`. 처리 중이면 null |
+| `receivedAt` | timestamp | 마지막으로 받은 시각 |
+| `processedAt` | timestamp? | 결과를 적은 시각 |
+| `expiresAt` | timestamp | 받고 5년 뒤. TTL 정책으로 지운다 |
+
+- 지급과 환불의 기준은 `purchases`다. 이 컬렉션을 읽어 지급을 판단하지 않는다.
+- 탈퇴와 상관없이 받은 날부터 5년이다. uid가 없는 일도 같이 지워지게 하기 위해서다.
+
 ### `ratings/{uid}` — 서버 전용
 
 | 필드 | 타입 | 설명 |
@@ -580,7 +598,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `rooms` | | ID 읽기, 공개 대기 방 목록 | | 대국 서버 쓰기 |
 | `challenges` | | | 보낸 사람·받는 사람 읽기 | 대국 서버 쓰기 |
 | `games_archived` | | 읽기 | | 대국 서버 쓰기 |
-| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions`, `purchases`, `deleted_accounts` | | | | 서버 전용 |
+| `ratings`, `nicknames`, `nickname_changes`, `quick_queue`, `challenge_limits`, `reports`, `moderation_logs`, `chat_checks`, `sanctions`, `coin_transactions`, `purchases`, `revenuecat_events`, `deleted_accounts` | | | | 서버 전용 |
 | RTDB `games_active`, `spectate_list` | 읽기 | 읽기 | | 대국 서버 쓰기 |
 | RTDB `spectators` | 만들기, 지우기 | 만들기, 지우기 | | 대국 서버 읽기 |
 | RTDB `connections` | | 읽기 | 쓰기 | 대국 서버 읽기 |
@@ -602,6 +620,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `games_archived` | 계속 | |
 | `coin_transactions` | 탈퇴자를 지운 뒤 5년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
 | `purchases` | 탈퇴자를 지운 뒤 5년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
+| `revenuecat_events` | 받은 날부터 5년 | Firestore TTL (`expiresAt`) |
 | `sanctions` | 탈퇴자를 지운 뒤 1년, 그 전에는 계속 | Firestore TTL (`expiresAt`) |
 | `deleted_accounts` | 남은 제재가 끝날 때까지, 영구 정지면 계속 | Firestore TTL (`expiresAt`) |
 
@@ -630,6 +649,7 @@ Firestore와 RTDB 모두 기본 거부에서 시작한다([dev_rules.md](./dev_r
 | `sanctions` | 1년 보관한 뒤 지운다 | 이의 제기와 분쟁에 대비한다 |
 | `users/{다른 사람}/blocks/{uid}`, `challenge_limits` | 그대로 둔다 | uid뿐이고 사람별로 찾을 수 없다. 차단 목록에는 "탈퇴한 사용자"로 보인다 |
 | `purchases` | uid와 함께 5년 보관한 뒤 지운다 | `coin_transactions`와 같다 |
+| `revenuecat_events` | 받은 날부터 5년 지나면 지운다 | 결제 분쟁과 추적에 대비한다. 탈퇴로 앞당겨 지우지 않는다 |
 | RevenueCat 고객 | 지운다 | RevenueCat에 있는 uid와 구매 내역. 지우지 못하면 그 사람을 지우지 않고 다음 날 다시 한다 |
 
 - 남은 엽전과 산 상품은 돌려주지 않고 없어진다. 탈퇴 확인 창에 적는다. 산 엽전 환불은 스토어 절차다.

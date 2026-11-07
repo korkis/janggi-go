@@ -493,7 +493,9 @@ sequenceDiagram
 
 `revenueCatWebhook`(HTTP POST, 공개 주소):
 
-- `Authorization` 헤더가 `REVENUECAT_WEBHOOK_AUTH`와 다르면 401이다. 처리에 실패하면 500이고 RevenueCat이 80분 동안 다섯 번까지 다시 보낸다. 다시 보내도 같은 잘못된 요청(필수 필드 없음)은 400이다.
+- 인증을 통과하면 처리하기 전에 요청 본문 전체를 `revenuecat_events/{event.id}`에 저장하고, 처리한 뒤 결과를 적는다([database.md](./database.md)). 저장에 실패하면 지급하지 않고 500을 돌려준다. 이상한 결제는 여기서 uid나 영수증 번호로 찾는다. 전문을 저장한 뒤 트리거로 처리하는 방식은 고르지 않았다. 200을 먼저 주면 재시도를 직접 챙겨야 하고 지급이 콜드 스타트만큼 늦어지기 때문이다.
+- `event.id`가 없으면 저장할 수 없으므로 400이다.
+- `Authorization` 헤더가 `REVENUECAT_WEBHOOK_AUTH`와 다르면 401이고 저장하지 않는다. 처리에 실패하면 500이고 RevenueCat이 80분 동안 다섯 번까지 다시 보낸다. 다시 보내도 같은 잘못된 요청(필수 필드 없음)은 400이다.
 - `NON_RENEWING_PURCHASE`만 지급하고 `CANCELLATION`만 환불한다. 나머지(`TEST`, `TRANSFER`, `REFUND_REVERSED` 등)는 200으로 받고 하는 일이 없다. 애플이 환불을 되돌린 경우(`REFUND_REVERSED`)는 아주 드물어 필요하면 그때 손으로 처리한다.
 - 심사와 비공개 테스트의 결제가 `SANDBOX`로 오므로 환경을 가리지 않고 지급한다. `purchases.environment`에 남긴다. TestFlight와 라이선스 테스터는 돈을 내지 않고 엽전을 받는다.
 
@@ -612,7 +614,7 @@ Admin 웹(`server/admin`)이 부른다. 모두 처음에 `requireAdmin`으로 �
 | `purgeDeletedAccounts` | 하루 한 번 (04:30 서울) | 탈퇴하고 30일 지난 사람을 지운다. 한 번에 100명까지(위 "회원 탈퇴"). RevenueCat 고객 지우기가 실패하면 그 사람을 다음 날 다시 한다 |
 | `expireSanctions` | 한 시간마다 | 끝난 제재(`sanction.endsAt`이 지난 채팅 제한·이용 정지)를 `users_private.sanction`에서 지운다. 한 번에 500명까지 읽고 트랜잭션에서 다시 확인한다. 이력(`sanctions`)은 남긴다(2026-11-03 구현) |
 
-Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`, `coin_transactions`, `purchases`, `sanctions`, `deleted_accounts`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
+Firestore의 보관 기간은 TTL 정책으로 지운다([database.md](./database.md)의 보관과 삭제). TTL 정책은 `server/firestore.indexes.json`의 `fieldOverrides`(`chat_checks`, `moderation_logs`, `reports`, `coin_transactions`, `purchases`, `revenuecat_events`, `sanctions`, `deleted_accounts`의 `expiresAt`)에 적어 두었고 `firebase deploy --only firestore:indexes`로 배포한다.
 
 ## Admin 웹 — 확정 (2026-11-03 구현)
 

@@ -88,6 +88,8 @@
     {"collectionGroup": "reports", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "coin_transactions", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "purchases", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
+    {"collectionGroup": "revenuecat_events", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
+    {"collectionGroup": "revenuecat_events", "fieldPath": "payload", "indexes": []},
     {"collectionGroup": "sanctions", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {"collectionGroup": "deleted_accounts", "fieldPath": "expiresAt", "ttl": true, "indexes": []}
   ]

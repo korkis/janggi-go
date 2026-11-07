@@ -266,6 +266,12 @@ describe("산 상품", () => {
     await assertFails(updateDoc(doc(userDb(BOB), `inventories/${ALICE}`), {selectedMaterial: "wood"}));
   });
 
+  test("웹훅 원문은 본인도 읽거나 쓰지 못한다", async () => {
+    await assertFails(getDoc(doc(userDb(ALICE), "revenuecat_events/e1")));
+    await assertFails(getDocs(query(collection(userDb(ALICE), "revenuecat_events"), where("uid", "==", ALICE))));
+    await assertFails(setDoc(doc(userDb(ALICE), "revenuecat_events/e1"), {uid: ALICE}));
+  });
+
   test("구매 기록은 본인도 읽거나 쓰지 못한다", async () => {
     await assertFails(getDoc(doc(userDb(ALICE), "purchases/PLAY_STORE_T1")));
     await assertFails(getDocs(query(collection(userDb(ALICE), "purchases"), where("uid", "==", ALICE))));

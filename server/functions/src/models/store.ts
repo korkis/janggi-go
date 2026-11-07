@@ -55,6 +55,44 @@ export interface Purchase {
   expiresAt?: Timestamp;
 }
 
+/** 받은 웹훅을 처리한 결과. `revenuecat_events.result`에 저장한다. */
+export const RevenueCatEventResult = {
+  ...PurchaseStatus,
+  // 같은 영수증을 이미 처리했다.
+  duplicate: "duplicate",
+  // 구매 기록이 없는 환불. 뒤에 오는 구매를 지급하지 않게 기록만 했다.
+  beforePurchase: "beforePurchase",
+  // 처리하지 않는 일(TEST, TRANSFER 등).
+  ignored: "ignored",
+  // 모르는 상품이거나 사용자를 찾지 못해 아무것도 하지 않았다.
+  unresolved: "unresolved",
+  // 필수 필드가 없어 400으로 거절했다.
+  invalid: "invalid",
+  // 처리에 실패해 500을 돌려줬다. RevenueCat이 다시 보낸다.
+  failed: "failed",
+} as const;
+export type RevenueCatEventResult = (typeof RevenueCatEventResult)[keyof typeof RevenueCatEventResult];
+
+/**
+ * Firestore `revenuecat_events/{event.id}`에 쓰는 값. 인증을 통과한 웹훅의 원문이다(서버 전용). 이상한 결제를 추적하기 위해 처리 전에 저장한다.
+ * `deliveryCount`(받은 횟수), `result`, `processedAt`은 저장소가 함께 다룬다.
+ */
+export interface RevenueCatEventRecord {
+  // 찾기 위해 원문에서 꺼낸 값. 없으면 null이다.
+  type: string | null;
+  uid: string | null;
+  productId: string | null;
+  transactionId: string | null;
+  store: string | null;
+  environment: string | null;
+  // 요청 본문 전체의 JSON. 필드 이름에 제약이 없도록 글자로 둔다.
+  payload: string;
+  // 마지막으로 받은 시각.
+  receivedAt: Timestamp;
+  // 받고 5년 뒤. TTL 정책으로 지운다.
+  expiresAt: Timestamp;
+}
+
 /** RevenueCat 웹훅의 `event` 중 쓰는 필드(docs/server.md의 앱 결제). 일이 다르면 없는 필드가 있다. */
 export interface RevenueCatEvent {
   id?: unknown;

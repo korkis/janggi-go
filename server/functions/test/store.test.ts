@@ -8,6 +8,7 @@ import {INITIAL_APP_CONFIG} from "../src/models/appConfig";
 import {CoinTransaction, CoinWallet} from "../src/models/coin";
 import {Inventory, Purchase} from "../src/models/store";
 import {setAppConfig} from "../src/repositories/configsRepository";
+import * as firestoreRepository from "../src/repositories/firestore";
 import {revenueCatWebhook} from "../src/webhooks/revenueCatWebhook";
 import {TEST_PROJECT_ID} from "./testEnv";
 
@@ -162,6 +163,71 @@ describe("인증과 요청 모양", () => {
     });
     expect(await postWebhook(event)).toBe(200);
     expect((await getWallet("u1")).paidCoins).toBe(300);
+  });
+});
+
+describe("원문 기록", () => {
+  async function getEvent(eventId: string) {
+    return (await db.doc(`revenuecat_events/${eventId}`).get()).data();
+  }
+
+  test("처리 전에 원문을 저장하고 처리 결과를 적는다", async () => {
+    const event = purchaseEvent("coins_300", "T1", {id: "e1", subscriber_attributes: {$email: {value: "a"}}});
+    await postWebhook(event);
+
+    const record = await getEvent("e1");
+    expect(record).toMatchObject({
+      type: "NON_RENEWING_PURCHASE",
+      uid: "u1",
+      productId: "coins_300",
+      transactionId: "T1",
+      store: "PLAY_STORE",
+      environment: "PRODUCTION",
+      deliveryCount: 1,
+      result: "granted",
+    });
+    expect(JSON.parse(record?.payload as string)).toEqual({api_version: "1.0", event});
+    expect(record?.processedAt).toBeInstanceOf(Timestamp);
+    const years = (record?.expiresAt as Timestamp).toMillis() - (record?.receivedAt as Timestamp).toMillis();
+    expect(Math.round(years / (365 * 24 * 60 * 60 * 1000))).toBe(5);
+  });
+
+  test("다시 받으면 받은 횟수를 늘리고 결과를 다시 적는다", async () => {
+    const event = purchaseEvent("coins_300", "T1", {id: "e1"});
+    await postWebhook(event);
+    await postWebhook(event);
+    expect(await getEvent("e1")).toMatchObject({deliveryCount: 2, result: "duplicate"});
+  });
+
+  test.each([
+    {name: "처리하지 않는 일", event: {type: "TRANSFER", id: "e1"}, status: 200, result: "ignored"},
+    {name: "모르는 상품", event: purchaseEvent("unknown", "T1", {id: "e1"}), status: 200, result: "unresolved"},
+    {name: "먼저 온 환불", event: refundEvent("coins_300", "T1", {id: "e1"}), status: 200, result: "beforePurchase"},
+    {name: "필드 없음", event: {id: "e1", type: "CANCELLATION"}, status: 400, result: "invalid"},
+  ])("$name도 원문을 남긴다", async ({event, status, result}) => {
+    expect(await postWebhook(event)).toBe(status);
+    expect((await getEvent("e1"))?.result).toBe(result);
+  });
+
+  test("처리에 실패하면 500을 돌려주고 실패로 적으며, 다시 받으면 처리한다", async () => {
+    const event = purchaseEvent("coins_300", "T1", {id: "e1"});
+    const spy = jest.spyOn(firestoreRepository, "runTransaction").mockRejectedValueOnce(new Error("장애"));
+
+    expect(await postWebhook(event)).toBe(500);
+    expect((await getEvent("e1"))?.result).toBe("failed");
+    expect((await getWallet("u1")).paidCoins).toBe(0);
+    spy.mockRestore();
+
+    expect(await postWebhook(event)).toBe(200);
+    expect(await getEvent("e1")).toMatchObject({deliveryCount: 2, result: "granted"});
+    expect((await getWallet("u1")).paidCoins).toBe(300);
+  });
+
+  test("인증에 실패하거나 id가 없으면 저장하지 않는다", async () => {
+    await postWebhook(purchaseEvent("coins_300", "T1", {id: "e1"}), {authorization: "wrong"});
+    expect(await postWebhook(purchaseEvent("coins_300", "T2", {id: undefined}))).toBe(400);
+    expect((await db.collection("revenuecat_events").get()).empty).toBe(true);
+    expect((await getWallet("u1")).paidCoins).toBe(0);
   });
 });
 

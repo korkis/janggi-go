@@ -3,7 +3,7 @@ import {onRequest} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import {defineSecret} from "firebase-functions/params";
 import {RevenueCatEvent} from "../models/store";
-import {InvalidRevenueCatEventError, handleRevenueCatEvent} from "../services/purchaseService";
+import {InvalidRevenueCatEventError, receiveRevenueCatEvent} from "../services/purchaseService";
 
 // RevenueCat 대시보드의 웹훅 Authorization 헤더 값. Secret Manager에 두고, 에뮬레이터는 server/functions/.secret.local에서 읽는다.
 const webhookAuth = defineSecret("REVENUECAT_WEBHOOK_AUTH");
@@ -37,7 +37,7 @@ export const revenueCatWebhook = onRequest({secrets: [webhookAuth], invoker: "pu
     return;
   }
   try {
-    await handleRevenueCatEvent(event);
+    await receiveRevenueCatEvent(request.body, event);
     response.status(200).send();
   } catch (error) {
     if (error instanceof InvalidRevenueCatEventError) {

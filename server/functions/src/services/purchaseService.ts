@@ -1,8 +1,17 @@
+import dayjs from "dayjs";
 import {Timestamp, Transaction} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
-import {REVENUECAT_ANONYMOUS_ID_PREFIX, STORE_PRODUCTS} from "../config";
+import {COIN_TRANSACTION_RETENTION_YEARS, REVENUECAT_ANONYMOUS_ID_PREFIX, STORE_PRODUCTS} from "../config";
 import {CoinWallet} from "../models/coin";
-import {Inventory, PieceMaterial, Purchase, PurchaseStatus, RevenueCatEvent, StoreProduct} from "../models/store";
+import {
+  Inventory,
+  PieceMaterial,
+  Purchase,
+  PurchaseStatus,
+  RevenueCatEvent,
+  RevenueCatEventResult,
+  StoreProduct,
+} from "../models/store";
 import {getWalletInTransaction} from "../repositories/coinWalletsRepository";
 import {getAppConfig} from "../repositories/configsRepository";
 import {runTransaction} from "../repositories/firestore";
@@ -14,6 +23,7 @@ import {
   hasOtherGrantedPurchaseInTransaction,
   markPurchaseRefundedInTransaction,
 } from "../repositories/purchasesRepository";
+import {recordRevenueCatEvent, setRevenueCatEventResult} from "../repositories/revenueCatEventsRepository";
 import {grantPurchasedCoinsInTransaction, takeBackPurchasedCoinsInTransaction} from "./coinService";
 
 // RevenueCat 웹훅의 일 종류 중 처리하는 것. 한 번 사는 상품의 구매와, 그 환불이다.
@@ -217,15 +227,15 @@ function readPurchaseEvent(event: RevenueCatEvent): PurchaseEvent | null {
  * RevenueCat 웹훅의 일 하나를 처리한다(docs/server.md의 앱 결제). 같은 일이 여러 번 오거나 순서가 바뀌어도 결과가 같다.
  * 돈은 스토어에서 이미 나갔으므로 `coinSaleEnabled`가 꺼져 있어도 지급한다. 꺼진 뒤의 충전은 로그로 찾는다.
  */
-export async function handleRevenueCatEvent(event: RevenueCatEvent): Promise<void> {
+async function handleRevenueCatEvent(event: RevenueCatEvent): Promise<RevenueCatEventResult> {
   const type = requireString(event.type, "type");
   if (type !== EVENT_NON_RENEWING_PURCHASE && type !== EVENT_CANCELLATION) {
     logger.info("revenueCatWebhook 처리하지 않는 일", {type, id: event.id});
-    return;
+    return RevenueCatEventResult.ignored;
   }
   const purchaseEvent = readPurchaseEvent(event);
   if (purchaseEvent === null) {
-    return;
+    return RevenueCatEventResult.unresolved;
   }
   const {uid, productId, transactionId, product} = purchaseEvent;
   if (type === EVENT_NON_RENEWING_PURCHASE) {
@@ -237,11 +247,46 @@ export async function handleRevenueCatEvent(event: RevenueCatEvent): Promise<voi
       logger.error("revenueCatWebhook 지갑이 없어 지급하지 못함", {uid, productId, transactionId});
     }
     logger.info("revenueCatWebhook 구매 완료", {uid, productId, transactionId, result});
-    return;
+    return result;
   }
   const result = await refundPurchase(purchaseEvent);
   if (result === "beforePurchase") {
     logger.warn("revenueCatWebhook 구매 기록 없는 환불", {uid, productId, transactionId});
   }
   logger.info("revenueCatWebhook 환불 완료", {uid, productId, transactionId, result});
+  return result;
+}
+
+function getStringOrNull(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+/**
+ * 인증을 통과한 웹훅을 받는다. 원문을 먼저 저장하고 처리한 뒤 결과를 적는다(docs/server.md의 앱 결제). 저장에 실패하면 처리하지 않고 오류를 던져
+ * RevenueCat이 다시 보내게 한다. 처리에 실패해도 결과를 적고 오류를 던진다.
+ */
+export async function receiveRevenueCatEvent(body: unknown, event: RevenueCatEvent): Promise<void> {
+  const eventId = requireString(event.id, "id");
+  const now = dayjs();
+  await recordRevenueCatEvent(eventId, {
+    type: getStringOrNull(event.type),
+    uid: findUid(event),
+    productId: getStringOrNull(event.product_id),
+    transactionId: getStringOrNull(event.transaction_id),
+    store: getStringOrNull(event.store),
+    environment: getStringOrNull(event.environment),
+    payload: JSON.stringify(body),
+    receivedAt: Timestamp.fromMillis(now.valueOf()),
+    expiresAt: Timestamp.fromDate(now.add(COIN_TRANSACTION_RETENTION_YEARS, "year").toDate()),
+  });
+  let result: RevenueCatEventResult;
+  try {
+    result = await handleRevenueCatEvent(event);
+  } catch (error) {
+    const failure =
+      error instanceof InvalidRevenueCatEventError ? RevenueCatEventResult.invalid : RevenueCatEventResult.failed;
+    await setRevenueCatEventResult(eventId, failure, Timestamp.now());
+    throw error;
+  }
+  await setRevenueCatEventResult(eventId, result, Timestamp.now());
 }
