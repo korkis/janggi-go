@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:janggi-go.web.app</string>
+		<string>applinks:janggigo.zupion.com</string>
 	</array>
 </dict>
 </plist>

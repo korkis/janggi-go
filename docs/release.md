@@ -131,10 +131,11 @@
 - iOS의 ATT 창이 처음 켤 때 UMP 다음에 뜨는지(요청이 무시되면 창이 뜨지 않는다), 한국어와 영어 문구가 맞는지. `Info.plist`, `ko.lproj/InfoPlist.strings`, `project.pbxproj`는 Windows에서 손으로 고쳐 맥에서 빌드해 보지 못했다.
 - 실제 배너의 높이에서 관전 화면의 판이 쓸 만한 크기인지(폭 320 포함), 배너가 버튼과 충분히 떨어져 있는지. 배너 높이는 Google이 정하고 화면 높이의 15%까지 커질 수 있다.
 - 광고 제거를 사면 배너가 바로 사라지고 환불되면 다시 나오는지. 보상형은 그대로인지.
-- `app-ads.txt`를 AdMob이 인식하는지(최대 24시간). `web.app` 주소가 스토어의 개발자 웹사이트로 인정되지 않으면 자체 도메인을 붙인다. AdMob 문서는 한 단계 하위 도메인까지 찾는다고 하고 `web.app`을 따로 다루지 않는다.
+- `app-ads.txt`를 AdMob이 인식하는지(최대 24시간). 개발자 웹사이트가 한 단계 하위 도메인(`janggigo.zupion.com`)이고, AdMob 문서는 여기까지 찾는다고 한다. 인식되지 않으면 `zupion.com` 맨 위에 파일을 올리고 개발자 웹사이트를 그 주소로 바꾼다.
 
 운영 배포 전에 채울 값:
 
+- 웹 도메인. Firebase Hosting의 `janggi-go` 사이트에 `janggigo.zupion.com`을 연결하고, Authentication의 승인된 도메인에 더한다([server.md](./server.md)의 초대 링크 배포). 연결하기 전에는 앱이 만드는 초대 링크가 열리지 않는다.
 - `configs/app`의 새 필드. 서버를 배포하기 전에 `npm run init-app-config`를 실행한다([server.md](./server.md)의 `configs/app`).
 - `app/lib/config.dart`의 `revenueCatGoogleApiKey`, `revenueCatAppleApiKey`. 비어 있으면 앱은 "지금은 살 수 없어요"를 보여준다.
 - Secret Manager의 `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_SECRET_API_KEY`. 아래 사용자 할 일.
@@ -185,7 +186,7 @@
    | AdMob이 알려 주는 `app-ads.txt` 줄 | `app/web/app-ads.txt` |
 
 5. **유럽 동의 메시지.** AdMob의 개인정보 보호 및 메시지에서 GDPR 메시지를 만든다. 이것이 UMP 창의 내용이다. IDFA 안내 메시지는 만들지 않는다. 앱이 ATT 창을 직접 띄우므로 만들면 겹친다.
-6. **`app-ads.txt`.** 스토어 등록 정보의 개발자 웹사이트(구글 "연락처 세부정보", 애플 "마케팅 URL")를 `https://janggi-go.web.app`으로 둔다. 파일은 웹 빌드와 함께 Hosting 맨 위에 올라간다.
+6. **`app-ads.txt`.** 스토어 등록 정보의 개발자 웹사이트(구글 "연락처 세부정보", 애플 "마케팅 URL")를 `https://janggigo.zupion.com`으로 둔다. 파일은 웹 빌드와 함께 Hosting 맨 위에 올라가므로 따로 올릴 곳이 없다.
 7. **iOS 광고 네트워크.** `Info.plist`의 `SKAdNetworkItems`에는 Google 것만 넣었다. [Google 문서](https://developers.google.com/admob/ios/quick-start)의 타사 구매자 목록을 더하면 iOS 광고 수익에 도움이 될 수 있다.
 8. **광고 내용 제한(선택).** 주 사용자 층과 맞지 않는 광고 분류를 AdMob의 차단 설정에서 막는다.
 

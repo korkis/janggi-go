@@ -108,14 +108,14 @@ Future<void> _tearDown(WidgetTester tester, FakeApp fakes, String uid) async {
 
 void main() {
   test('초대 링크와 설치 정보에서 방 ID를 읽는다', () {
-    expect(buildInviteLink('abc123').toString(), 'https://janggi-go.web.app/r/abc123');
-    expect(getInviteRoomId(Uri.parse('https://janggi-go.web.app/r/abc123'), web: false), 'abc123');
+    expect(buildInviteLink('abc123').toString(), 'https://janggigo.zupion.com/r/abc123');
+    expect(getInviteRoomId(Uri.parse('https://janggigo.zupion.com/r/abc123'), web: false), 'abc123');
     expect(getInviteRoomId(Uri.parse('janggigo://r/abc123'), web: false), 'abc123');
-    expect(getInviteRoomId(Uri.parse('https://janggi-go.web.app/?room=abc123'), web: true), 'abc123');
+    expect(getInviteRoomId(Uri.parse('https://janggigo.zupion.com/?room=abc123'), web: true), 'abc123');
     expect(getInviteRoomId(Uri.parse('https://example.com/r/abc123'), web: false), isNull);
-    expect(getInviteRoomId(Uri.parse('https://janggi-go.web.app/r/abc123/x'), web: false), isNull);
-    expect(getInviteRoomId(Uri.parse('https://janggi-go.web.app/r/a.b'), web: false), isNull);
-    expect(getInviteRoomId(Uri.parse('https://janggi-go.web.app/'), web: true), isNull);
+    expect(getInviteRoomId(Uri.parse('https://janggigo.zupion.com/r/abc123/x'), web: false), isNull);
+    expect(getInviteRoomId(Uri.parse('https://janggigo.zupion.com/r/a.b'), web: false), isNull);
+    expect(getInviteRoomId(Uri.parse('https://janggigo.zupion.com/'), web: true), isNull);
     expect(getInstallReferrerRoomId('room=abc123'), 'abc123');
     expect(getInstallReferrerRoomId('utm_source=google-play&utm_medium=organic'), isNull);
   });
@@ -154,7 +154,7 @@ void main() {
     expect(find.text('상대가 떼요'), findsOneWidget);
     expect(find.text('비공개'), findsOneWidget);
     expect(find.text('상대를 기다리고 있어요'), findsOneWidget);
-    expect(find.text('https://janggi-go.web.app/r/room1'), findsOneWidget);
+    expect(find.text('https://janggigo.zupion.com/r/room1'), findsOneWidget);
     expect(find.text('상대가 들어오면 시작할 수 있어요'), findsOneWidget);
     expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, '대국 시작')).onPressed, isNull);
 
@@ -209,7 +209,7 @@ void main() {
     final fakes = await _startSignedIn(tester, 'me');
     fakes.rooms.emit('room1', _room(hostUid: 'opp', guest: 'me'));
 
-    fakes.deepLinks.emit(Uri.parse('https://janggi-go.web.app/r/room1'));
+    fakes.deepLinks.emit(Uri.parse('https://janggigo.zupion.com/r/room1'));
     await _pumpFor(tester);
     expect(fakes.rooms.calls, ['joinRoom room1']);
     expect(find.text('방장opp의 방'), findsOneWidget);

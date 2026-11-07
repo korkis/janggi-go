@@ -134,10 +134,10 @@ const nicknameCheckDelay = Duration(milliseconds: 400);
 /// 대국 화면의 시계와 상차림 남은 시간을 다시 그리는 간격.
 const gameClockTickInterval = Duration(milliseconds: 200);
 
-/// 초대 링크 주소의 호스트. Firebase Hosting의 기본 주소다(`docs/game/matching.md`의 링크). 자체 도메인을 붙이면 바꾸고,
+/// 초대 링크 주소의 호스트. Firebase Hosting에 연결한 자체 도메인이다(`docs/game/matching.md`의 링크). 바꾸면
 /// 안드로이드 App Links(`AndroidManifest.xml`)와 iOS Universal Links(`Runner.entitlements`)의 도메인도 같이 바꾼다.
 /// 개발 빌드도 이 주소의 링크를 만든다.
-const inviteLinkHost = 'janggi-go.web.app';
+const inviteLinkHost = 'janggigo.zupion.com';
 
 /// 초대 링크 경로의 앞부분. `https://<inviteLinkHost>/r/<방 ID>`.
 const inviteLinkPathPrefix = 'r';

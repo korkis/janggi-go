@@ -759,10 +759,10 @@ sequenceDiagram
 
 ### 방과 초대 링크
 
-1. 방장이 `createRoom`을 부르고 방 대기실로 간다. 초대 링크는 `https://janggi-go.web.app/r/{roomId}`다(앱의 `inviteLinkHost`).
+1. 방장이 `createRoom`을 부르고 방 대기실로 간다. 초대 링크는 `https://janggigo.zupion.com/r/{roomId}`다(앱의 `inviteLinkHost`).
 2. 링크를 누른 사람의 앱(또는 웹)은 로그인과 닉네임을 거친 뒤 `joinRoom`을 부른다. 앱 설치와 열기 흐름은 [matching.md](./game/matching.md)의 링크를 따른다.
    - 앱은 링크를 `app_links` 패키지로 받는다(`InviteLinkManager`). 앱을 연 링크, 켜져 있는 동안 누른 링크, 안드로이드의 플레이 스토어 설치 정보(`referrer=room=<방 ID>`, 설치 뒤 처음 한 번)가 모두 들어갈 방이 되고, 홈 화면이 로그인을 거쳐 방에 들어간다.
-   - 앱이 받는 주소: `https://janggi-go.web.app/r/{roomId}`(App Links·Universal Links), `janggigo://r/{roomId}`(아이폰 앱 안 브라우저의 "앱에서 열기"), 웹은 `/?room={roomId}`(입장 페이지가 PC와 "웹에서 바로 두기"를 보내는 주소).
+   - 앱이 받는 주소: `https://janggigo.zupion.com/r/{roomId}`(App Links·Universal Links), `janggigo://r/{roomId}`(아이폰 앱 안 브라우저의 "앱에서 열기"), 웹은 `/?room={roomId}`(입장 페이지가 PC와 "웹에서 바로 두기"를 보내는 주소).
    - Firebase Hosting은 `/r/**`를 입장 페이지(`app/web/invite.html`)로 보낸다. App Links와 Universal Links의 확인 파일은 `/.well-known/assetlinks.json`, `/.well-known/apple-app-site-association`이고 Flutter 웹 빌드가 `app/web/`에서 함께 복사한다.
 3. `joinRoom`이 실패하면 사유를 보여준다. 자리가 찬 방이 대국 중이면(`status == playing`) "지금 대국 중인 방이에요. 관전할까요?"를 묻고 그 방의 `gameId`를 관전한다.
 4. 두 사람은 `rooms/{roomId}`를 듣는다. 방장이 `startRoomGame`을 부르면 두 사람의 `player_states.gameId`가 생기고 상차림으로 간다. 빠른 대국처럼 바로 상차림 화면을 열고, 상차림 시간은 `setup.startsAt`부터 센다. 이후는 빠른 대국과 같다.
@@ -774,8 +774,9 @@ sequenceDiagram
 코드는 들어가 있고, 다음은 사용자 계정이 필요해 배포 때 한다.
 
 - Hosting 배포: `app`에서 `flutter build web --dart-define=GAME_SERVER_URL=<Cloud Run 주소>`, `server`에서 `firebase deploy --only hosting:janggi-go`. `server/firebase.json`의 `janggi-go` 사이트가 `../app/build/web`을 올리고 `/r/**`를 입장 페이지로 보낸다.
+- 웹 도메인: Firebase 콘솔의 Hosting에서 `janggi-go` 사이트에 `janggigo.zupion.com`을 연결하고, 콘솔이 알려 주는 DNS 레코드를 `zupion.com`에 넣는다. Authentication의 승인된 도메인에도 더한다. App Links와 Universal Links의 확인 파일이 이 주소에서 열려야 하므로 앱을 내기 전에 끝낸다. `janggi-go.web.app`도 같은 사이트로 계속 열린다.
 - 안드로이드 App Links: `app/web/.well-known/assetlinks.json`에는 지금 개발 PC의 디버그 키 지문만 있다. 플레이 콘솔의 앱 서명 키(Play App Signing) SHA-256 지문을 더한다.
-- iOS Universal Links: `app/web/.well-known/apple-app-site-association`의 `APPLE_TEAM_ID`를 애플 개발자 팀 ID로 바꾸고, App ID에 Associated Domains를 켠다(`ios/Runner/Runner.entitlements`는 들어가 있다). 배포 뒤 `curl -I https://janggi-go.web.app/.well-known/apple-app-site-association`로 `Content-Type: application/json`인지 확인한다. Hosting 에뮬레이터는 `headers` 설정을 적용하지 않아 로컬에서 확인하지 못했다.
+- iOS Universal Links: `app/web/.well-known/apple-app-site-association`의 `APPLE_TEAM_ID`를 애플 개발자 팀 ID로 바꾸고, App ID에 Associated Domains를 켠다(`ios/Runner/Runner.entitlements`는 들어가 있다). 배포 뒤 `curl -I https://janggigo.zupion.com/.well-known/apple-app-site-association`로 `Content-Type: application/json`인지 확인한다. Hosting 에뮬레이터는 `headers` 설정을 적용하지 않아 로컬에서 확인하지 못했다.
 - App Store 주소: 앱을 등록하면 `app/web/invite.html`의 `APP_STORE_URL`에 넣는다. 그 전에는 아이폰 입장 페이지에 "앱 설치"가 보이지 않는다.
 - 카카오톡 공유: 지금은 휴대폰 공유 창을 쓴다. 카카오 SDK 공유를 쓰려면 카카오 개발자 앱 키가 필요하다.
 

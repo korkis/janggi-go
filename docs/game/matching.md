@@ -84,7 +84,7 @@
 
 - 로그인하지 않았으면 회원가입을 안내하고, 가입이 끝나면 같은 방으로 돌아온다.
 - 들어오는 사이에 자리가 찼거나 대국이 끝났으면 그 사실을 알리고, 진행 중이면 "지금 대국 중인 방이에요. 관전할까요?"로 관전을 권한다.
-- 링크 주소는 Firebase Hosting의 기본 주소(`https://janggi-go.web.app/r/<방 ID>`)로 시작하고, 필요하면 나중에 자체 도메인을 붙인다. Firebase Dynamic Links는 종료되었으므로 쓰지 않는다.
+- 링크 주소는 Firebase Hosting에 연결한 자체 도메인(`https://janggigo.zupion.com/r/<방 ID>`)이다. 주소가 앱에 박혀 출시 뒤에 바꾸기 어렵고, 방송에서 나눠 주는 링크라 `web.app`보다 믿을 만해 보이는 쪽을 골랐다. Firebase Dynamic Links는 종료되었으므로 쓰지 않는다.
 
 ## 로비와 신청 — 초안
 
