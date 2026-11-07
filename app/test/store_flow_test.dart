@@ -102,14 +102,17 @@ void main() {
       }
     });
 
-    testWidgets('coinSaleEnabled를 끄면 충전만 숨기고 나머지는 판다', (tester) async {
+    testWidgets('coinSaleEnabled를 끄면 다음에 켤 때부터 충전만 숨기고 나머지는 판다', (tester) async {
       _usePhoneView(tester);
       final fakes = await _signIn();
       await _openStore(tester);
       expect(find.text('300엽전'), findsOneWidget);
 
       fakes.configs.coinSaleEnabled = false;
-      fakes.configs.emitConfig();
+      await _pumpFor(tester);
+      expect(find.text('300엽전'), findsOneWidget);
+
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
 
       expect(find.text('엽전 충전'), findsNothing);
@@ -354,7 +357,7 @@ void main() {
       await tester.pumpWidget(const JanggigoApp());
       await _pumpFor(tester);
       fakes.configs.coinSaleEnabled = false;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
 
       await showError(tester, const AppException(AppErrorCode.coinsInsufficient));

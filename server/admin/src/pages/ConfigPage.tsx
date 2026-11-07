@@ -78,7 +78,7 @@ const BOOLEAN_FIELDS: {key: BooleanField; label: string; help: string}[] = [
   {
     key: "coinSaleEnabled",
     label: "엽전 충전 판매",
-    help: "끄면 앱의 상점에서 충전 상품이 사라져요. 이미 산 엽전은 계속 쓰고, 결제가 끝난 충전은 지급해요.",
+    help: "끄면 다음에 켜는 앱의 상점에서 충전 상품이 사라져요. 켜져 있는 앱은 다시 켤 때까지 살 수 있고, 결제가 끝난 충전은 지급해요.",
   },
   {
     key: "onlineUsersVisible",
@@ -334,7 +334,7 @@ export function ConfigPage() {
             }`}
           />
           <span className="mt-1 block text-xs text-slate-500">
-            이보다 낮은 앱(안드로이드, iOS)에 업데이트 화면을 띄워요. 서버는 막지 않아요.
+            이보다 낮은 앱(안드로이드, iOS)을 다음에 켤 때 업데이트 화면을 띄워요. 서버는 막지 않아요.
           </span>
           {!APP_VERSION_PATTERN.test(draft.minAppVersion) && (
             <span className="block text-xs text-red-700">⚠ 1.2.3 모양으로 적어 주세요.</span>
@@ -439,7 +439,7 @@ export function ConfigPage() {
               </li>
             ))}
           </ul>
-          <p className="text-slate-500">모든 사용자에게 바로 적용돼요. 서버는 캐시 때문에 1분 안에 새 값을 써요.</p>
+          <p className="text-slate-500">서버는 캐시 때문에 1분 안에 새 값을 써요. 앱 화면은 앱을 다시 켜야 바뀌어요.</p>
         </ConfirmDialog>
       )}
     </div>

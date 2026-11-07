@@ -17,12 +17,4 @@ class ConfigRepository {
     }
     return AppConfig.fromJson(data);
   }
-
-  /// `configs/app`을 듣는다. 문서가 없으면 null을 보낸다.
-  Stream<AppConfig?> watchAppConfig() => firestore.collection('configs').doc('app').snapshots().map(_decode);
-
-  static AppConfig? _decode(DocumentSnapshot<Map<String, dynamic>> snapshot) {
-    final data = snapshot.data();
-    return data == null ? null : AppConfig.fromJson(data);
-  }
 }

@@ -287,20 +287,6 @@ class FakeConfigRepository implements ConfigRepository {
   /// `configs/app.serviceNotice`.
   ServiceNotice? serviceNotice;
 
-  // [emitConfig]를 듣는 쪽에 알린다.
-  final _changes = StreamController<void>.broadcast();
-
-  /// 운영자가 설정을 바꾼 것처럼 위 값을 보낸다.
-  void emitConfig() => _changes.add(null);
-
-  @override
-  Stream<AppConfig?> watchAppConfig() async* {
-    yield await getAppConfig();
-    await for (final _ in _changes.stream) {
-      yield await getAppConfig();
-    }
-  }
-
   @override
   FirebaseFirestore get firestore => throw UnimplementedError();
 

@@ -255,6 +255,7 @@ void main() {
       _useView(tester);
       final fakes = setUpFakeApp();
       fakes.configs.signupEnabled = false;
+      managers.appConfigManager.reloadForStart();
       await tester.pumpWidget(const JanggigoApp());
       await _pumpFor(tester);
       final context = tester.element(find.byType(Scaffold).first);
@@ -314,12 +315,12 @@ void main() {
       expect(chatTab(), findsOneWidget);
 
       fakes.configs.chatEnabled = false;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(chatTab(), findsNothing);
 
       fakes.configs.chatEnabled = true;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(chatTab(), findsOneWidget);
     });
@@ -334,14 +335,14 @@ void main() {
       expect(find.text('새 버전으로 업데이트해 주세요'), findsNothing);
 
       fakes.configs.minAppVersion = '1.2.4';
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('새 버전으로 업데이트해 주세요'), findsOneWidget);
       expect(find.text('업데이트'), findsOneWidget);
       expect(find.text('빠른 대국'), findsNothing);
 
       fakes.configs.minAppVersion = '1.2.3';
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('새 버전으로 업데이트해 주세요'), findsNothing);
     });
@@ -353,12 +354,12 @@ void main() {
       await _pumpFor(tester);
 
       fakes.configs.webEnabled = false;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('지금은 웹에서 이용할 수 없어요. 앱을 이용해 주세요'), findsNothing);
 
       managers.appConfigManager.web = true;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('지금은 웹에서 이용할 수 없어요. 앱을 이용해 주세요'), findsOneWidget);
     });
@@ -367,30 +368,37 @@ void main() {
   group('공지', () {
     const notice = ServiceNotice(messageKo: '오늘 밤 점검합니다', messageEn: 'Maintenance tonight', gamesBlocked: true);
 
-    testWidgets('한 번만 띄우고 문구가 바뀌면 다시 띄운다', (tester) async {
+    testWidgets('한 번만 띄운다', (tester) async {
       _useView(tester);
       final fakes = setUpFakeApp();
       await tester.pumpWidget(const JanggigoApp());
       await _pumpFor(tester);
 
       fakes.configs.serviceNotice = notice;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('오늘 밤 점검합니다'), findsOneWidget);
       await _tap(tester, _inDialog('확인'));
 
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('오늘 밤 점검합니다'), findsNothing);
+    });
 
-      fakes.configs.serviceNotice = const ServiceNotice(
-        messageKo: '점검을 미룹니다',
-        messageEn: 'Maintenance delayed',
-        gamesBlocked: false,
-      );
-      fakes.configs.emitConfig();
+    testWidgets('켜져 있는 앱은 설정이 바뀌어도 화면이 그대로다', (tester) async {
+      _useView(tester);
+      final fakes = setUpFakeApp();
+      await tester.pumpWidget(const JanggigoApp());
       await _pumpFor(tester);
-      expect(find.text('점검을 미룹니다'), findsOneWidget);
+
+      fakes.configs.serviceNotice = notice;
+      fakes.configs.minAppVersion = '99.0.0';
+      fakes.configs.chatEnabled = false;
+      await _pumpFor(tester);
+
+      expect(find.text('오늘 밤 점검합니다'), findsNothing);
+      expect(find.text('새 버전으로 업데이트해 주세요'), findsNothing);
+      expect(managers.appConfigManager.chatEnabled, isTrue);
     });
 
     testWidgets('대국 중이면 끝난 뒤 띄운다', (tester) async {
@@ -402,7 +410,7 @@ void main() {
       await _pumpFor(tester);
 
       fakes.configs.serviceNotice = notice;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
       expect(find.text('오늘 밤 점검합니다'), findsNothing);
 
@@ -419,7 +427,7 @@ void main() {
       await _pumpFor(tester);
 
       fakes.configs.serviceNotice = notice;
-      fakes.configs.emitConfig();
+      managers.appConfigManager.reloadForStart();
       await _pumpFor(tester);
 
       expect(find.text('Maintenance tonight'), findsOneWidget);
