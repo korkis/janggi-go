@@ -10,10 +10,12 @@ import {Inventory, Purchase} from "../src/models/store";
 import {setAppConfig} from "../src/repositories/configsRepository";
 import * as firestoreRepository from "../src/repositories/firestore";
 import {revenueCatWebhook} from "../src/webhooks/revenueCatWebhook";
-import {TEST_PROJECT_ID} from "./testEnv";
+import {TEST_PROJECT_ID, callConcurrently} from "./testEnv";
 
 // defineSecret("REVENUECAT_WEBHOOK_AUTH").value()가 읽는 값.
 const WEBHOOK_AUTH = "test-webhook-auth";
+// 200이 아니면 RevenueCat이 다시 보내는 횟수(src/webhooks/revenueCatWebhook.ts).
+const WEBHOOK_RESENDS = 5;
 process.env.REVENUECAT_WEBHOOK_AUTH = WEBHOOK_AUTH;
 
 const fft = functionsTest({projectId: TEST_PROJECT_ID});
@@ -45,6 +47,18 @@ async function postWebhook(
   };
   const request = {method, headers: {authorization}, body: {api_version: "1.0", event}};
   await (revenueCatWebhook as unknown as (req: unknown, res: unknown) => Promise<void>)(request, response);
+  return status;
+}
+
+/**
+ * 500이면 RevenueCat처럼 다시 보낸다. 동시에 받은 웹훅은 에뮬레이터의 닫힌 트랜잭션 오류(test/testEnv.ts의 retryOnClosedTransaction)로
+ * 500이 될 수 있다.
+ */
+async function postWebhookWithResends(event: Record<string, unknown>): Promise<number> {
+  let status = await postWebhook(event);
+  for (let resend = 0; status === 500 && resend < WEBHOOK_RESENDS; resend++) {
+    status = await postWebhook(event);
+  }
   return status;
 }
 
@@ -261,13 +275,14 @@ describe("충전", () => {
   });
 
   test("같은 영수증은 다시 와도, 동시에 와도 한 번만 준다", async () => {
-    const statuses = await Promise.all(Array.from({length: 4}, () => postWebhook(purchaseEvent("coins_300", "T1"))));
+    const post = () => postWebhookWithResends(purchaseEvent("coins_300", "T1"));
+    const statuses = await callConcurrently([post, post, post, post]);
     expect(statuses).toEqual([200, 200, 200, 200]);
     expect(await postWebhook(purchaseEvent("coins_300", "T1"))).toBe(200);
 
     expect((await getWallet("u1")).paidCoins).toBe(300);
     await expectLedgerConsistent("u1");
-  }, 60000); // 에뮬레이터는 같은 문서를 여러 트랜잭션이 잡으면 잠금이 풀리기를 기다려 오래 걸린다.
+  });
 
   test("같은 영수증이 다른 계정으로 와도 다시 주지 않는다", async () => {
     await wrappedCreateProfile(callAs("u2", {nickname: "장기신"}));
@@ -366,12 +381,13 @@ describe("충전 환불", () => {
 
   test("같은 환불은 다시 와도, 동시에 와도 한 번만 뺀다", async () => {
     await postWebhook(purchaseEvent("coins_1100", "T1"));
-    await Promise.all(Array.from({length: 3}, () => postWebhook(refundEvent("coins_1100", "T1"))));
+    const post = () => postWebhookWithResends(refundEvent("coins_1100", "T1"));
+    expect(await callConcurrently([post, post, post])).toEqual([200, 200, 200]);
     await postWebhook(refundEvent("coins_1100", "T1"));
 
     expect((await getWallet("u1")).paidCoins).toBe(0);
     await expectLedgerConsistent("u1");
-  }, 60000);
+  });
 
   test("환불이 구매보다 먼저 오면 뒤에 온 구매를 지급하지 않는다", async () => {
     expect(await postWebhook(refundEvent("coins_300", "T1"))).toBe(200);

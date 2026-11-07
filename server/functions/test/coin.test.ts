@@ -11,7 +11,7 @@ import {INITIAL_APP_CONFIG} from "../src/models/appConfig";
 import {CoinReason, CoinTransaction, CoinWallet} from "../src/models/coin";
 import {setAppConfig} from "../src/repositories/configsRepository";
 import {getCoinDay} from "../src/services/coinService";
-import {TEST_PROJECT_ID} from "./testEnv";
+import {TEST_PROJECT_ID, callConcurrently} from "./testEnv";
 
 const fft = functionsTest({projectId: TEST_PROJECT_ID});
 initializeApp({projectId: TEST_PROJECT_ID});
@@ -120,7 +120,8 @@ describe("가입", () => {
   });
 
   test("다시 불러도 동시에 불러도 한 번만 준다", async () => {
-    await Promise.all(Array.from({length: 4}, (): unknown => wrappedCreateProfile(callAs("u1", {nickname: "장기왕"}))));
+    const create = (): unknown => wrappedCreateProfile(callAs("u1", {nickname: "장기왕"}));
+    await callConcurrently([create, create, create, create]);
     await wrappedCreateProfile(callAs("u1", {nickname: "장기왕"}));
 
     expect((await getWallet("u1")).balance).toBe(300);
@@ -148,7 +149,8 @@ describe("출석", () => {
   });
 
   test("동시에 불러도 한 번만 준다", async () => {
-    const results = await Promise.all(Array.from({length: 5}, () => wrappedClaimAttendance(callAs("u1"))));
+    const claim = () => wrappedClaimAttendance(callAs("u1"));
+    const results = await callConcurrently([claim, claim, claim, claim, claim]);
 
     expect(results.filter((result) => result.granted)).toHaveLength(1);
     expect((await getWallet("u1")).balance).toBe(330);
@@ -255,16 +257,13 @@ describe("닉네임 유료 변경", () => {
   test("응답을 못 받고 다시 불러도 동시에 불러도 한 번만 낸다", async () => {
     await prepareUser({freeCoins: 1000});
 
-    await Promise.all(
-      Array.from({length: 3}, (): unknown =>
-        wrappedChangeNickname(callAs("u1", {nickname: "장기귀신", coinCost: COST})),
-      ),
-    );
-    await wrappedChangeNickname(callAs("u1", {nickname: "장기귀신", coinCost: COST}));
+    const change = (): unknown => wrappedChangeNickname(callAs("u1", {nickname: "장기귀신", coinCost: COST}));
+    await callConcurrently([change, change, change]);
+    await change();
 
     expect((await getWallet("u1")).balance).toBe(700);
     expect((await db.doc("users_private/u1").get()).data()?.nicknameChangeCount).toBe(2);
-  }, 60000); // 에뮬레이터는 같은 문서를 여러 트랜잭션이 잡으면 잠금이 풀리기를 기다려 오래 걸린다.
+  });
 
   test("coinCost가 잘못된 값이면 invalid-argument", async () => {
     await prepareUser({freeCoins: 1000});
@@ -281,12 +280,13 @@ describe("출석과 닉네임 변경이 한꺼번에 오면", () => {
     await wrappedChangeNickname(callAs("u1", {nickname: "장기신"}));
     await db.doc("users_private/u1").update({nicknameChangedAt: Timestamp.fromDate(new Date("2026-01-01T00:00:00Z"))});
 
-    const nicknameChange: unknown = wrappedChangeNickname(callAs("u1", {nickname: "장기귀신", coinCost: COST}));
-    await Promise.all([wrappedClaimAttendance(callAs("u1")), nicknameChange, wrappedClaimAttendance(callAs("u1"))]);
+    const change = (): unknown => wrappedChangeNickname(callAs("u1", {nickname: "장기귀신", coinCost: COST}));
+    const claim = (): unknown => wrappedClaimAttendance(callAs("u1"));
+    await callConcurrently([claim, change, claim]);
 
     expect((await getWallet("u1")).balance).toBe(30);
     await expectLedgerConsistent("u1");
-  }, 60000);
+  });
 });
 
 describe("adminGetCoinStats", () => {
